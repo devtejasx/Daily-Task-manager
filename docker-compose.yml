@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7
+    container_name: task-manager-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: task-manager
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - task-manager
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: task-manager-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - task-manager
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    container_name: task-manager-backend
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/task-manager
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your_jwt_secret_change_in_production
+      - FRONTEND_URL=http://localhost:3000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./backend/src:/app/src
+    networks:
+      - task-manager
+
+  # Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    container_name: task-manager-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - task-manager
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  task-manager:
+    driver: bridge
