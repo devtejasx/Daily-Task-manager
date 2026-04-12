@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express'
 import { auth } from '../middleware/auth'
 import { TeamService } from '../services/TeamService'
+import { User } from '../models/User'
 
 const router = express.Router()
 const teamService = new TeamService()
@@ -40,6 +41,63 @@ router.get('/', auth, async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: teams,
+    })
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * GET /api/teams/invitations
+ * Get pending invitations for current user
+ */
+router.get('/invitations', auth, async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById(req.userId)
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' })
+    }
+
+    const invitations = await teamService.getPendingInvitations(user.email)
+
+    res.json({
+      success: true,
+      data: invitations,
+    })
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * POST /api/teams/invitations/:id/accept
+ * Accept team invitation
+ */
+router.post('/invitations/:id/accept', auth, async (req: Request, res: Response) => {
+  try {
+    const team = await teamService.acceptInvitation(req.params.id, req.userId as string)
+
+    res.json({
+      success: true,
+      data: team,
+      message: 'Invitation accepted',
+    })
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * POST /api/teams/invitations/:id/decline
+ * Decline a team invitation
+ */
+router.post('/invitations/:id/decline', auth, async (req: Request, res: Response) => {
+  try {
+    await teamService.declineInvitation(req.params.id)
+
+    res.json({
+      success: true,
+      message: 'Invitation declined',
     })
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message })
@@ -119,24 +177,6 @@ router.post('/:id/invite', auth, async (req: Request, res: Response) => {
       success: false,
       error: error.message,
     })
-  }
-})
-
-/**
- * POST /api/teams/invitations/:id/accept
- * Accept team invitation
- */
-router.post('/invitations/:id/accept', auth, async (req: Request, res: Response) => {
-  try {
-    const team = await teamService.acceptInvitation(req.params.id, req.userId as string)
-
-    res.json({
-      success: true,
-      data: team,
-      message: 'Invitation accepted',
-    })
-  } catch (error: any) {
-    res.status(400).json({ success: false, error: error.message })
   }
 })
 

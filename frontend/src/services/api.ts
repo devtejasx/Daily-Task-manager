@@ -184,6 +184,14 @@ class ApiClient {
     return this.client.get(`/teams/${teamId}/activity`)
   }
 
+  async getPendingInvitations() {
+    return this.client.get('/teams/invitations')
+  }
+
+  async declineTeamInvitation(invitationId: string) {
+    return this.client.post(`/teams/invitations/${invitationId}/decline`)
+  }
+
   // Habit endpoints
   async createHabit(habitData: any) {
     return this.client.post('/habits', habitData)

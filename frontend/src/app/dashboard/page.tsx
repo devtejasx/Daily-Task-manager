@@ -4,12 +4,16 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useTasks } from '@/hooks/useTasks'
+import { useAnalytics } from '@/hooks/useAnalytics'
 import { motion } from 'framer-motion'
-import { BarChart3, TrendingUp, Award } from 'lucide-react'
+import { BarChart3, TrendingUp, Award, Calendar, CheckCircle2, zap } from 'lucide-react'
 import { TaskCard } from '@/components/TaskCard'
 import { XPCounter } from '@/components/XPCounter'
 import { StreakCounter } from '@/components/StreakCounter'
 import { LevelProgress } from '@/components/LevelProgress'
+import { CategoryChart } from '@/components/charts/CategoryChart'
+import { PriorityChart } from '@/components/charts/PriorityChart'
+import { CompletionChart } from '@/components/charts/CompletionChart'
 import { apiClient } from '@/services/api'
 
 interface GameStats {
@@ -27,8 +31,10 @@ export default function Dashboard() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading } = useAuth()
   const { tasks, fetchTasks, completeTaskItem } = useTasks()
+  const { productivityMetrics, dashboardStats, dailyCompletion, categoryBreakdown, priorityBreakdown, fetchAllAnalytics } = useAnalytics()
   const [gameStats, setGameStats] = useState<GameStats | null>(null)
   const [gameLoading, setGameLoading] = useState(true)
+  const [analyticsLoading, setAnalyticsLoading] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -40,6 +46,7 @@ export default function Dashboard() {
     if (isAuthenticated) {
       fetchTasks()
       fetchGameStats()
+      fetchAnalytics()
     }
   }, [isAuthenticated])
 
@@ -52,6 +59,17 @@ export default function Dashboard() {
       console.error('Failed to fetch game stats:', error)
     } finally {
       setGameLoading(false)
+    }
+  }
+
+  const fetchAnalytics = async () => {
+    try {
+      setAnalyticsLoading(true)
+      await fetchAllAnalytics()
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error)
+    } finally {
+      setAnalyticsLoading(false)
     }
   }
 
@@ -174,6 +192,128 @@ export default function Dashboard() {
           )
         })}
       </div>
+
+      {/* Analytics Metrics Section */}
+      {productivityMetrics && !analyticsLoading && (
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-8"
+        >
+          <h2 className="text-2xl font-bold mb-6">Productivity Metrics</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            {[
+              {
+                icon: CheckCircle2,
+                label: 'Completion Rate',
+                value: `${productivityMetrics.completionRate}%`,
+                color: 'from-green-500 to-emerald-500',
+              },
+              {
+                icon: TrendingUp,
+                label: 'On-Time Rate',
+                value: `${productivityMetrics.onTimeRate}%`,
+                color: 'from-blue-500 to-cyan-500',
+              },
+              {
+                icon: zap,
+                label: 'Consistency Score',
+                value: `${productivityMetrics.consistencyScore}%`,
+                color: 'from-yellow-500 to-orange-500',
+              },
+              {
+                icon: Calendar,
+                label: 'Peak Productivity Hour',
+                value: `${productivityMetrics.peakProductivityHour}:00`,
+                color: 'from-purple-500 to-pink-500',
+              },
+            ].map((metric, i) => {
+              const Icon = metric.icon
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 + i * 0.1 }}
+                  className={`p-6 rounded-lg bg-gradient-to-br ${metric.color} text-white shadow-lg`}
+                >
+                  <Icon size={20} className="mb-2 opacity-80" />
+                  <p className="text-sm opacity-80">{metric.label}</p>
+                  <p className="text-2xl font-bold">{metric.value}</p>
+                </motion.div>
+              )
+            })}
+          </div>
+        </motion.section>
+      )}
+
+      {/* Charts Section */}
+      {!analyticsLoading && categoryBreakdown && priorityBreakdown && dailyCompletion && (
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mb-8"
+        >
+          <h2 className="text-2xl font-bold mb-6">Analytics & Insights</h2>
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Category Breakdown */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6 }}
+              className="p-6 bg-gray-900/50 border border-gray-700/50 rounded-lg"
+            >
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <BarChart3 size={20} />
+                Tasks by Category
+              </h3>
+              {categoryBreakdown.length > 0 ? (
+                <CategoryChart data={categoryBreakdown} height={300} />
+              ) : (
+                <p className="text-gray-400 text-center py-8">No category data available</p>
+              )}
+            </motion.div>
+
+            {/* Priority Breakdown */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.65 }}
+              className="p-6 bg-gray-900/50 border border-gray-700/50 rounded-lg"
+            >
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <TrendingUp size={20} />
+                Tasks by Priority
+              </h3>
+              {priorityBreakdown.length > 0 ? (
+                <PriorityChart data={priorityBreakdown} height={300} />
+              ) : (
+                <p className="text-gray-400 text-center py-8">No priority data available</p>
+              )}
+            </motion.div>
+          </div>
+
+          {/* Daily Completion Trend */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.7 }}
+            className="mt-6 p-6 bg-gray-900/50 border border-gray-700/50 rounded-lg"
+          >
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Calendar size={20} />
+              Daily Completion Trend (Last 30 Days)
+            </h3>
+            {Object.keys(dailyCompletion).length > 0 ? (
+              <CompletionChart data={dailyCompletion} height={300} />
+            ) : (
+              <p className="text-gray-400 text-center py-8">No completion data available</p>
+            )}
+          </motion.div>
+        </motion.section>
+      )}
 
       {/* Tasks Section */}
       <motion.section

@@ -2,9 +2,15 @@ import { Team, ITeam } from '../models/Team'
 import { TeamInvitation } from '../models/TeamInvitation'
 import { User } from '../models/User'
 import { ActivityLog } from '../models/ActivityLog'
+import { EmailService } from './EmailService'
 import mongoose from 'mongoose'
 
 export class TeamService {
+  private emailService: EmailService
+
+  constructor() {
+    this.emailService = new EmailService()
+  }
   /**
    * Create a new team
    */
@@ -97,6 +103,21 @@ export class TeamService {
     })
 
     await invitation.save()
+
+    // Get inviter details for email
+    const inviter = await User.findById(invitedById)
+    if (inviter) {
+      // Send invitation email
+      const appUrl = process.env.APP_URL || 'http://localhost:3000'
+      await this.emailService.sendTeamInvitation({
+        invitedEmail: invitedEmail.toLowerCase(),
+        teamName: team.name,
+        teamDescription: team.description,
+        invitedByName: inviter.name,
+        acceptUrl: `${appUrl}/teams/invitations/${invitation._id}/accept`,
+        declineUrl: `${appUrl}/teams/invitations/${invitation._id}/decline`,
+      })
+    }
   }
 
   /**
@@ -127,6 +148,16 @@ export class TeamService {
     await invitation.save()
 
     await this.logActivity(userId, team._id.toString(), 'joined', 'team', team._id.toString())
+
+    // Send acceptance notification to inviter
+    const inviter = await User.findById(invitation.invitedById)
+    if (inviter && user) {
+      await this.emailService.sendInvitationAcceptedConfirmation(
+        inviter.email,
+        user.name,
+        team.name
+      )
+    }
 
     return team
   }
@@ -216,6 +247,23 @@ export class TeamService {
       .sort({ timestamp: -1 })
       .limit(limit)
       .populate('userId', 'name email')
+  }
+
+  /**
+   * Get pending invitations for a user
+   */
+  async getPendingInvitations(userEmail: string) {
+    return TeamInvitation.find({ invitedEmail: userEmail, status: 'pending' })
+      .populate('teamId', 'name description')
+      .populate('invitedById', 'name email')
+      .sort({ createdAt: -1 })
+  }
+
+  /**
+   * Decline a team invitation
+   */
+  async declineInvitation(invitationId: string): Promise<void> {
+    await TeamInvitation.findByIdAndUpdate(invitationId, { status: 'declined' }, { new: true })
   }
 
   /**
