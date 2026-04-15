@@ -1,6 +1,20 @@
 import mongoose, { Schema, Document } from 'mongoose'
 import { TaskStatus, TaskPriority, TaskDifficulty, RecurrenceType } from '../types'
 
+// Subtask interface
+export interface ISubtask {
+  _id: mongoose.Types.ObjectId
+  title: string
+  description?: string
+  completed: boolean
+  completedAt?: Date
+  estimatedTime?: number // in minutes
+  actualTime?: number // in minutes
+  order: number // for ordering subtasks
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface ITaskDocument extends Document {
   title: string
   description?: string
@@ -44,6 +58,7 @@ export interface ITaskDocument extends Document {
   completedAt?: Date
   timeSpent: number
   completionPercentage: number
+  subtasks: ISubtask[]
 }
 
 const attachmentSchema = new Schema({
@@ -67,6 +82,18 @@ const recurrenceSchema = new Schema({
   daysOfWeek: [Number],
   endDate: Date,
   occurrences: Number,
+})
+
+const subtaskSchema = new Schema({
+  title: { type: String, required: true },
+  description: String,
+  completed: { type: Boolean, default: false },
+  completedAt: Date,
+  estimatedTime: Number,
+  actualTime: Number,
+  order: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 })
 
 const taskSchema = new Schema<ITaskDocument>(
@@ -107,6 +134,7 @@ const taskSchema = new Schema<ITaskDocument>(
     completedAt: Date,
     timeSpent: { type: Number, default: 0 },
     completionPercentage: { type: Number, default: 0 },
+    subtasks: [subtaskSchema],
   },
   { timestamps: true }
 )

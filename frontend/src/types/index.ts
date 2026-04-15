@@ -94,6 +94,19 @@ export interface ICollaborator {
   joinedAt: Date
 }
 
+export interface ISubtask {
+  _id: string
+  title: string
+  description?: string
+  completed: boolean
+  completedAt?: Date
+  estimatedTime?: number // in minutes
+  actualTime?: number // in minutes
+  order: number
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface ITask {
   id: string
   title: string
@@ -131,6 +144,7 @@ export interface ITask {
   suggestedPriority?: TaskPriority
   aiSuggestions?: string[]
   estimatedCompletionTime?: number
+  subtasks?: ISubtask[]
 }
 
 export interface IUser {

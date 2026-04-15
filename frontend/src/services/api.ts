@@ -232,5 +232,22 @@ class ApiClient {
   async checkHabitStreaks() {
     return this.client.post('/habits/check-streaks')
   }
+
+  // Subtask endpoints
+  async createSubtask(taskId: string, subtask: any) {
+    return this.client.post(`/tasks/${taskId}/subtasks`, subtask)
+  }
+
+  async updateSubtask(taskId: string, subtaskId: string, updates: any) {
+    return this.client.put(`/tasks/${taskId}/subtasks/${subtaskId}`, updates)
+  }
+
+  async deleteSubtask(taskId: string, subtaskId: string) {
+    return this.client.delete(`/tasks/${taskId}/subtasks/${subtaskId}`)
+  }
+
+  async reorderSubtasks(taskId: string, subtaskIds: string[]) {
+    return this.client.patch(`/tasks/${taskId}/subtasks/reorder`, { subtaskIds })
+  }
 }
 
