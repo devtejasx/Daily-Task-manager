@@ -53,30 +53,50 @@ export class TaskService {
     return !!result
   }
 
-  async completeTask(taskId: string): Promise<{ task: ITaskDocument; xpAwarded: number; leveledUp: boolean; newLevel: number }> {
+  async completeTask(taskId: string, userId: string): Promise<{ task: ITaskDocument; xpAwarded: number; leveledUp: boolean; newLevel: number; streak: number }> {
     const task = await Task.findById(taskId)
     if (!task) throw new Error('Task not found')
+    
+    // Authorization check
+    if (task.userId.toString() !== userId) {
+      throw new Error('Not authorized')
+    }
 
+    // If task has subtasks, ensure all are done
+    if (task.subtasks && task.subtasks.length > 0) {
+      const allDone = task.subtasks.every((s: any) => s.completed)
+      if (!allDone) {
+        throw new Error('Cannot complete task with incomplete subtasks')
+      }
+    }
+
+    // Mark as completed
     task.status = 'Completed'
     task.completedAt = new Date()
     task.completionPercentage = 100
 
     // Calculate XP reward
     const xpReward = this.gamificationService.calculateXP(task)
-    const totalXP =
+    const baseXPCalculation =
       xpReward.baseXP * xpReward.priorityMultiplier * xpReward.difficultyMultiplier +
       (xpReward.baseXP * xpReward.priorityMultiplier * xpReward.difficultyMultiplier * xpReward.onTimeBonus) /
         100 +
       (xpReward.baseXP * xpReward.priorityMultiplier * xpReward.difficultyMultiplier * xpReward.timeBonus) / 100
 
+    // Calculate XP with subtask bonus
+    // - Base XP (with priority and difficulty multipliers)
+    // - Subtask count bonus (50 XP per subtask)
+    const subtaskBonus = task.subtasks ? task.subtasks.length * 50 : 0
+    const totalXP = baseXPCalculation + subtaskBonus
+
     // Award XP and handle level-up
-    const result = await this.gamificationService.awardXP(task.userId.toString(), Math.floor(totalXP))
+    const result = await this.gamificationService.awardXP(userId, Math.floor(totalXP))
 
     // Update streak
-    await this.gamificationService.updateStreak(task.userId.toString())
+    const streakResult = await this.gamificationService.updateStreak(userId)
 
     // Increment completed tasks
-    const user = await User.findById(task.userId)
+    const user = await User.findById(userId)
     if (user) {
       user.completedTasks += 1
       await user.save()
@@ -89,6 +109,7 @@ export class TaskService {
       xpAwarded: Math.floor(totalXP),
       leveledUp: result.leveledUp,
       newLevel: result.newLevel,
+      streak: streakResult?.streak || 0,
     }
   }
 
