@@ -249,5 +249,32 @@ class ApiClient {
   async reorderSubtasks(taskId: string, subtaskIds: string[]) {
     return this.client.patch(`/tasks/${taskId}/subtasks/reorder`, { subtaskIds })
   }
+
+  // Timer endpoints
+  async startTimer(taskId: string, focusMode: boolean = false) {
+    return this.client.post(`/timer/start/${taskId}`, { focusMode })
+  }
+
+  async stopTimer(sessionId: string) {
+    return this.client.post(`/timer/stop/${sessionId}`)
+  }
+
+  async pauseTimer(sessionId: string, isPaused: boolean) {
+    return this.client.patch(`/timer/pause/${sessionId}`, { isPaused })
+  }
+
+  async getTimerHistory(taskId: string) {
+    return this.client.get(`/timer/history/${taskId}`)
+  }
+
+  async getDailyTimerStats() {
+    return this.client.get('/timer/stats/daily')
+  }
+
+  async getWeeklyTimerStats() {
+    return this.client.get('/timer/stats/weekly')
+  }
 }
 
+export const api = new ApiClient()
+export default api
