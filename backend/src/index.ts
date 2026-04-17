@@ -13,6 +13,7 @@ import teamRoutes from './routes/teams'
 import habitRoutes from './routes/habits'
 import voiceRoutes from './routes/voice'
 import aiRoutes from './routes/ai'
+import timerRoutes from './routes/timer'
 
 dotenv.config()
 
@@ -45,6 +46,7 @@ app.use('/api/teams', teamRoutes)
 app.use('/api/habits', habitRoutes)
 app.use('/api/voice', voiceRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/timer', timerRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {
