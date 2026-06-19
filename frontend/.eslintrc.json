@@ -1,0 +1,4 @@
+# Linting
+{
+  "extends": "next/core-web-vitals"
+}

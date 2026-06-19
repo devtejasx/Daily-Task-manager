@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "Task Manager - Timer API",
+    "description": "Pomodoro Timer & Duration Tracking API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Timer Endpoints",
+      "item": [
+        {
+          "name": "Start Timer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_JWT_TOKEN_HERE",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"focusMode\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/timer/start/TASK_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "timer", "start", "TASK_ID_HERE"]
+            },
+            "description": "Start a new timer session for a task. Auto-stops any existing timer."
+          }
+        },
+        {
+          "name": "Stop Timer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_JWT_TOKEN_HERE",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/timer/stop/SESSION_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "timer", "stop", "SESSION_ID_HERE"]
+            },
+            "description": "Stop the timer and calculate duration. Updates task.timeSpent."
+          }
+        },
+        {
+          "name": "Pause Timer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_JWT_TOKEN_HERE",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isPaused\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/timer/pause/SESSION_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "timer", "pause", "SESSION_ID_HERE"]
+            },
+            "description": "Pause (isPaused: true) or Resume (isPaused: false) a timer."
+          }
+        },
+        {
+          "name": "Resume Timer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_JWT_TOKEN_HERE",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isPaused\": false\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/timer/pause/SESSION_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "timer", "pause", "SESSION_ID_HERE"]
+            },
+            "description": "Resume a paused timer."
+          }
+        },
+        {
+          "name": "Get Task History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_JWT_TOKEN_HERE",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/timer/history/TASK_ID_HERE",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "timer", "history", "TASK_ID_HERE"]
+            },
+            "description": "Get all timer sessions for a specific task with aggregated statistics."
+          }
+        },
+        {
+          "name": "Daily Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_JWT_TOKEN_HERE",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/timer/stats/daily",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "timer", "stats", "daily"]
+            },
+            "description": "Get today's time tracking statistics including total time, sessions, and focus sessions."
+          }
+        },
+        {
+          "name": "Weekly Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_JWT_TOKEN_HERE",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/timer/stats/weekly",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "timer", "stats", "weekly"]
+            },
+            "description": "Get last 7 days of time tracking statistics grouped by day."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup Instructions",
+      "item": [
+        {
+          "name": "1. Get JWT Token (Login)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"your_email@example.com\",\n  \"password\": \"your_password\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "auth", "login"]
+            },
+            "description": "1. Login to get JWT token. Copy token from response."
+          }
+        },
+        {
+          "name": "2. Get Your Tasks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer YOUR_JWT_TOKEN_HERE",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/tasks",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "tasks"]
+            },
+            "description": "2. Get list of tasks. Copy a task ID from response."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "jwt_token",
+      "value": "YOUR_JWT_TOKEN_HERE"
+    },
+    {
+      "key": "task_id",
+      "value": "TASK_ID_HERE"
+    },
+    {
+      "key": "session_id",
+      "value": "SESSION_ID_HERE"
+    }
+  ]
+}
