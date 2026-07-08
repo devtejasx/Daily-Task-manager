@@ -1,618 +1,355 @@
 # TaskMaster - Modern Task Manager Application
 
-## 🚀 Overview
+![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
-TaskMaster is a comprehensive, production-ready task management application combining gamification, AI insights, team collaboration, and seamless cloud synchronization. Built with modern technologies for optimal performance and user experience.
+A full-stack task management application with gamification, real-time updates, team collaboration, and analytics. Built as an npm workspaces monorepo with a Next.js frontend and an Express/MongoDB backend.
 
-### Key Features
+## Table of Contents
 
-✅ **Core Task Management** - Create, organize, filter, search, and track tasks
-✅ **Gamification System** - XP, levels, achievements, streaks, leaderboards  
-✅ **Real-time Sync** - Multi-device synchronization with offline support
-✅ **Smart Reminders** - Intelligent notification system with multiple channels
-✅ **Team Collaboration** - Share tasks, assign work, real-time updates
-✅ **Analytics & Insights** - AI-powered productivity analysis
-✅ **Dark Mode & Themes** - Customizable UI with multiple themes
-✅ **Recurring Tasks** - Smart recurrence patterns and habit tracking
-✅ **Rich Editor** - Support for notes, attachments, and comments
-✅ **Mobile Responsive** - Beautiful design on all devices
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture Overview](#architecture-overview)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration-environment-variables)
+- [Running Locally](#running-locally)
+- [Running with Docker](#running-with-docker)
+- [Build](#build)
+- [Testing](#testing)
+- [API Documentation](#api-documentation)
+- [Gamification System](#gamification-system)
+- [Deployment](#deployment)
+- [CI/CD](#cicd)
+- [Security Considerations](#security-considerations)
+- [Troubleshooting](#troubleshooting)
+- [Known Issues / Inconsistencies](#known-issues--inconsistencies)
+- [Contributing](#contributing)
+- [License](#license)
 
----
+## Features
 
-## 📊 Project Status - Phase 5: Complete Implementation
+Based on the routes and services actually wired into the backend (`backend/src/index.ts`):
 
-**Current Phase:** Phase 5 (Complete Implementation Documentation)  
-**Timeline:** 16 weeks (4 phases)  
-**Status:** 🟢 Ready for Development
+- **Task management** — create, update, complete, delete, filter, and search tasks (`routes/tasks.ts`)
+- **Gamification** — XP, levels, achievements, streaks (`routes/gamification.ts`, `services/GamificationService.ts`, `AchievementService.ts`)
+- **Habit tracking** — recurring habits with streak stats (`routes/habits.ts`, `services/HabitService.ts`)
+- **Team collaboration** — teams and invitations (`routes/teams.ts`, `services/TeamService.ts`)
+- **Analytics** — productivity/completion analytics (`routes/analytics.ts`, `services/AnalyticsService.ts`)
+- **Pomodoro-style timer** — timed work sessions (`routes/timer.ts`, `components/Timer.tsx`, `TimerWidget.tsx`)
+- **AI suggestions** — task suggestions endpoint (`routes/ai.ts`, `services/AISuggestionsService.ts`)
+- **Voice input** — voice-to-task processing (`routes/voice.ts`, `services/VoiceService.ts`)
+- **Real-time updates** — Socket.io-based WebSocket server (`websocket/WebSocketServer.ts`)
+- **Email notifications** — via SendGrid/Gmail/Ethereal depending on `EMAIL_PROVIDER` (`services/EmailService.ts`)
+- **Dashboard, calendar, analytics charts** in the Next.js frontend (`frontend/src/app/*`, `components/charts/*`)
 
-### Implementation Phases
+## Tech Stack
 
-| Phase | Timeline | Status | Description |
-|-------|----------|--------|-------------|
-| **Phase 1: MVP** | Weeks 1-4 | 📋 Ready | Core CRUD, categories, dashboard, calendar, sync |
-| **Phase 2: Enhanced** | Weeks 5-8 | 📋 Ready | Gamification, reminders, offline, dark mode, search |
-| **Phase 3: Advanced** | Weeks 9-12 | 📋 Ready | AI suggestions, teams, voice, accessibility, habits |
-| **Phase 4: Launch** | Weeks 13-16 | 📋 Ready | Testing, security, deployment, public launch |
+### Frontend (`frontend/`)
+- React 18, Next.js 14 (App Router), TypeScript
+- Tailwind CSS, Framer Motion
+- Zustand (state), TanStack React Query (data fetching)
+- React Hook Form + Zod (forms/validation)
+- Recharts, `react-big-calendar`
+- Socket.io-client
 
-### Documentation Complete ✅
+### Backend (`backend/`)
+- Node.js, Express, TypeScript (`tsx` for dev, compiled with `tsc`)
+- MongoDB via Mongoose
+- Redis (`services/cache.service.ts`)
+- JWT auth (`jsonwebtoken`, `bcryptjs`)
+- Socket.io (WebSocket server)
+- Bull (job queue), Multer (uploads), AWS SDK (S3), Nodemailer
+- Stripe SDK is a dependency and `services/payment.service.ts` exists, but **no route currently exposes it** — see [Known Issues](#known-issues--inconsistencies)
 
-- ✅ [PHASE_5_DETAILED_ROADMAP.md](./PHASE_5_DETAILED_ROADMAP.md) - Week-by-week breakdown (150+ tasks)
-- ✅ [TECHNICAL_ARCHITECTURE_GUIDE.md](./TECHNICAL_ARCHITECTURE_GUIDE.md) - Full system architecture
-- ✅ [FEATURE_IMPLEMENTATION_CHECKLIST.md](./FEATURE_IMPLEMENTATION_CHECKLIST.md) - 150+ features with priorities
-- ✅ [DEVELOPER_QUICK_REFERENCE.md](./DEVELOPER_QUICK_REFERENCE.md) - Commands & setup
-- ✅ [IMPLEMENTATION_SPECIFICATION.md](./IMPLEMENTATION_SPECIFICATION.md) - Original detailed spec
+### Infrastructure
+- Docker + Docker Compose (MongoDB, Redis, backend, frontend containers)
+- GitHub Actions CI/CD (`.github/workflows/ci-cd.yml`)
+- Netlify config present (`netlify.toml`); CI deploy step targets AWS ECS (backend) and Vercel (frontend)
 
----
+## Architecture Overview
 
-## 📋 Project Structure
+This is an npm-workspaces monorepo with two independently runnable apps that talk over HTTP + WebSocket:
 
 ```
-TASK MANAGER/
-├── frontend/                    # Next.js React App
-│   ├── src/
-│   │   ├── app/                # Next.js App Router
-│   │   ├── components/         # Reusable React components
-│   │   ├── hooks/              # Custom React hooks
-│   │   ├── store/              # Zustand state management
-│   │   ├── services/           # API clients
-│   │   ├── types/              # TypeScript interfaces
-│   │   └── lib/                # Utilities
-│   ├── public/                 # Static assets
-│   ├── package.json
-│   ├── next.config.js
-│   └── tsconfig.json
-│
-├── backend/                     # Express API Server
-│   ├── src/
-│   │   ├── routes/             # API route handlers
-│   │   ├── controllers/        # Business logic
-│   │   ├── services/           # Core services
-│   │   ├── models/             # MongoDB schemas
-│   │   ├── middleware/         # Auth, error handling
-│   │   ├── config/             # Configuration
-│   │   └── utils/              # Helper functions
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── index.ts                # Entry point
-│
-├── docs/                        # Documentation
-├── docker-compose.yml          # Docker configuration
-├── Dockerfile                  # Production Docker
-├── backend.Dockerfile          # Backend Docker
-├── frontend.Dockerfile         # Frontend Docker
-├── package.json               # Root workspace config
-└── README.md                  # This file
+┌─────────────────┐        REST (/api/*)        ┌──────────────────┐
+│  Next.js         │ ───────────────────────────▶│  Express API      │
+│  frontend/       │◀─────────────────────────── │  backend/         │
+│  (port 3000)     │        WebSocket             │  (port 5000)      │
+└─────────────────┘◀───────────────────────────▶└─────────┬────────┘
+                                                            │
+                                          ┌─────────────────┼─────────────────┐
+                                          ▼                 ▼                 ▼
+                                     MongoDB           Redis             AWS S3 / Email
+                                   (Mongoose)        (cache/queue)        (uploads/notify)
 ```
 
----
+- The frontend calls the backend exclusively through `frontend/src/services/api.ts` and `NEXT_PUBLIC_API_URL`.
+- The backend exposes REST routes under `/api/*` plus a raw WebSocket server (`websocket/WebSocketServer.ts`) mounted on the same HTTP server (`backend/src/index.ts`).
+- Auth is stateless JWT, validated in `middleware/auth.ts`; role-based access is enforced in `middleware/rbac.ts` for team endpoints.
 
-## 🛠️ Tech Stack
+## Project Structure
 
-### Frontend
-- **React 18** - UI library
-- **Next.js 14** - React framework with SSR
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
-- **Framer Motion** - Animations
-- **Zustand** - State management
-- **React Query** - Data fetching
-- **React Hook Form** - Form management
-- **Recharts** - Charts & analytics
-- **Socket.io** - Real-time updates
+```
+Daily-Task-manager/
+├── frontend/                   # Next.js app (App Router)
+│   ├── src/app/                 # Routed pages (dashboard, tasks, habits, teams, analytics, login)
+│   ├── src/components/          # UI components (Timer, TaskCard, charts/, etc.)
+│   ├── src/hooks/                # useTasks, useTimer, useTeams, useWebSocket, ...
+│   ├── src/services/api.ts      # Axios client used by all hooks
+│   └── src/store/               # Zustand store
+├── backend/                     # Express API
+│   ├── src/routes/               # auth, tasks, gamification, analytics, teams, habits, voice, ai, timer
+│   ├── src/controllers/          # AuthController, TaskController
+│   ├── src/services/             # Business logic per domain
+│   ├── src/models/               # Mongoose schemas (Task, User, Team, Habit, Notification, ...)
+│   ├── src/middleware/           # auth, rbac, errorHandler, logging, rateLimiting
+│   ├── src/websocket/            # Socket.io server
+│   └── src/__tests__/            # Jest unit + integration tests
+├── docs/                         # Architecture, deployment, install, testing docs
+├── docker-compose.yml            # Mongo + Redis + backend + frontend
+├── backend.Dockerfile / frontend.Dockerfile / Dockerfile
+├── netlify.toml
+├── setup.sh / setup.bat          # Convenience install scripts
+├── deploy.sh / deploy.bat        # Convenience deploy scripts
+└── package.json                  # Root workspace scripts
+```
 
-### Backend
-- **Node.js** - Runtime
-- **Express** - Web framework
-- **TypeScript** - Type safety
-- **MongoDB** - Database
-- **Redis** - Caching & real-time
-- **JWT** - Authentication
-- **Mongoose** - ODM
-- **Multer** - File uploads
-- **Bull** - Job queue
+> Note: this repository also contains a `Daily-Task-manager-main/` subfolder that is a byte-for-byte duplicate of the entire project — see [Known Issues](#known-issues--inconsistencies).
 
-### DevOps & Deployment
-- **Docker** - Containerization
-- **Docker Compose** - Local development
-- **AWS S3** - File storage
-- **Vercel** - Frontend hosting
-- **Heroku/Railway** - Backend hosting
-- **MongoDB Atlas** - Database hosting
+## Prerequisites
 
----
-
-## 🚀 Quick Start
-
-### Prerequisites
 - Node.js 18+
-- MongoDB (local or Atlas)
-- Redis (local or cloud)
-- Docker (optional, for containerization)
+- MongoDB (local instance or Atlas)
+- Redis (local or hosted)
+- Docker + Docker Compose (optional, for containerized setup)
 
-### Local Development Setup
-
-#### 1. Clone and Install
+## Installation
 
 ```bash
-# Navigate to project directory
-cd "TASK MANAGER"
+git clone https://github.com/devtejasx/Daily-Task-manager.git
+cd Daily-Task-manager
 
-# Copy environment variables
+# Copy environment templates
 cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
+cp frontend/.env.example frontend/.env.local
 
-# Install dependencies
+# Install all workspace dependencies (root, frontend, backend)
 npm install
 ```
 
-#### 2. Configure Environment
+## Configuration (Environment Variables)
 
-Edit `backend/.env`:
-```env
-MONGODB_URI=mongodb://localhost:27017/task-manager
-JWT_SECRET=your_development_secret
-NODE_ENV=development
+### `backend/.env` (see `backend/.env.example` for the full list)
+
+| Variable | Purpose | Example |
+|---|---|---|
+| `PORT` | API server port | `5000` |
+| `NODE_ENV` | Environment | `development` |
+| `MONGODB_URI` | Mongo connection string | `mongodb://localhost:27017/task-manager` |
+| `MONGODB_TEST_URI` | Mongo URI used by tests | `mongodb://localhost:27017/task-manager-test` |
+| `JWT_SECRET` / `JWT_EXPIRE` | Auth token signing | — |
+| `REDIS_URL` | Redis connection | `redis://localhost:6379` |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` / `AWS_S3_BUCKET` | File upload storage | — |
+| `EMAIL_PROVIDER` | `gmail`, `sendgrid`, or `development` | `development` |
+| `GMAIL_USER` / `GMAIL_PASSWORD` | Used if `EMAIL_PROVIDER=gmail` | — |
+| `SENDGRID_API_KEY` | Used if `EMAIL_PROVIDER=sendgrid` | — |
+| `ETHEREAL_USER` / `ETHEREAL_PASSWORD` | Dev-mode email testing (ethereal.email) | — |
+| `FRONTEND_URL` / `APP_URL` | CORS origin / links in emails | `http://localhost:3000` |
+
+### `frontend/.env.local` (see `frontend/.env.example`)
+
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend REST base URL, e.g. `http://localhost:5000/api` |
+| `NEXT_PUBLIC_APP_URL` | Public URL of the frontend, e.g. `http://localhost:3000` |
+
+## Running Locally
+
+Start MongoDB and Redis locally (or point `.env` at hosted instances), then:
+
+```bash
+# From the repo root — runs frontend and backend concurrently
+npm run dev
 ```
 
-#### 3. Start Development Servers
+Or run each app in its own terminal:
 
-**Option A: Using Docker Compose (Recommended)**
+```bash
+# Terminal 1 — backend (http://localhost:5000)
+cd backend
+npm install
+npm run dev
+
+# Terminal 2 — frontend (http://localhost:3000)
+cd frontend
+npm install
+npm run dev
+```
+
+Health check: `GET http://localhost:5000/api/health`
+
+## Running with Docker
+
 ```bash
 docker-compose up -d
 ```
 
-Access:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:5000
-- API Docs: http://localhost:5000/api/health
+This starts four containers defined in `docker-compose.yml`:
 
-**Option B: Local Development**
+| Service | Image/Build | Port |
+|---|---|---|
+| `mongodb` | `mongo:7` | `27017` |
+| `redis` | `redis:7-alpine` | `6379` |
+| `backend` | `backend.Dockerfile` | `5000` |
+| `frontend` | `frontend.Dockerfile` | `3000` |
 
-Terminal 1 - Backend:
+## Build
+
 ```bash
-cd backend
-npm install
-npm run dev
-```
-
-Terminal 2 - Frontend:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Terminal 3 - MongoDB (if local):
-```bash
-mongod
-```
-
-### First Steps
-
-1. Visit http://localhost:3000
-2. Click "Get Started Free"
-3. Register new account
-4. Start creating tasks!
-
----
-
-## � Documentation & Implementation Guides
-
-### For Developers Starting Implementation
-
-| Guide | Purpose | Link |
-|-------|---------|------|
-| **Detailed Roadmap** | Week-by-week breakdown of all 16 weeks with specific tasks | [PHASE_5_DETAILED_ROADMAP.md](./PHASE_5_DETAILED_ROADMAP.md) |
-| **Technical Architecture** | Full system design, database schema, API structure | [TECHNICAL_ARCHITECTURE_GUIDE.md](./TECHNICAL_ARCHITECTURE_GUIDE.md) |
-| **Feature Checklist** | 150+ features organized by phase with priorities | [FEATURE_IMPLEMENTATION_CHECKLIST.md](./FEATURE_IMPLEMENTATION_CHECKLIST.md) |
-| **Quick Reference** | Commands, environment setup, debugging tips | [DEVELOPER_QUICK_REFERENCE.md](./DEVELOPER_QUICK_REFERENCE.md) |
-
-### How to Use These Docs
-
-1. **Start Here:** [DEVELOPER_QUICK_REFERENCE.md](./DEVELOPER_QUICK_REFERENCE.md) - Get your environment set up
-2. **Understand Architecture:** [TECHNICAL_ARCHITECTURE_GUIDE.md](./TECHNICAL_ARCHITECTURE_GUIDE.md) - Learn the system design
-3. **Plan Your Sprint:** [PHASE_5_DETAILED_ROADMAP.md](./PHASE_5_DETAILED_ROADMAP.md) - Pick your week's tasks
-4. **Track Features:** [FEATURE_IMPLEMENTATION_CHECKLIST.md](./FEATURE_IMPLEMENTATION_CHECKLIST.md) - Check off completed features
-5. **Reference Commands:** [DEVELOPER_QUICK_REFERENCE.md](./DEVELOPER_QUICK_REFERENCE.md) - Quick lookup for common commands
-
----
-
-## �📚 API Documentation
-
-### Base URL
-`http://localhost:5000/api`
-
-### Authentication
-All protected endpoints require JWT token in Authorization header:
-```
-Authorization: Bearer {token}
-```
-
-### Auth Endpoints
-
-#### Register
-```
-POST /auth/register
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "name": "John Doe",
-  "password": "securepass123"
-}
-
-Response: { token, refreshToken, user }
-```
-
-#### Login
-```
-POST /auth/login
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "password": "securepass123"
-}
-
-Response: { token, refreshToken, user }
-```
-
-#### Get Profile
-```
-GET /auth/profile
-Authorization: Bearer {token}
-
-Response: { user }
-```
-
-### Task Endpoints
-
-#### Create Task
-```
-POST /tasks
-Authorization: Bearer {token}
-Content-Type: application/json
-
-{
-  "title": "Finish project",
-  "description": "Complete the dashboard",
-  "dueDate": "2025-12-31",
-  "dueTime": "14:00",
-  "category": "Work",
-  "priority": "High",
-  "difficulty": "Medium",
-  "estimatedDuration": 120
-}
-
-Response: { task }
-```
-
-#### Get All Tasks
-```
-GET /tasks?status=NotStarted&category=Work&priority=High
-Authorization: Bearer {token}
-
-Response: { tasks }
-```
-
-#### Get Today's Tasks
-```
-GET /tasks/today
-Authorization: Bearer {token}
-
-Response: { tasks }
-```
-
-#### Update Task
-```
-PUT /tasks/{taskId}
-Authorization: Bearer {token}
-
-{
-  "status": "InProgress",
-  "priority": "Critical"
-}
-
-Response: { task }
-```
-
-#### Complete Task
-```
-POST /tasks/{taskId}/complete
-Authorization: Bearer {token}
-
-Response: { task, achievements, xpEarned }
-```
-
-#### Delete Task
-```
-DELETE /tasks/{taskId}
-Authorization: Bearer {token}
-
-Response: { success: true }
-```
-
-#### Search Tasks
-```
-GET /tasks/search?q=project
-Authorization: Bearer {token}
-
-Response: { tasks }
-```
-
----
-
-## 🎮 Gamification System
-
-### XP & Levels
-
-**XP Rewards:**
-- Complete task: 50 XP base
-- On-time completion: +20% bonus
-- Early completion: +10-50% bonus
-- High priority: +50% multiplier
-- Critical priority: +100% multiplier
-
-**Level Progression:**
-```
-Level 1-2: 100 XP
-Level 2-3: 250 XP
-Level 3-4: 450 XP
-Level 4-5: 700 XP
-Level 5-10: 1000 XP each
-Level 10-20: 2000 XP each
-Level 20-50: 5000 XP each
-Level 50+: 10000 XP each
-```
-
-### Achievements
-
-**Completion Badges:**
-- 🎯 Overachiever - 100 tasks
-- 🏆 Perfectionist -50 on-time tasks
-- 🚀 Speedster - 10 tasks completed in 1/4 time
-
-**Consistency Badges:**
-- 📅 First Streak - 7-day streak
-- 🔥 Habitual - 30-day streak
-- 💪 Unstoppable - 100-day streak
-
-**Mastery Badges:**
-- 💼 Work Master - 25 work tasks
-- 💪 Fitness Champion - 25 fitness tasks
-- 📚 Study Guru - 25 study tasks
-
----
-
-## 🔧 Development
-
-### Frontend Development
-
-Create new component:
-```bash
-# Add component file in src/components/
-# Example: src/components/MyComponent.tsx
-```
-
-Create new page:
-```bash
-# Use Next.js App Router in src/app/
-# Example: src/app/my-page/page.tsx
-```
-
-Add custom hook:
-```bash
-# Add to src/hooks/
-# Example: src/hooks/useMyHook.ts
-```
-
-### Backend Development
-
-Add new route:
-```bash
-# 1. Create controller in src/controllers/
-# 2. Create service in src/services/
-# 3. Add route in src/routes/
-# 4. Import in index.ts
-```
-
-Add database model:
-```bash
-# Create in src/models/
-# Export from index.ts
-```
-
-### Building for Production
-
-Frontend:
-```bash
-cd frontend
+# Both workspaces, from the root
 npm run build
-npm start
+
+# Or individually
+cd backend && npm run build   # tsc -> dist/
+cd frontend && npm run build  # next build
 ```
 
-Backend:
+## Testing
+
 ```bash
-cd backend
-npm run build
-npm start
-```
-
----
-
-## 🧪 Testing
-
-### Frontend Tests
-```bash
-cd frontend
-npm test
-npm run test:watch
-```
-
-### Backend Tests
-```bash
+# Backend (Jest + ts-jest)
 cd backend
 npm test
 npm run test:watch
+
+# Frontend (Jest + Testing Library) — declared in package.json,
+# but no jest.config.js currently exists in frontend/, so `npm test` will fail until one is added
+cd frontend
+npm test
 ```
 
-### E2E Tests
+Existing backend test files:
+- `backend/src/__tests__/services/task.service.test.ts`
+- `backend/src/__tests__/api/tasks.integration.test.ts`
+- `backend/src/__tests__/setup.ts`
+
+## API Documentation
+
+Base URL: `http://localhost:5000/api`. Protected routes require `Authorization: Bearer {token}`.
+
+Routes actually mounted in `backend/src/index.ts`:
+
+| Prefix | Router file | Purpose |
+|---|---|---|
+| `/api/auth` | `routes/auth.ts` | Register, login, profile |
+| `/api/tasks` | `routes/tasks.ts` | CRUD, search, complete |
+| `/api/gamification` | `routes/gamification.ts` | XP, levels, achievements |
+| `/api/analytics` | `routes/analytics.ts` | Productivity analytics |
+| `/api/teams` | `routes/teams.ts` | Teams, invitations |
+| `/api/habits` | `routes/habits.ts` | Habit tracking |
+| `/api/voice` | `routes/voice.ts` | Voice-to-task |
+| `/api/ai` | `routes/ai.ts` | AI task suggestions |
+| `/api/timer` | `routes/timer.ts` | Pomodoro timer sessions |
+| `/api/health` | inline in `index.ts` | Liveness check |
+
+Example — register:
 ```bash
-npm run test:e2e
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","name":"John Doe","password":"securepass123"}'
 ```
 
----
-
-## 📦 Deployment
-
-### Frontend (Vercel - Recommended)
-
+Example — create a task:
 ```bash
-# Connect GitHub repo to Vercel
-# Set environment variables in Vercel dashboard
-# Auto-deploys on push to main branch
+curl -X POST http://localhost:5000/api/tasks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Finish project","category":"Work","priority":"High"}'
 ```
 
-### Backend (Heroku)
+`backend/src/routes/subtasks.ts` and `backend/src/routes/aiCoach.ts` exist but are **not imported/mounted** in `index.ts`, so they are currently unreachable — see [Known Issues](#known-issues--inconsistencies).
 
-```bash
-# Install Heroku CLI
-heroku login
+## Gamification System
 
-# Create app
-heroku create task-manager-api
+From `services/GamificationService.ts` and `services/AchievementService.ts`:
 
-# Set environment variables
-heroku config:set MONGODB_URI=your_mongodb_atlas_uri
-heroku config:set JWT_SECRET=your_secret
+- Base XP for completing a task, with bonuses for on-time/early completion and priority multipliers
+- Level thresholds increase progressively (documented in-app via `LevelProgress.tsx`)
+- Achievement badges for completion counts, streaks, and category mastery
 
-# Deploy
-git push heroku main
-```
+## Deployment
 
-### Database (MongoDB Atlas)
+The CI pipeline's `deploy` job (`.github/workflows/ci-cd.yml`) targets:
 
-1. Create account at mongodb.com/cloud/atlas
-2. Create cluster
-3. Get connection string
-4. Add to `.env` as `MONGODB_URI`
+- **Backend** → AWS ECS (`aws ecs update-service --cluster task-manager-prod --service task-manager-backend`)
+- **Frontend** → Vercel (placeholder step; no Vercel CLI/action wired up yet)
+- A `netlify.toml` is also present for an alternative Netlify frontend deployment
+- Database: MongoDB Atlas connection string set via `MONGODB_URI`
+- File storage: AWS S3 via the `AWS_*` variables
 
-### File Storage (AWS S3)
+`deploy.sh` / `deploy.bat` are provided as local convenience scripts.
 
-1. Create S3 bucket
-2. Get access keys
-3. Configure in backend `.env`:
-```env
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=us-east-1
-AWS_S3_BUCKET=task-manager-uploads
-```
+## CI/CD
 
----
+`.github/workflows/ci-cd.yml` runs on push/PR to `main`/`develop`:
 
-## 🔐 Security
+1. **backend-test** — spins up MongoDB + Redis service containers, runs `npm run lint` (non-blocking) and `npm test`, uploads coverage to Codecov
+2. **frontend-test** — lint (non-blocking) and `npm run build`
+3. **build-docker** — builds both Docker images (no push)
+4. **security-scan** — Trivy filesystem scan, results uploaded as SARIF
+5. **code-quality** — ESLint across both workspaces
+6. **deploy** — on `main` only: AWS ECS + Vercel deploy, then a smoke-check via `curl`, then Slack notification
+7. **deploy-staging** — on `develop` only: placeholder staging deploy + smoke tests
 
-- HTTPS/TLS for all communications
-- JWT token authentication
-- Password hashing with bcryptjs
-- Environment variable encryption
-- CORS protection
-- Rate limiting on auth endpoints
-- SQL injection prevention (MongoDB)
-- XSS protection with Content Security Policy
+## Security Considerations
 
----
+- JWT-based auth (`middleware/auth.ts`); role-based access control for teams (`middleware/rbac.ts`)
+- Passwords hashed with `bcryptjs`
+- Rate limiting middleware (`middleware/rateLimiting.ts`)
+- CORS restricted to `FRONTEND_URL`
+- Secrets (`JWT_SECRET`, AWS keys, email credentials, Stripe key) are read from environment variables — never commit a real `.env`
+- CI includes a Trivy vulnerability scan on every push/PR
+- No `LICENSE` file currently exists in the repo despite prior references to "MIT License" — see [Known Issues](#known-issues--inconsistencies)
 
-## 📝 Environment Variables
+## Troubleshooting
 
-### Frontend (.env.local)
-```env
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+- **MongoDB connection failed** — confirm MongoDB is running and `MONGODB_URI` in `backend/.env` is correct.
+- **Port already in use** — free port 3000/5000: `lsof -ti:3000 | xargs kill -9` (macOS/Linux) or `Stop-Process -Id (Get-NetTCPConnection -LocalPort 3000).OwningProcess` (Windows PowerShell).
+- **Redis connection error** — ensure `redis-server` is running and `REDIS_URL` is correct.
+- **API requests failing from frontend** — check `NEXT_PUBLIC_API_URL`, confirm the JWT token is present/valid, and check backend CORS config against `FRONTEND_URL`.
+- **`npm test` fails in `frontend/`** — no `jest.config.js` exists yet for the frontend workspace even though Jest is declared in `package.json`.
 
-### Backend (.env)
-```env
-PORT=5000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/task-manager
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your_super_secret_key
-FRONTEND_URL=http://localhost:3000
-```
+## Known Issues / Inconsistencies
 
----
+Found during this analysis — flagged here rather than silently fixed, since some require a decision:
 
-## 🐛 Troubleshooting
+1. **Duplicate nested project** — `Daily-Task-manager-main/` is a full, byte-identical copy of the entire repository (frontend, backend, all docs). This roughly doubles repo size for no benefit and should probably be deleted.
+2. **Unmounted routes** — `backend/src/routes/subtasks.ts` and `backend/src/routes/aiCoach.ts` exist but are never imported in `backend/src/index.ts`, so those endpoints are dead code from the API's perspective.
+3. **Unused Stripe integration** — `backend/src/services/payment.service.ts` implements Stripe billing logic and the `stripe` package is a dependency, but no route file or `index.ts` registration exposes it.
+4. **No `jest.config.js` in `frontend/`** — the `test`/`test:watch` scripts exist in `frontend/package.json` but there's no Jest config, so they will likely fail out of the box.
+5. **No `LICENSE` file** — the previous README stated "MIT License - see LICENSE file for details," but no such file exists in the repo.
+6. **~50 top-level Markdown planning/status docs** (`PHASE_5_*.md`, `WEEK_*.md`, `IMPLEMENTATION_*.md`, etc.) — these read as historical planning artifacts rather than living documentation; worth archiving into `docs/` or removing if stale.
 
-### MongoDB Connection Failed
-- Ensure MongoDB is running locally or check Atlas connection string
-- Verify `MONGODB_URI` in `.env`
+## Contributing
 
-### Port Already in Use
-```bash
-# Kill process on port 3000
-lsof -ti:3000 | xargs kill -9
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Open a pull request
 
-# Kill process on port 5000
-lsof -ti:5000 | xargs kill -9
-```
+## License
 
-### Redis Connection Error
-- Ensure Redis is running (`redis-server`)
-- Check `REDIS_URL` in backend `.env`
+No `LICENSE` file is currently present in this repository. Add one (e.g., MIT) if you intend the project to be open-source under a specific license.
 
-### API Requests Failing
-- Check backend console for errors
-- Verify JWT token is valid
-- Check CORS configuration
+## Future Improvements
 
----
-
-## 📞 Support & Contributing
-
-### Issues
-Found a bug? Open an issue in GitHub!
-
-### Contributing
-1. Fork repository
-2. Create feature branch
-3. Make changes
-4. Submit pull request
-
----
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
----
-
-## 🎯 Roadmap
-
-### Phase 1 (Complete) ✅
-- Core task management
-- Basic dashboard
-- Authentication
-
-### Phase 2 (In Progress) 🚀
-- Gamification system
-- Advanced analytics
-- Dark mode
-
-### Phase 3 (Planned) 📅
-- Team collaboration
-- AI suggestions
-- Mobile app
-
-### Phase 4 (Planned) 🔮
-- Voice input
-- Advanced scheduling
-- Integrations
-
----
-
-**Last Updated:** December 2024
-**Version:** 1.0.0
-**Status:** Production Ready
+- Wire up or remove the unmounted `subtasks` and `aiCoach` routes
+- Either finish and mount the Stripe payment integration or remove the unused dependency/service
+- Add a frontend Jest config so `frontend`'s test script actually runs
+- Consolidate the large number of top-level planning docs into `docs/`
+- Remove the duplicated `Daily-Task-manager-main/` folder
