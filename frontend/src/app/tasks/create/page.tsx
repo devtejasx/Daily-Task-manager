@@ -18,8 +18,8 @@ export default function CreateTaskPage() {
     title: '',
     description: '',
     category: 'Personal',
-    priority: 'Medium',
-    difficulty: 'Medium',
+    priority: 'medium',
+    difficulty: 'medium',
     dueDate: '',
     dueTime: '',
     startDate: '',
@@ -164,9 +164,9 @@ export default function CreateTaskPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option>Low</option>
-                  <option>Medium</option>
-                  <option>High</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
                 </select>
               </div>
 
@@ -181,9 +181,9 @@ export default function CreateTaskPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option>Easy</option>
-                  <option>Medium</option>
-                  <option>Hard</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
                 </select>
               </div>
             </div>

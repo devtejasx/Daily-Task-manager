@@ -95,7 +95,7 @@ export default function Dashboard() {
     const dueDate = new Date(t.dueDate)
     return (
       dueDate.toDateString() === today.toDateString() &&
-      t.status !== 'Completed'
+      t.status !== 'completed'
     )
   })
 
@@ -174,7 +174,7 @@ export default function Dashboard() {
           {
             icon: TrendingUp,
             label: 'Completed This Week',
-            value: tasks.filter((t) => t.status === 'Completed').length,
+            value: tasks.filter((t) => t.status === 'completed').length,
             color: 'from-purple-500 to-pink-500',
           },
           {
@@ -340,7 +340,7 @@ export default function Dashboard() {
                 title={task.title}
                 priority={task.priority}
                 dueDate={task.dueDate}
-                completed={task.status === 'Completed'}
+                completed={task.status === 'completed'}
                 onComplete={() => completeTaskItem(task.id)}
               />
             ))

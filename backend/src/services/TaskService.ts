@@ -46,7 +46,11 @@ export class TaskService {
     taskId: string,
     updateData: any
   ): Promise<ITaskDocument | null> {
-    return Task.findByIdAndUpdate(taskId, updateData, { new: true })
+    return Task.findByIdAndUpdate(taskId, updateData, {
+      new: true,
+      runValidators: true,
+      context: 'query',
+    })
   }
 
   async deleteTask(taskId: string): Promise<boolean> {

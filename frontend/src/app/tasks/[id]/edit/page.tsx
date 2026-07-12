@@ -21,15 +21,15 @@ export default function EditTaskPage() {
     title: '',
     description: '',
     category: 'Personal',
-    priority: 'Medium',
-    difficulty: 'Medium',
+    priority: 'medium',
+    difficulty: 'medium',
     dueDate: '',
     dueTime: '',
     startDate: '',
     estimatedDuration: '',
     tags: '',
     xpReward: 50,
-    status: 'NotStarted',
+    status: 'pending',
   })
 
   useEffect(() => {
@@ -53,15 +53,15 @@ export default function EditTaskPage() {
           title: task.title || '',
           description: task.description || '',
           category: task.category || 'Personal',
-          priority: task.priority || 'Medium',
-          difficulty: task.difficulty || 'Medium',
+          priority: task.priority || 'medium',
+          difficulty: task.difficulty || 'medium',
           dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
           dueTime: task.dueTime || '',
           startDate: task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '',
           estimatedDuration: task.estimatedDuration?.toString() || '',
           tags: task.tags?.join(', ') || '',
           xpReward: task.xpReward || 50,
-          status: task.status || 'NotStarted',
+          status: task.status || 'pending',
         })
       } else {
         toast.error('Task not found')
@@ -201,9 +201,9 @@ export default function EditTaskPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option>Low</option>
-                  <option>Medium</option>
-                  <option>High</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
                 </select>
               </div>
 
@@ -218,9 +218,9 @@ export default function EditTaskPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option>Easy</option>
-                  <option>Medium</option>
-                  <option>Hard</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
                 </select>
               </div>
 
@@ -235,9 +235,9 @@ export default function EditTaskPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="NotStarted">Not Started</option>
-                  <option value="InProgress">In Progress</option>
-                  <option value="Completed">Completed</option>
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
                 </select>
               </div>
             </div>

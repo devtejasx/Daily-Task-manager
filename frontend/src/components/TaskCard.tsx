@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 
 interface TaskCardProps {
   title: string
-  priority: 'Critical' | 'High' | 'Medium' | 'Low'
+  priority: 'critical' | 'high' | 'medium' | 'low'
   dueDate?: string
   completed?: boolean
   onClick?: () => void
@@ -12,10 +12,10 @@ interface TaskCardProps {
 }
 
 const priorityColors: Record<string, string> = {
-  Critical: 'bg-red-500',
-  High: 'bg-orange-500',
-  Medium: 'bg-yellow-500',
-  Low: 'bg-green-500',
+  critical: 'bg-red-500',
+  high: 'bg-orange-500',
+  medium: 'bg-yellow-500',
+  low: 'bg-green-500',
 }
 
 export const TaskCard = ({
@@ -58,7 +58,7 @@ export const TaskCard = ({
             <p className="text-sm text-gray-500 mt-1 ml-7">{dueDate}</p>
           )}
         </div>
-        <div className={`px-2 py-1 rounded text-white text-xs font-medium ${priorityColors[priority]}`}>
+        <div className={`px-2 py-1 rounded text-white text-xs font-medium ${priorityColors[priority]} capitalize`}>
           {priority}
         </div>
       </div>

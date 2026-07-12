@@ -34,7 +34,7 @@ export interface JWTPayload {
 
 // Enums for tasks
 export enum TaskStatus {
-  NotStarted = 'not_started',
+  Pending = 'pending',
   InProgress = 'in_progress',
   Completed = 'completed',
   OnHold = 'on_hold',

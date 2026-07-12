@@ -8,7 +8,7 @@ import { ArrowLeft, Edit, Trash2, CheckCircle2, Clock, AlertCircle } from 'lucid
 import Link from 'next/link'
 import { useTasks } from '@/hooks/useTasks'
 import { toast } from 'sonner'
-import { ITask } from '@/types'
+import { ITask, formatTaskStatus } from '@/types'
 
 export default function TaskDetailPage() {
   const params = useParams()
@@ -67,11 +67,11 @@ export default function TaskDetailPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'High':
+      case 'high':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-      case 'Medium':
+      case 'medium':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-      case 'Low':
+      case 'low':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
@@ -82,7 +82,7 @@ export default function TaskDetailPage() {
     switch (difficulty) {
       case 'Easy':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      case 'Medium':
+      case 'medium':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
       case 'Hard':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
@@ -93,11 +93,11 @@ export default function TaskDetailPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Completed':
+      case 'completed':
         return <CheckCircle2 className="w-6 h-6 text-green-500" />
-      case 'InProgress':
+      case 'in_progress':
         return <Clock className="w-6 h-6 text-blue-500" />
-      case 'NotStarted':
+      case 'pending':
         return <AlertCircle className="w-6 h-6 text-gray-500" />
       default:
         return null
@@ -146,7 +146,7 @@ export default function TaskDetailPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            {task.status !== 'Completed' && (
+            {task.status !== 'completed' && (
               <button
                 onClick={handleComplete}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
@@ -190,7 +190,7 @@ export default function TaskDetailPage() {
               {/* Priority */}
               <div>
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Priority</h3>
-                <span className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold ${getPriorityColor(task.priority)}`}>
+                <span className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold capitalize ${getPriorityColor(task.priority)}`}>
                   {task.priority}
                 </span>
               </div>
@@ -198,7 +198,7 @@ export default function TaskDetailPage() {
               {/* Difficulty */}
               <div>
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Difficulty</h3>
-                <span className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold ${getDifficultyColor(task.difficulty)}`}>
+                <span className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold capitalize ${getDifficultyColor(task.difficulty)}`}>
                   {task.difficulty}
                 </span>
               </div>
@@ -212,7 +212,7 @@ export default function TaskDetailPage() {
               {/* Status */}
               <div>
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Status</h3>
-                <p className="text-gray-900 dark:text-white capitalize">{task.status}</p>
+                <p className="text-gray-900 dark:text-white">{formatTaskStatus(task.status)}</p>
               </div>
             </div>
 

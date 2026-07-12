@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Search, X, Clock, Flag } from 'lucide-react'
-import { ITask } from '@/types'
+import { ITask, formatTaskStatus } from '@/types'
 import { apiClient } from '@/services/api'
 
 interface SearchModalProps {
@@ -103,17 +103,17 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                       <div className="flex items-center gap-3 mt-2">
                         <span
                           className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded ${
-                            task.priority === 'Critical'
+                            task.priority === 'critical'
                               ? 'bg-red-500/20 text-red-400'
-                              : task.priority === 'High'
+                              : task.priority === 'high'
                                 ? 'bg-orange-500/20 text-orange-400'
-                                : task.priority === 'Medium'
+                                : task.priority === 'medium'
                                   ? 'bg-yellow-500/20 text-yellow-400'
                                   : 'bg-green-500/20 text-green-400'
                           }`}
                         >
                           <Flag className="w-3 h-3" />
-                          {task.priority}
+                          <span className="capitalize">{task.priority}</span>
                         </span>
                         <span className="text-xs text-gray-500">
                           {task.category}
@@ -128,14 +128,14 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                     </div>
                     <span
                       className={`text-xs px-2 py-1 rounded whitespace-nowrap ${
-                        task.status === 'Completed'
+                        task.status === 'completed'
                           ? 'bg-green-500/20 text-green-400'
-                          : task.status === 'InProgress'
+                          : task.status === 'in_progress'
                             ? 'bg-blue-500/20 text-blue-400'
                             : 'bg-gray-700 text-gray-300'
                       }`}
                     >
-                      {task.status}
+                      {formatTaskStatus(task.status)}
                     </span>
                   </div>
                 </motion.div>

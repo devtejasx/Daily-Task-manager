@@ -63,11 +63,11 @@ export default function TasksPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'High':
+      case 'high':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-      case 'Medium':
+      case 'medium':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-      case 'Low':
+      case 'low':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
@@ -76,11 +76,11 @@ export default function TasksPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Completed':
+      case 'completed':
         return <CheckCircle2 className="w-5 h-5 text-green-500" />
-      case 'InProgress':
+      case 'in_progress':
         return <Clock className="w-5 h-5 text-blue-500" />
-      case 'NotStarted':
+      case 'pending':
         return <AlertCircle className="w-5 h-5 text-gray-500" />
       default:
         return null
@@ -152,9 +152,9 @@ export default function TasksPage() {
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">All Statuses</option>
-                <option value="NotStarted">Not Started</option>
-                <option value="InProgress">In Progress</option>
-                <option value="Completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
               </select>
 
               <select
@@ -163,9 +163,9 @@ export default function TasksPage() {
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">All Priorities</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
               </select>
 
               <select
@@ -240,7 +240,7 @@ export default function TasksPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    {task.status !== 'Completed' && (
+                    {task.status !== 'completed' && (
                       <button
                         onClick={() => handleComplete(task._id)}
                         className="px-3 py-2 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 transition text-sm font-medium"

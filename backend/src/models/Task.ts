@@ -115,7 +115,7 @@ const taskSchema = new Schema<ITaskDocument>(
     status: {
       type: String,
       enum: Object.values(TaskStatus),
-      default: TaskStatus.NotStarted,
+      default: TaskStatus.Pending,
     },
     difficulty: {
       type: String,

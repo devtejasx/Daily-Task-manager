@@ -1,24 +1,37 @@
 // Enums
+// Values mirror the backend enum (backend/src/types/common.ts), which is
+// the source of truth: these exact strings are what the API stores and
+// serves. Use TASK_STATUS_LABELS for display.
 export enum TaskStatus {
-  NotStarted = 'NotStarted',
-  InProgress = 'InProgress',
-  Completed = 'Completed',
-  Paused = 'Paused',
-  Cancelled = 'Cancelled',
-  Archived = 'Archived',
+  Pending = 'pending',
+  InProgress = 'in_progress',
+  Completed = 'completed',
+  OnHold = 'on_hold',
+  Cancelled = 'cancelled',
 }
 
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  [TaskStatus.Pending]: 'Pending',
+  [TaskStatus.InProgress]: 'In Progress',
+  [TaskStatus.Completed]: 'Completed',
+  [TaskStatus.OnHold]: 'On Hold',
+  [TaskStatus.Cancelled]: 'Cancelled',
+}
+
+export const formatTaskStatus = (status: string): string =>
+  TASK_STATUS_LABELS[status as TaskStatus] ?? status
+
 export enum TaskPriority {
-  Critical = 'Critical',
-  High = 'High',
-  Medium = 'Medium',
-  Low = 'Low',
+  Critical = 'critical',
+  High = 'high',
+  Medium = 'medium',
+  Low = 'low',
 }
 
 export enum TaskDifficulty {
-  Easy = 'Easy',
-  Medium = 'Medium',
-  Hard = 'Hard',
+  Easy = 'easy',
+  Medium = 'medium',
+  Hard = 'hard',
 }
 
 export enum RecurrenceType {

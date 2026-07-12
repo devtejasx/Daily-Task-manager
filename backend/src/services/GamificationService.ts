@@ -1,4 +1,5 @@
 import { User } from '../models/User'
+import { TaskPriority, TaskDifficulty, TaskStatus } from '../types'
 import { Achievement } from '../models/Achievement'
 import { Task, ITaskDocument } from '../models/Task'
 import mongoose from 'mongoose'
@@ -25,18 +26,19 @@ export class GamificationService {
 
     // Priority multiplier
     const priorityMultipliers: Record<string, number> = {
-      Critical: 4,
-      High: 3,
-      Medium: 2,
-      Low: 1,
+      [TaskPriority.Critical]: 4,
+      [TaskPriority.High]: 3,
+      [TaskPriority.Medium]: 2,
+      [TaskPriority.Low]: 1,
     }
     priorityMultiplier = priorityMultipliers[task.priority] || 1
 
     // Difficulty multiplier
     const difficultyMultipliers: Record<string, number> = {
-      Hard: 2,
-      Medium: 1.5,
-      Easy: 1,
+      [TaskDifficulty.VeryHard]: 2.5,
+      [TaskDifficulty.Hard]: 2,
+      [TaskDifficulty.Medium]: 1.5,
+      [TaskDifficulty.Easy]: 1,
     }
     difficultyMultiplier = difficultyMultipliers[task.difficulty] || 1
 
@@ -172,7 +174,7 @@ export class GamificationService {
     const completedToday = await Task.findOne({
       userId: new mongoose.Types.ObjectId(userId),
       completedAt: { $gte: today },
-      status: 'Completed',
+      status: TaskStatus.Completed,
     })
 
     if (completedToday) {
@@ -190,7 +192,7 @@ export class GamificationService {
             $gte: yesterday,
             $lt: today,
           },
-          status: 'Completed',
+          status: TaskStatus.Completed,
         })
 
         if (completedYesterday) {
@@ -226,7 +228,7 @@ export class GamificationService {
     const completedToday = await Task.findOne({
       userId: new mongoose.Types.ObjectId(userId),
       completedAt: { $gte: today },
-      status: 'Completed',
+      status: TaskStatus.Completed,
     })
 
     if (!completedToday) {
