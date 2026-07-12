@@ -4,7 +4,13 @@ import { apiClient } from '@/services/api'
 import { ITask } from '@/types'
 
 export const useTasks = () => {
-  const { tasks, setTasks, addTask, updateTask, removeTask } = useStore()
+  const {
+    tasks,
+    setTasks,
+    addTask,
+    updateTask: updateTaskInStore,
+    removeTask,
+  } = useStore()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,10 +38,20 @@ export const useTasks = () => {
     }
   }
 
+  const getTask = async (id: string): Promise<ITask | null> => {
+    try {
+      const response = await apiClient.getTask(id)
+      return response.data.data
+    } catch (err: any) {
+      setError(err.message)
+      return null
+    }
+  }
+
   const editTask = async (id: string, task: any) => {
     try {
       const response = await apiClient.updateTask(id, task)
-      updateTask(id, response.data.data)
+      updateTaskInStore(id, response.data.data)
       return response.data.data
     } catch (err: any) {
       setError(err.message)
@@ -56,7 +72,7 @@ export const useTasks = () => {
   const completeTaskItem = async (id: string) => {
     try {
       const response = await apiClient.completeTask(id)
-      updateTask(id, response.data.data.task)
+      updateTaskInStore(id, response.data.data.task)
       return response.data.data
     } catch (err: any) {
       setError(err.message)
@@ -91,10 +107,16 @@ export const useTasks = () => {
     error,
     fetchTasks,
     createTask,
+    getTask,
     editTask,
     deleteTaskItem,
     completeTaskItem,
     getTodaysTasks,
     searchTasks,
+    // Aliases matching the names used by the task pages.
+    getTasks: fetchTasks,
+    updateTask: editTask,
+    deleteTask: deleteTaskItem,
+    completeTask: completeTaskItem,
   }
 }
