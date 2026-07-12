@@ -1,3 +1,4 @@
+import { TaskStatus } from '../types'
 import { User } from '../models/User'
 import { Task } from '../models/Task'
 import mongoose from 'mongoose'
@@ -11,9 +12,9 @@ export class AnalyticsService {
 
     // Get all tasks for user
     const allTasks = await Task.find({ userId: userId_obj })
-    const completedTasks = allTasks.filter((t) => t.status === 'Completed')
+    const completedTasks = allTasks.filter((t) => t.status === TaskStatus.Completed)
     const overdueTasks = allTasks.filter((t) => {
-      if (!t.dueDate || t.status === 'Completed') return false
+      if (!t.dueDate || t.status === TaskStatus.Completed) return false
       return new Date(t.dueDate) < new Date()
     })
 
@@ -42,7 +43,7 @@ export class AnalyticsService {
       if (!categoryPerformance[task.category]) {
         categoryPerformance[task.category] = 0
       }
-      if (task.status === 'Completed') {
+      if (task.status === TaskStatus.Completed) {
         categoryPerformance[task.category] += 1
       }
     })
@@ -114,7 +115,7 @@ export class AnalyticsService {
       userId: userId_obj,
       dueDate: { $gte: today, $lte: endOfDay },
     })
-    const completedToday = todayTasks.filter((t) => t.status === 'Completed').length
+    const completedToday = todayTasks.filter((t) => t.status === TaskStatus.Completed).length
 
     // This week
     const weekStart = new Date(today)
@@ -127,7 +128,7 @@ export class AnalyticsService {
       userId: userId_obj,
       dueDate: { $gte: weekStart, $lte: weekEnd },
     })
-    const completedWeek = weekTasks.filter((t) => t.status === 'Completed').length
+    const completedWeek = weekTasks.filter((t) => t.status === TaskStatus.Completed).length
 
     // This month
     const monthStart = new Date(today)
@@ -141,11 +142,11 @@ export class AnalyticsService {
       userId: userId_obj,
       dueDate: { $gte: monthStart, $lte: monthEnd },
     })
-    const completedMonth = monthTasks.filter((t) => t.status === 'Completed').length
+    const completedMonth = monthTasks.filter((t) => t.status === TaskStatus.Completed).length
 
     const allTasks = await Task.find({ userId: userId_obj })
     const overdue = allTasks.filter((t) => {
-      if (!t.dueDate || t.status === 'Completed') return false
+      if (!t.dueDate || t.status === TaskStatus.Completed) return false
       return new Date(t.dueDate) < new Date()
     }).length
 
@@ -181,7 +182,7 @@ export class AnalyticsService {
       const completed = await Task.countDocuments({
         userId: userId_obj,
         completedAt: { $gte: date, $lt: nextDate },
-        status: 'Completed',
+        status: TaskStatus.Completed,
       })
 
       const dateStr = date.toISOString().split('T')[0]
@@ -207,7 +208,7 @@ export class AnalyticsService {
 
       breakdown[task.category].total++
 
-      if (task.status === 'Completed') {
+      if (task.status === TaskStatus.Completed) {
         breakdown[task.category].completed++
       }
     })
@@ -236,7 +237,7 @@ export class AnalyticsService {
     tasks.forEach((task) => {
       breakdown[task.priority].total++
 
-      if (task.status === 'Completed') {
+      if (task.status === TaskStatus.Completed) {
         breakdown[task.priority].completed++
       }
     })

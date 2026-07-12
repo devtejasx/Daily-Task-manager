@@ -168,7 +168,7 @@ class PaymentService {
       );
 
       if (immediate) {
-        await stripe.subscriptions.del(subscriptionId);
+        await stripe.subscriptions.cancel(subscriptionId);
       }
 
       logger.info('Subscription cancelled', {

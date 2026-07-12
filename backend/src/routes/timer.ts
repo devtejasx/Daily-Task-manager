@@ -1,3 +1,4 @@
+import { TaskStatus } from '../types'
 import { Router, Response } from 'express'
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth'
 import { TimerSession } from '../models/TimerSession'
@@ -38,16 +39,16 @@ router.post('/start/:taskId', async (req: AuthenticatedRequest, res: Response) =
     await session.save()
 
     // Update task status to in-progress
-    task.status = 'in-progress'
+    task.status = TaskStatus.InProgress
     await task.save()
 
-    res.json({
+    return res.json({
       success: true,
       data: session,
       message: 'Timer started successfully',
     })
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to start timer' })
+    return res.status(500).json({ error: error.message || 'Failed to start timer' })
   }
 })
 
@@ -79,14 +80,14 @@ router.post('/stop/:sessionId', async (req: AuthenticatedRequest, res: Response)
       await task.save()
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: session,
       durationMinutes: Math.round(totalSeconds / 60),
       message: 'Timer stopped successfully',
     })
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to stop timer' })
+    return res.status(500).json({ error: error.message || 'Failed to stop timer' })
   }
 })
 
@@ -116,14 +117,14 @@ router.patch('/pause/:sessionId', async (req: AuthenticatedRequest, res: Respons
 
     await session.save()
 
-    res.json({
+    return res.json({
       success: true,
       data: session,
       isPaused: session.isPaused,
       message: isPaused ? 'Timer paused' : 'Timer resumed',
     })
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to pause timer' })
+    return res.status(500).json({ error: error.message || 'Failed to pause timer' })
   }
 })
 
@@ -147,7 +148,7 @@ router.get('/history/:taskId', async (req: AuthenticatedRequest, res: Response) 
     const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0)
     const completedSessions = sessions.filter((s) => s.endedAt)
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         sessions,
@@ -160,7 +161,7 @@ router.get('/history/:taskId', async (req: AuthenticatedRequest, res: Response) 
       },
     })
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch timer history' })
+    return res.status(500).json({ error: error.message || 'Failed to fetch timer history' })
   }
 })
 
@@ -182,7 +183,7 @@ router.get('/stats/daily', async (req: AuthenticatedRequest, res: Response) => {
     const workSessions = sessions.filter((s) => s.sessionType === 'work').length
     const breakSessions = sessions.filter((s) => s.sessionType === 'break').length
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         totalMinutesToday: Math.round(totalSeconds / 60),
@@ -195,7 +196,7 @@ router.get('/stats/daily', async (req: AuthenticatedRequest, res: Response) => {
       },
     })
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch stats' })
+    return res.status(500).json({ error: error.message || 'Failed to fetch stats' })
   }
 })
 
@@ -239,7 +240,7 @@ router.get('/stats/weekly', async (req: AuthenticatedRequest, res: Response) => 
 
     const totalSeconds = sessions.reduce((sum, s) => sum + s.duration, 0)
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         byDay: weeklyStats,
@@ -252,7 +253,7 @@ router.get('/stats/weekly', async (req: AuthenticatedRequest, res: Response) => 
       },
     })
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch weekly stats' })
+    return res.status(500).json({ error: error.message || 'Failed to fetch weekly stats' })
   }
 })
 

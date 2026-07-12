@@ -1,3 +1,4 @@
+import { TaskStatus } from '../types'
 import { Achievement } from '../models/Achievement'
 import { User } from '../models/User'
 import { Task } from '../models/Task'
@@ -95,16 +96,18 @@ export class AchievementService {
 
   private async checkAchievementCondition(userId: string, achievement: any) {
     switch (achievement.name) {
-      case 'Overachiever':
+      case 'Overachiever': {
         const completedTasks = await Task.countDocuments({
           userId: new mongoose.Types.ObjectId(userId),
-          status: 'Completed',
+          status: TaskStatus.Completed,
         })
         return completedTasks >= 100
+      }
 
-      case 'First Streak':
+      case 'First Streak': {
         const user = await User.findById(userId)
         return (user?.streak || 0) >= 7
+      }
 
       default:
         return false

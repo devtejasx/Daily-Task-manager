@@ -1,3 +1,4 @@
+import { TaskStatus } from '../types'
 import { Task, ITaskDocument } from '../models/Task'
 import { User } from '../models/User'
 import { GamificationService } from './GamificationService'
@@ -71,7 +72,7 @@ export class TaskService {
     }
 
     // Mark as completed
-    task.status = 'Completed'
+    task.status = TaskStatus.Completed
     task.completedAt = new Date()
     task.completionPercentage = 100
 
@@ -109,7 +110,7 @@ export class TaskService {
       xpAwarded: Math.floor(totalXP),
       leveledUp: result.leveledUp,
       newLevel: result.newLevel,
-      streak: streakResult?.streak || 0,
+      streak: streakResult || 0,
     }
   }
 

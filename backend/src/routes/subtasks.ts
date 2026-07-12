@@ -1,3 +1,4 @@
+import { TaskStatus } from '../types'
 import { Router, Request, Response } from 'express'
 import mongoose from 'mongoose'
 import { Task } from '../models/Task'
@@ -62,13 +63,13 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
 
     await task.save()
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: { task, subtask },
     })
   } catch (error) {
     console.error('Failed to create subtask:', error)
-    res.status(500).json({ error: 'Failed to create subtask' })
+    return res.status(500).json({ error: 'Failed to create subtask' })
   }
 })
 
@@ -107,20 +108,20 @@ router.put('/:subtaskId', authenticateToken, async (req: Request, res: Response)
     task.completionPercentage = calculateCompletion(task.subtasks)
 
     // Update parent task completion if all subtasks done
-    if (allSubtasksDone(task.subtasks) && task.status !== 'completed') {
-      task.status = 'completed'
+    if (allSubtasksDone(task.subtasks) && task.status !== TaskStatus.Completed) {
+      task.status = TaskStatus.Completed
       task.completedAt = new Date()
     }
 
     await task.save()
 
-    res.json({
+    return res.json({
       success: true,
       data: { task, subtask },
     })
   } catch (error) {
     console.error('Failed to update subtask:', error)
-    res.status(500).json({ error: 'Failed to update subtask' })
+    return res.status(500).json({ error: 'Failed to update subtask' })
   }
 })
 
@@ -145,14 +146,14 @@ router.delete('/:subtaskId', authenticateToken, async (req: Request, res: Respon
 
     await task.save()
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Subtask deleted',
       data: task,
     })
   } catch (error) {
     console.error('Failed to delete subtask:', error)
-    res.status(500).json({ error: 'Failed to delete subtask' })
+    return res.status(500).json({ error: 'Failed to delete subtask' })
   }
 })
 
@@ -183,19 +184,19 @@ router.patch('/reorder', authenticateToken, async (req: Request, res: Response) 
         }
         return subtask
       })
-      .filter(Boolean)
+      .filter((s): s is NonNullable<typeof s> => Boolean(s))
 
     task.subtasks = reorderedSubtasks
 
     await task.save()
 
-    res.json({
+    return res.json({
       success: true,
       data: task,
     })
   } catch (error) {
     console.error('Failed to reorder subtasks:', error)
-    res.status(500).json({ error: 'Failed to reorder subtasks' })
+    return res.status(500).json({ error: 'Failed to reorder subtasks' })
   }
 })
 

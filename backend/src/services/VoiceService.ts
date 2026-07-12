@@ -13,7 +13,7 @@ export class VoiceService {
 
     try {
       const formData = new FormData()
-      const audioBlob = new Blob([audioBuffer], { type: mimeType })
+      const audioBlob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType })
       formData.append('file', audioBlob, 'audio.webm')
       formData.append('model', 'whisper-1')
 
@@ -137,7 +137,7 @@ Be concise. Return only valid JSON.`,
     }
 
     // Confidence based on length and structure
-    let confidence = Math.min(100, (text.length / 50) * 100)
+    const confidence = Math.min(100, (text.length / 50) * 100)
 
     return {
       valid: issues.length === 0,

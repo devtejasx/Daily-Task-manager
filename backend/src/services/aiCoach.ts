@@ -76,7 +76,7 @@ class AICoachService {
     };
   }
 
-  private buildPrompt(metrics: any, user: any): string {
+  private buildPrompt(metrics: any, _user: any): string {
     return `
       You are an AI productivity coach analyzing a user's productivity data. 
       Provide 3-4 actionable insights based on this data:
@@ -179,6 +179,30 @@ class AICoachService {
 
     const maxHour = Object.entries(hourCounts).sort(([, a], [, b]) => b - a)[0];
     return maxHour ? `${maxHour[0]}:00 (${maxHour[1]} sessions)` : 'Unknown';
+  }
+
+  /**
+   * Generate a single recommendation focused on one topic
+   * (e.g. "productivity", "streaks", "time-management").
+   */
+  async generateSpecificRecommendation(
+    userId: string,
+    topic: string
+  ): Promise<CoachInsight> {
+    const insights = await this.generateInsights(userId);
+    const match = insights.find((insight) =>
+      insight.title.toLowerCase().includes(topic.toLowerCase()) ||
+      insight.description.toLowerCase().includes(topic.toLowerCase())
+    );
+    return (
+      match ?? {
+        type: 'suggestion',
+        title: `Focus on ${topic}`,
+        description:
+          'Keep sessions short and specific: pick one task, set a timer, and review your progress afterwards.',
+        actionable: true,
+      }
+    );
   }
 
   private getFallbackInsights(): CoachInsight[] {

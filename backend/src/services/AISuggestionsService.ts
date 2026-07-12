@@ -1,3 +1,4 @@
+import { TaskStatus } from '../types'
 import axios from 'axios'
 import { Task } from '../models/Task'
 import { User } from '../models/User'
@@ -35,7 +36,7 @@ export class AISuggestionsService {
 
       const categories = recentTasks.map((t) => t.category)
       const priorities = recentTasks.map((t) => t.priority)
-      const completedCount = recentTasks.filter((t) => t.status === 'Completed').length
+      const completedCount = recentTasks.filter((t) => t.status === TaskStatus.Completed).length
 
       const taskContext = `
 User has completed ${completedCount} out of ${recentTasks.length} recent tasks.
@@ -154,7 +155,7 @@ Return JSON array with: title, description, category, priority, reason, confiden
     try {
       const tasks = await Task.find({
         userId: new mongoose.Types.ObjectId(userId),
-        status: 'Completed',
+        status: TaskStatus.Completed,
       }).limit(100)
 
       // Analyze completion times

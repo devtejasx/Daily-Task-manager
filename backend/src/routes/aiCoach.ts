@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticateToken as authenticate } from '../middleware/auth';
 import { aiCoachService } from '../services/aiCoach';
 
 const router = Router();
@@ -29,7 +29,7 @@ router.post('/recommendation', authenticate, async (req: Request, res: Response)
     const { topic } = req.body; // e.g., "productivity", "streaks", "time-management"
 
     // Generate specific recommendation based on topic
-    const recommendation = await generateSpecificRecommendation(
+    const recommendation = await aiCoachService.generateSpecificRecommendation(
       req.user.id,
       topic
     );
