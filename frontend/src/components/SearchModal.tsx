@@ -130,7 +130,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
                       className={`text-xs px-2 py-1 rounded whitespace-nowrap ${
                         task.status === 'Completed'
                           ? 'bg-green-500/20 text-green-400'
-                          : task.status === 'In Progress'
+                          : task.status === 'InProgress'
                             ? 'bg-blue-500/20 text-blue-400'
                             : 'bg-gray-700 text-gray-300'
                       }`}
