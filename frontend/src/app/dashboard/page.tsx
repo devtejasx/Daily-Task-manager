@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTasks } from '@/hooks/useTasks'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { motion } from 'framer-motion'
-import { BarChart3, TrendingUp, Award, Calendar, CheckCircle2, zap } from 'lucide-react'
+import { BarChart3, TrendingUp, Award, Calendar, CheckCircle2, Zap } from 'lucide-react'
 import { TaskCard } from '@/components/TaskCard'
 import { XPCounter } from '@/components/XPCounter'
 import { StreakCounter } from '@/components/StreakCounter'
@@ -26,6 +26,14 @@ interface GameStats {
   levelProgress: number
   nextLevelXP: number
 }
+
+// Cumulative XP required to reach each level, indexed by level.
+const LEVEL_XP_THRESHOLDS: number[] = [
+  0, 100, 350, 800, 1500, 2500, 3500, 4500, 5500, 6500, 8500, 10500, 12500,
+  14500, 16500, 18500, 20500, 22500, 24500, 26500, 31500, 36500, 41500, 46500,
+  51500, 61500, 71500, 81500, 91500, 101500, 151500, 201500, 251500, 301500,
+  351500, 401500, 451500, 501500, 551500, 601500,
+]
 
 export default function Dashboard() {
   const router = useRouter()
@@ -147,8 +155,8 @@ export default function Dashboard() {
           <LevelProgress
             currentLevel={gameStats.level}
             currentXP={gameStats.totalXP}
-            xpInCurrentLevel={gameStats.totalXP - ([0, 100, 350, 800, 1500, 2500, 3500, 4500, 5500, 6500, 8500, 10500, 12500, 14500, 16500, 18500, 20500, 22500, 24500, 26500, 31500, 36500, 41500, 46500, 51500, 61500, 71500, 81500, 91500, 101500, 151500, 201500, 251500, 301500, 351500, 401500, 451500, 501500, 551500, 601500] as number[])[gameStats.level] || 0)}
-            xpNeededForNextLevel={gameStats.nextLevelXP - ([0, 100, 350, 800, 1500, 2500, 3500, 4500, 5500, 6500, 8500, 10500, 12500, 14500, 16500, 18500, 20500, 22500, 24500, 26500, 31500, 36500, 41500, 46500, 51500, 61500, 71500, 81500, 91500, 101500, 151500, 201500, 251500, 301500, 351500, 401500, 451500, 501500, 551500, 601500] as number[])[gameStats.level] || 0}
+            xpInCurrentLevel={gameStats.totalXP - (LEVEL_XP_THRESHOLDS[gameStats.level] || 0)}
+            xpNeededForNextLevel={gameStats.nextLevelXP - (LEVEL_XP_THRESHOLDS[gameStats.level] || 0)}
             showDetails
           />
         </motion.div>
@@ -217,7 +225,7 @@ export default function Dashboard() {
                 color: 'from-blue-500 to-cyan-500',
               },
               {
-                icon: zap,
+                icon: Zap,
                 label: 'Consistency Score',
                 value: `${productivityMetrics.consistencyScore}%`,
                 color: 'from-yellow-500 to-orange-500',
