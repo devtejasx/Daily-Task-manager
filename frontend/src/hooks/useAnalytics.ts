@@ -27,21 +27,26 @@ interface DashboardStats {
   overdueTasks: number
 }
 
-interface ChartData {
-  date?: string
-  category?: string
-  priority?: string
+interface BreakdownStats {
   total: number
   completed: number
   completionRate: number
+}
+
+export interface CategoryBreakdown extends BreakdownStats {
+  category: string
+}
+
+export interface PriorityBreakdown extends BreakdownStats {
+  priority: string
 }
 
 export function useAnalytics() {
   const [productivityMetrics, setProductivityMetrics] = useState<ProductivityMetrics | null>(null)
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [dailyCompletion, setDailyCompletion] = useState<Record<string, number> | null>(null)
-  const [categoryBreakdown, setCategoryBreakdown] = useState<ChartData[] | null>(null)
-  const [priorityBreakdown, setPriorityBreakdown] = useState<ChartData[] | null>(null)
+  const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdown[] | null>(null)
+  const [priorityBreakdown, setPriorityBreakdown] = useState<PriorityBreakdown[] | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
