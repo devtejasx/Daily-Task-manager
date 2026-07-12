@@ -135,7 +135,7 @@ export const TimerWidget: React.FC<TimerWidgetProps> = ({ taskId, taskTitle }) =
       {/* Daily Stats */}
       {dailyStats && (
         <div className="mt-6 border-t border-gray-200 pt-4">
-          <h3 className="mb-3 font-semibold text-gray-800">Today's Stats</h3>
+          <h3 className="mb-3 font-semibold text-gray-800">Today&apos;s Stats</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded bg-blue-50 p-3">
               <div className="text-gray-600">Total Time</div>

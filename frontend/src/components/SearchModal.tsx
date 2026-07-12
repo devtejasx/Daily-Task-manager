@@ -143,7 +143,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose }) => 
             </div>
           ) : query ? (
             <div className="p-6 text-center text-gray-400">
-              No tasks found for "{query}"
+              No tasks found for &quot;{query}&quot;
             </div>
           ) : (
             <div className="p-6 text-center text-gray-500">

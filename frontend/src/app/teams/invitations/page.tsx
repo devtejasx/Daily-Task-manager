@@ -120,7 +120,7 @@ export default function InvitationsPage() {
           <Mail size={48} className="mx-auto mb-4 text-gray-600" />
           <p className="text-gray-400 mb-2">No invitations yet</p>
           <p className="text-gray-500 text-sm">
-            When team members invite you, they'll appear here
+            When team members invite you, they&apos;ll appear here
           </p>
         </motion.div>
       ) : (

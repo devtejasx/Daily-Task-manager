@@ -329,7 +329,7 @@ export default function Dashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <h2 className="text-2xl font-bold mb-6">Today's Tasks</h2>
+        <h2 className="text-2xl font-bold mb-6">Today&apos;s Tasks</h2>
         <div className="space-y-3">
           {todayTasks.length === 0 ? (
             <p className="text-gray-500">No tasks for today. Great job!</p>

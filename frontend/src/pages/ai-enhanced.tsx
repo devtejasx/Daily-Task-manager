@@ -105,10 +105,10 @@ const AIEnhancedPage: React.FC = () => {
                   <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-200">
                     <h4 className="font-semibold mb-2">💡 Voice Tips:</h4>
                     <ul className="space-y-1 text-xs">
-                      <li>• Say the task clearly: "Finish project report by Friday"</li>
-                      <li>• Include priority: "Schedule meeting with John, high priority"</li>
-                      <li>• Add due dates: "Read chapter 5 tomorrow morning"</li>
-                      <li>• Specify category: "Buy groceries, shopping category"</li>
+                      <li>• Say the task clearly: &quot;Finish project report by Friday&quot;</li>
+                      <li>• Include priority: &quot;Schedule meeting with John, high priority&quot;</li>
+                      <li>• Add due dates: &quot;Read chapter 5 tomorrow morning&quot;</li>
+                      <li>• Specify category: &quot;Buy groceries, shopping category&quot;</li>
                     </ul>
                   </div>
                 </motion.div>
