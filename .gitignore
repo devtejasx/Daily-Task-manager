@@ -50,3 +50,5 @@ Thumbs.db
 .cache/
 temp/
 tmp/
+frontend/tsconfig.tsbuildinfo
+backend/logs/
