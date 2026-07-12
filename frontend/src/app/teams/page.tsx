@@ -13,7 +13,8 @@ interface Team {
   _id: string
   name: string
   description?: string
-  ownerId: { name: string; email: string }
+  // Plain id, or the populated owner document depending on the endpoint.
+  ownerId: string | { _id: string; name: string; email: string }
   members: any[]
   memberRoles?: Map<string, string>
 }
@@ -182,7 +183,11 @@ export default function TeamsPage() {
               name={team.name}
               description={team.description}
               memberCount={team.members?.length || 0}
-              isOwner={team.ownerId._id === user?.id || user?.id === team.ownerId}
+              isOwner={
+                (typeof team.ownerId === 'object'
+                  ? team.ownerId._id
+                  : team.ownerId) === user?.id
+              }
               onClick={() => handleTeamClick(team._id)}
             />
           ))
