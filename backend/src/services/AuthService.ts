@@ -12,9 +12,18 @@ export interface LoginData {
   password: string
 }
 
+// User payload with the password hash stripped: what auth endpoints return.
+type SafeUser = Omit<Record<string, unknown>, 'password'>
+
+const toSafeUser = (user: IUserDocument): SafeUser => {
+  const obj = user.toObject() as Record<string, unknown>
+  delete obj.password
+  return obj
+}
+
 export class AuthService {
   async register(data: RegisterData): Promise<{
-    user: IUserDocument
+    user: SafeUser
     token: string
   }> {
     // Check if user exists
@@ -33,12 +42,12 @@ export class AuthService {
     await user.save()
     const token = generateToken(user._id.toString())
 
-    return { user, token }
+    return { user: toSafeUser(user), token }
   }
 
   async login(
     data: LoginData
-  ): Promise<{ user: IUserDocument; token: string }> {
+  ): Promise<{ user: SafeUser; token: string }> {
     const user = await User.findOne({ email: data.email })
     if (!user) {
       throw new Error('Invalid email or password')
@@ -53,11 +62,11 @@ export class AuthService {
     await user.save()
 
     const token = generateToken(user._id.toString())
-    return { user, token }
+    return { user: toSafeUser(user), token }
   }
 
-  async getUserById(userId: string): Promise<IUserDocument | null> {
-    return User.findById(userId)
+  async getUserById(userId: string): Promise<SafeUser | null> {
+    return User.findById(userId).select('-password').lean<SafeUser>()
   }
 
   async updateUser(
