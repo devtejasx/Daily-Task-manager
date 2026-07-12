@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { apiClient } from '@/services/api';
 import { Lightbulb, TrendingUp, AlertCircle, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -23,10 +23,10 @@ export const AICoach: React.FC = () => {
   const fetchInsights = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/ai-coach/insights');
+      const response = await apiClient.getAICoachInsights();
 
-      if (response.success) {
-        setInsights(response.data.insights);
+      if (response.data.success) {
+        setInsights(response.data.data.insights);
       }
     } catch (err) {
       setError('Failed to load insights');

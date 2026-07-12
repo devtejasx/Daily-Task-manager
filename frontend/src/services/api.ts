@@ -274,6 +274,11 @@ class ApiClient {
   async getWeeklyTimerStats() {
     return this.client.get('/timer/stats/weekly')
   }
+
+  // AI coach endpoints
+  async getAICoachInsights() {
+    return this.client.get('/ai-coach/insights')
+  }
 }
 
 export const apiClient = new ApiClient()
