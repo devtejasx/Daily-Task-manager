@@ -41,7 +41,7 @@ export enum Action {
  * Permission matrix: defines what each role can do
  * Format: { resource: { action: [roles that can perform] } }
  */
-export const PERMISSIONS = {
+export const PERMISSIONS: Record<Resource, Partial<Record<Action, Role[]>>> = {
   [Resource.TASKS]: {
     [Action.CREATE]: [Role.MEMBER, Role.TEAM_MANAGER, Role.ADMIN],
     [Action.READ]: [Role.MEMBER, Role.TEAM_MANAGER, Role.ADMIN, Role.VIEWER],
@@ -159,7 +159,7 @@ export const authorize = (resource: Resource, action: Action) => {
 
     // Permission granted, continue
     (req as any).hasPermission = true;
-    next();
+    return next();
   };
 };
 
@@ -195,7 +195,7 @@ export const authorizeTeamAction = (resource: Resource, action: Action) => {
       // if (!isMember) return res.status(403).json({ error: 'Not team member' });
     }
 
-    next();
+    return next();
   };
 };
 
@@ -221,7 +221,7 @@ export const authorizeResourceOwner = (resource: Resource) => {
     }
 
     // Check ownership based on resource type
-    let owner = null;
+    const owner = null;
 
     if (resource === Resource.TASKS) {
       // TODO: Verify user owns the task
@@ -247,7 +247,7 @@ export const authorizeResourceOwner = (resource: Resource) => {
       });
     }
 
-    next();
+    return next();
   };
 };
 
@@ -279,7 +279,7 @@ export const requireRole = (roles: Role[]) => {
       });
     }
 
-    next();
+    return next();
   };
 };
 
@@ -314,7 +314,7 @@ export const getMyPermissions = (req: Request, res: Response) => {
 
   const permissions = getPermissionsForRole(user.role as Role);
 
-  res.json({
+  return res.json({
     success: true,
     data: {
       role: user.role,

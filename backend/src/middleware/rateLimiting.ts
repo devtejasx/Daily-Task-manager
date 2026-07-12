@@ -75,11 +75,11 @@ export const createRateLimiter = (config: { windowMs: number; maxRequests: numbe
       res.setHeader('X-RateLimit-Remaining', (config.maxRequests - currentCount - 1).toString());
       res.setHeader('X-RateLimit-Reset', (Date.now() + config.windowMs).toString());
 
-      next();
+      return next();
     } catch (error: any) {
       logger.error('Rate limiting error', { error: error.message });
       // On error, allow request but log
-      next();
+      return next();
     }
   };
 };
@@ -116,7 +116,7 @@ export const adaptiveRateLimiter = (baseLimiter: ReturnType<typeof createRateLim
     }
 
     // Normal rate limiting
-    baseLimiter(req, res, next);
+    return baseLimiter(req, res, next);
   };
 };
 
@@ -159,10 +159,10 @@ export const aiCostRateLimiter = async (req: Request, res: Response, next: NextF
       });
     }
 
-    next();
+    return next();
   } catch (error: any) {
     logger.error('AI cost rate limiting error', { error: error.message });
-    next();
+    return next();
   }
 };
 

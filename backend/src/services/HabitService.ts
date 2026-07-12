@@ -1,5 +1,4 @@
 import { Habit, IHabit } from '../models/Habit'
-import { User } from '../models/User'
 import mongoose from 'mongoose'
 
 export class HabitService {

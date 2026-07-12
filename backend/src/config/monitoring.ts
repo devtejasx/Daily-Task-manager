@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+import type { ErrorRequestHandler } from 'express';
 import logger from './logger';
 
 /**
@@ -20,7 +21,7 @@ export const initializeSentry = () => {
     // Performance Monitoring
     integrations: [
       new Sentry.Integrations.Http({ tracing: true }),
-      new Sentry.Integrations.Express({ request: true, serverName: true }),
+      new Sentry.Integrations.Express(),
       new Sentry.Integrations.OnUncaughtException(),
       new Sentry.Integrations.OnUnhandledRejection()
     ],
@@ -125,7 +126,7 @@ export const getSentryTransactionHandler = () => {
 /**
  * Get Sentry error handler middleware
  */
-export const getSentryErrorHandler = () => {
+export const getSentryErrorHandler = (): ErrorRequestHandler => {
   return Sentry.Handlers.errorHandler();
 };
 

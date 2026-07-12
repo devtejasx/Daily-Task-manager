@@ -10,7 +10,7 @@ import logger from '../config/logger';
 interface IndexDefinition {
   collection: string;
   name: string;
-  keys: Record<string, 1 | -1>;
+  keys: Record<string, 1 | -1 | 'text'>;
   options?: Record<string, any>;
 }
 

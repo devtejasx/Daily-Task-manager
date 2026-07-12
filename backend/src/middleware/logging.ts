@@ -48,13 +48,13 @@ export const requestLoggerMiddleware = (req: Request, res: Response, next: NextF
     }
   });
 
-  next();
+  return next();
 };
 
 /**
  * Error handling middleware
  */
-export const errorHandlerMiddleware = (err: any, req: Request, res: Response, next: NextFunction) => {
+export const errorHandlerMiddleware = (err: any, req: Request, res: Response, _next: NextFunction) => {
   const requestId = (req as any).requestId;
   const startTime = (req as any).startTime;
   const duration = startTime ? Date.now() - startTime : 0;
@@ -79,7 +79,7 @@ export const errorHandlerMiddleware = (err: any, req: Request, res: Response, ne
   });
 
   // Send error response
-  res.status(statusCode).json({
+  return res.status(statusCode).json({
     success: false,
     error: errorCode,
     message,
@@ -121,13 +121,13 @@ export const validationErrorMiddleware = (err: any, req: Request, res: Response,
     });
   }
 
-  next(err);
+  return next(err);
 };
 
 /**
  * 404 Not Found middleware
  */
-export const notFoundMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const notFoundMiddleware = (req: Request, res: Response, _next: NextFunction) => {
   const requestId = (req as any).requestId;
 
   logger.warn('Route Not Found', {
@@ -137,7 +137,7 @@ export const notFoundMiddleware = (req: Request, res: Response, next: NextFuncti
     userId: (req as any).user?.id
   });
 
-  res.status(404).json({
+  return res.status(404).json({
     success: false,
     error: 'NOT_FOUND',
     message: `Route ${req.method} ${req.path} not found`,
@@ -150,7 +150,7 @@ export const notFoundMiddleware = (req: Request, res: Response, next: NextFuncti
 /**
  * Async error wrapper - wraps async route handlers to catch errors
  */
-export const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+export const asyncHandler = (fn: (req: Request, res: Response, next: NextFunction) => unknown) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 

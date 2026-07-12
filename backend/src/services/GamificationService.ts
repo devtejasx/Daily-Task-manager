@@ -1,9 +1,10 @@
-import { User, IUserDocument } from '../models/User'
+import { User } from '../models/User'
 import { Achievement } from '../models/Achievement'
 import { Task, ITaskDocument } from '../models/Task'
 import mongoose from 'mongoose'
 
 export interface XPReward {
+  totalXP: number
   baseXP: number
   priorityMultiplier: number
   difficultyMultiplier: number
@@ -16,7 +17,7 @@ export class GamificationService {
    * Calculate XP reward for completing a task
    */
   calculateXP(task: ITaskDocument): XPReward {
-    let baseXP = 50 // Base reward
+    const baseXP = 50 // Base reward
     let priorityMultiplier = 1
     let difficultyMultiplier = 1
     let timeBonus = 0
@@ -62,6 +63,7 @@ export class GamificationService {
       (baseXP * priorityMultiplier * difficultyMultiplier * timeBonus) / 100
 
     return {
+      totalXP,
       baseXP,
       priorityMultiplier,
       difficultyMultiplier,
@@ -229,7 +231,6 @@ export class GamificationService {
 
     if (!completedToday) {
       // Check if in quiet hours or if it's a new day
-      const now = new Date()
       const lastCompletion = await Task.findOne(
         { userId: new mongoose.Types.ObjectId(userId), completedAt: { $exists: true } },
         {},

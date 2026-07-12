@@ -1,5 +1,5 @@
 import winston from 'winston';
-import 'winston-daily-rotate-file';
+import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 
 // Custom format for structured logging
@@ -9,6 +9,16 @@ const customFormat = winston.format.combine(
   winston.format.splat(),
   winston.format.json()
 );
+
+// Winston logger extended with the app's custom logging helpers below.
+interface AppLogger extends winston.Logger {
+  addContext(context: Record<string, unknown>): void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  logRequest(req: any, res: any, duration: number): void
+  logDatabaseQuery(query: string, duration: number, params?: unknown[]): void
+  logApiCall(service: string, endpoint: string, duration: number, statusCode: number): void
+  logError(error: Error, context?: Record<string, unknown>): void
+}
 
 // Create logs directory if it doesn't exist
 import fs from 'fs';
@@ -40,11 +50,11 @@ const logger = winston.createLogger({
     }),
 
     // Combined logs - file with daily rotation
-    new (require('winston-daily-rotate-file'))({
+    new DailyRotateFile({
       filename: path.join(logsDir, 'application-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       maxSize: '10m',
-      maxDays: '14d',
+      maxFiles: '14d',
       format: customFormat
     }),
 
@@ -63,7 +73,7 @@ const logger = winston.createLogger({
         ]
       : [])
   ]
-});
+}) as AppLogger;
 
 // Add metadata to log context
 logger.addContext = (context: Record<string, any>) => {

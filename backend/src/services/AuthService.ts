@@ -1,6 +1,5 @@
 import { User, IUserDocument } from '../models/User'
 import { generateToken } from '../middleware/auth'
-import mongoose from 'mongoose'
 
 export interface RegisterData {
   email: string

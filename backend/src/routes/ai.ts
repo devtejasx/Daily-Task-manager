@@ -14,12 +14,12 @@ router.get('/suggestions', auth, async (req: Request, res: Response) => {
     const count = parseInt(req.query.count as string) || 5
     const suggestions = await aiService.generateTaskSuggestions(req.userId as string, count)
 
-    res.json({
+    return res.json({
       success: true,
       data: suggestions,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -31,12 +31,12 @@ router.get('/smart-recommendations', auth, async (req: Request, res: Response) =
   try {
     const recommendations = await aiService.getSmartRecommendations(req.userId as string)
 
-    res.json({
+    return res.json({
       success: true,
       data: recommendations,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -48,12 +48,12 @@ router.get('/analyze-patterns', auth, async (req: Request, res: Response) => {
   try {
     const analysis = await aiService.analyzeTaskPatterns(req.userId as string)
 
-    res.json({
+    return res.json({
       success: true,
       data: analysis,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -71,12 +71,12 @@ router.post('/suggest-priority', auth, async (req: Request, res: Response) => {
 
     const priority = await aiService.suggestTaskPriority(title, description)
 
-    res.json({
+    return res.json({
       success: true,
       data: priority,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 

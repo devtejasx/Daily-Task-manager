@@ -24,7 +24,7 @@ router.post('/transcribe', auth, upload.single('audio'), async (req: Request, re
     // Validate transcription
     const validation = voiceService.validateTranscription(text)
 
-    res.json({
+    return res.json({
       success: true,
       data: {
         text,
@@ -33,7 +33,7 @@ router.post('/transcribe', auth, upload.single('audio'), async (req: Request, re
       },
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -66,14 +66,14 @@ router.post('/create-task', auth, upload.single('audio'), async (req: Request, r
     // Create task
     const task = await taskService.createTask(req.userId as string, taskData)
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: task,
       transcription: text,
       message: 'Task created from voice input',
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -96,9 +96,9 @@ router.post('/text-to-speech', auth, async (req: Request, res: Response) => {
       'Content-Disposition': 'attachment; filename="speech.mp3"',
     })
 
-    res.send(audioBuffer)
+    return res.send(audioBuffer)
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -116,12 +116,12 @@ router.post('/parse-natural-language', auth, async (req: Request, res: Response)
 
     const taskData = await voiceService.parseNaturalLanguageTask(text)
 
-    res.json({
+    return res.json({
       success: true,
       data: taskData,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 

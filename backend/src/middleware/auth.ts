@@ -19,22 +19,23 @@ export const authenticateToken = (
       return res.status(401).json({ error: 'Access token required' })
     }
 
-    jwt.verify(token, process.env.JWT_SECRET || 'secret', (err: any, decoded: any) => {
+    return jwt.verify(token, process.env.JWT_SECRET || 'secret', (err: any, decoded: any) => {
       if (err) {
         return res.status(403).json({ error: 'Invalid or expired token' })
       }
       req.userId = decoded.userId
-      next()
+      return next()
     })
   } catch (error) {
-    res.status(500).json({ error: 'Authentication error' })
+    return res.status(500).json({ error: 'Authentication error' })
   }
 }
 
 export const generateToken = (userId: string) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'secret', {
-    expiresIn: process.env.JWT_EXPIRE || '7d',
-  })
+  const options: jwt.SignOptions = {
+    expiresIn: (process.env.JWT_EXPIRE || '7d') as jwt.SignOptions['expiresIn'],
+  }
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'secret', options)
 }
 
 export const verifyToken = (token: string) => {

@@ -20,13 +20,13 @@ router.post('/', auth, async (req: Request, res: Response) => {
 
     const team = await teamService.createTeam(req.userId as string, name, description)
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: team,
       message: 'Team created successfully',
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -38,12 +38,12 @@ router.get('/', auth, async (req: Request, res: Response) => {
   try {
     const teams = await teamService.getUserTeams(req.userId as string)
 
-    res.json({
+    return res.json({
       success: true,
       data: teams,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -60,12 +60,12 @@ router.get('/invitations', auth, async (req: Request, res: Response) => {
 
     const invitations = await teamService.getPendingInvitations(user.email)
 
-    res.json({
+    return res.json({
       success: true,
       data: invitations,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -77,13 +77,13 @@ router.post('/invitations/:id/accept', auth, async (req: Request, res: Response)
   try {
     const team = await teamService.acceptInvitation(req.params.id, req.userId as string)
 
-    res.json({
+    return res.json({
       success: true,
       data: team,
       message: 'Invitation accepted',
     })
   } catch (error: any) {
-    res.status(400).json({ success: false, error: error.message })
+    return res.status(400).json({ success: false, error: error.message })
   }
 })
 
@@ -95,12 +95,12 @@ router.post('/invitations/:id/decline', auth, async (req: Request, res: Response
   try {
     await teamService.declineInvitation(req.params.id)
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Invitation declined',
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -116,12 +116,12 @@ router.get('/:id', auth, async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Team not found' })
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: team,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -141,13 +141,13 @@ router.put('/:id', auth, async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Team not found' })
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: team,
       message: 'Team updated successfully',
     })
   } catch (error: any) {
-    res.status(error.message === 'Unauthorized' ? 403 : 500).json({
+    return res.status(error.message === 'Unauthorized' ? 403 : 500).json({
       success: false,
       error: error.message,
     })
@@ -168,12 +168,12 @@ router.post('/:id/invite', auth, async (req: Request, res: Response) => {
 
     await teamService.inviteUserToTeam(req.params.id, email, req.userId as string)
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Invitation sent successfully',
     })
   } catch (error: any) {
-    res.status(error.message === 'Unauthorized' ? 403 : 500).json({
+    return res.status(error.message === 'Unauthorized' ? 403 : 500).json({
       success: false,
       error: error.message,
     })
@@ -188,12 +188,12 @@ router.delete('/:id/members/:memberId', auth, async (req: Request, res: Response
   try {
     await teamService.removeMember(req.params.id, req.userId as string, req.params.memberId)
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Member removed successfully',
     })
   } catch (error: any) {
-    res.status(error.message === 'Unauthorized' ? 403 : 500).json({
+    return res.status(error.message === 'Unauthorized' ? 403 : 500).json({
       success: false,
       error: error.message,
     })
@@ -214,12 +214,12 @@ router.put('/:id/members/:memberId/role', auth, async (req: Request, res: Respon
 
     await teamService.updateMemberRole(req.params.id, req.userId as string, req.params.memberId, role)
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Member role updated successfully',
     })
   } catch (error: any) {
-    res.status(error.message === 'Unauthorized' ? 403 : 500).json({
+    return res.status(error.message === 'Unauthorized' ? 403 : 500).json({
       success: false,
       error: error.message,
     })
@@ -234,12 +234,12 @@ router.post('/:id/share-task/:taskId', auth, async (req: Request, res: Response)
   try {
     await teamService.shareTaskWithTeam(req.params.id, req.params.taskId, req.userId as string)
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Task shared with team',
     })
   } catch (error: any) {
-    res.status(error.message === 'Unauthorized' ? 403 : 500).json({
+    return res.status(error.message === 'Unauthorized' ? 403 : 500).json({
       success: false,
       error: error.message,
     })
@@ -254,12 +254,12 @@ router.get('/:id/activity', auth, async (req: Request, res: Response) => {
   try {
     const activity = await teamService.getTeamActivityLog(req.params.id)
 
-    res.json({
+    return res.json({
       success: true,
       data: activity,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 

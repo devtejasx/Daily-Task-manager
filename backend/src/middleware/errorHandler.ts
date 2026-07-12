@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from 'express'
 
 export const errorHandler = (
   error: any,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   console.error('Error:', error)
 
@@ -18,7 +18,7 @@ export const errorHandler = (
   })
 }
 
-export const notFound = (req: Request, res: Response, next: NextFunction) => {
+export const notFound = (req: Request, res: Response, _next: NextFunction) => {
   const error = new Error(`Not Found - ${req.originalUrl}`)
   res.status(404).json({
     success: false,

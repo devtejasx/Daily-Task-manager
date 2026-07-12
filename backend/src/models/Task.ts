@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose'
-import { TaskStatus, TaskPriority, TaskDifficulty, RecurrenceType } from '../types'
+import { TaskStatus, TaskPriority, TaskDifficulty } from '../types'
 
 // Subtask interface
 export interface ISubtask {

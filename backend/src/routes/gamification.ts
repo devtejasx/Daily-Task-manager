@@ -1,14 +1,12 @@
 import express, { Request, Response } from 'express'
 import { auth } from '../middleware/auth'
 import { GamificationService } from '../services/GamificationService'
-import { AnalyticsService } from '../services/AnalyticsService'
 import { User } from '../models/User'
 import { Achievement } from '../models/Achievement'
 import mongoose from 'mongoose'
 
 const router = express.Router()
 const gamificationService = new GamificationService()
-const analyticsService = new AnalyticsService()
 
 /**
  * GET /api/gamification/stats
@@ -17,9 +15,9 @@ const analyticsService = new AnalyticsService()
 router.get('/stats', auth, async (req: Request, res: Response) => {
   try {
     const stats = await gamificationService.getUserGameificationStats(req.userId as string)
-    res.json(stats)
+    return res.json(stats)
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message })
+    return res.status(500).json({ error: (error as Error).message })
   }
 })
 
@@ -27,16 +25,16 @@ router.get('/stats', auth, async (req: Request, res: Response) => {
  * GET /api/gamification/xp-leaderboard
  * Get top 10 users by XP
  */
-router.get('/xp-leaderboard', async (req: Request, res: Response) => {
+router.get('/xp-leaderboard', async (_req: Request, res: Response) => {
   try {
     const leaderboard = await User.find()
       .sort({ totalXp: -1 })
       .limit(10)
       .select('username email level totalXp completedTasks')
 
-    res.json(leaderboard)
+    return res.json(leaderboard)
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message })
+    return res.status(500).json({ error: (error as Error).message })
   }
 })
 
@@ -44,16 +42,16 @@ router.get('/xp-leaderboard', async (req: Request, res: Response) => {
  * GET /api/gamification/streak-leaderboard
  * Get top 10 users by streak
  */
-router.get('/streak-leaderboard', async (req: Request, res: Response) => {
+router.get('/streak-leaderboard', async (_req: Request, res: Response) => {
   try {
     const leaderboard = await User.find()
       .sort({ streak: -1 })
       .limit(10)
       .select('username email streak longestStreak')
 
-    res.json(leaderboard)
+    return res.json(leaderboard)
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message })
+    return res.status(500).json({ error: (error as Error).message })
   }
 })
 
@@ -61,16 +59,16 @@ router.get('/streak-leaderboard', async (req: Request, res: Response) => {
  * GET /api/gamification/level-leaderboard
  * Get top 10 users by level
  */
-router.get('/level-leaderboard', async (req: Request, res: Response) => {
+router.get('/level-leaderboard', async (_req: Request, res: Response) => {
   try {
     const leaderboard = await User.find()
       .sort({ level: -1, totalXp: -1 })
       .limit(10)
       .select('username email level totalXp')
 
-    res.json(leaderboard)
+    return res.json(leaderboard)
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message })
+    return res.status(500).json({ error: (error as Error).message })
   }
 })
 
@@ -84,9 +82,9 @@ router.get('/achievements', auth, async (req: Request, res: Response) => {
       userId: new mongoose.Types.ObjectId(req.userId as string),
     }).sort({ unlockedAt: -1 })
 
-    res.json(achievements)
+    return res.json(achievements)
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message })
+    return res.status(500).json({ error: (error as Error).message })
   }
 })
 
@@ -94,15 +92,15 @@ router.get('/achievements', auth, async (req: Request, res: Response) => {
  * GET /api/gamification/achievements/all
  * Get all possible achievements
  */
-router.get('/achievements/all', async (req: Request, res: Response) => {
+router.get('/achievements/all', async (_req: Request, res: Response) => {
   try {
     const allAchievements = await Achievement.find({})
       .select('name description icon badge requirements points -userId -_id')
       .distinct('name')
 
-    res.json(allAchievements)
+    return res.json(allAchievements)
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message })
+    return res.status(500).json({ error: (error as Error).message })
   }
 })
 
@@ -127,7 +125,7 @@ router.get('/next-level-progress', auth, async (req: Request, res: Response) => 
     ]
     const currentThreshold = thresholds[user.level] || 0
 
-    res.json({
+    return res.json({
       currentLevel: user.level,
       currentXP: user.totalXp,
       xpInCurrentLevel: user.totalXp - currentThreshold,
@@ -136,7 +134,7 @@ router.get('/next-level-progress', auth, async (req: Request, res: Response) => 
       nextLevelXP: nextLevelThreshold,
     })
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message })
+    return res.status(500).json({ error: (error as Error).message })
   }
 })
 
@@ -149,13 +147,13 @@ router.post('/check-streak', auth, async (req: Request, res: Response) => {
     const resetOccurred = await gamificationService.checkAndResetStreak(req.userId as string)
     const user = await User.findById(req.userId as string)
 
-    res.json({
+    return res.json({
       resetOccurred,
       currentStreak: user?.streak || 0,
       longestStreak: user?.longestStreak || 0,
     })
   } catch (error) {
-    res.status(500).json({ error: (error as Error).message })
+    return res.status(500).json({ error: (error as Error).message })
   }
 })
 
@@ -163,9 +161,9 @@ router.post('/check-streak', auth, async (req: Request, res: Response) => {
  * GET /api/gamification/streak-milestones
  * Get streak milestone values
  */
-router.get('/streak-milestones', (req: Request, res: Response) => {
+router.get('/streak-milestones', (_req: Request, res: Response) => {
   const milestones = gamificationService.getStreakMilestones()
-  res.json(milestones)
+  return res.json(milestones)
 })
 
 export default router

@@ -22,7 +22,7 @@ const httpServer = createServer(app)
 const PORT = process.env.PORT || 5000
 
 // Initialize WebSocket Server
-const wsServer = new WebSocketServer(httpServer)
+new WebSocketServer(httpServer)
 
 // Middleware
 app.use(express.json())
@@ -49,7 +49,7 @@ app.use('/api/ai', aiRoutes)
 app.use('/api/timer', timerRoutes)
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date(),

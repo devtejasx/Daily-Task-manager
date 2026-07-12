@@ -13,13 +13,13 @@ router.post('/', auth, async (req: Request, res: Response) => {
   try {
     const habit = await habitService.createHabit(req.userId as string, req.body)
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       data: habit,
       message: 'Habit created successfully',
     })
   } catch (error: any) {
-    res.status(400).json({ success: false, error: error.message })
+    return res.status(400).json({ success: false, error: error.message })
   }
 })
 
@@ -32,12 +32,12 @@ router.get('/', auth, async (req: Request, res: Response) => {
     const includeInactive = req.query.includeInactive === 'true'
     const habits = await habitService.getUserHabits(req.userId as string, includeInactive)
 
-    res.json({
+    return res.json({
       success: true,
       data: habits,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -53,12 +53,12 @@ router.get('/:id', auth, async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Habit not found' })
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: habit,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -74,13 +74,13 @@ router.put('/:id', auth, async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Habit not found' })
     }
 
-    res.json({
+    return res.json({
       success: true,
       data: habit,
       message: 'Habit updated successfully',
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -92,14 +92,14 @@ router.post('/:id/complete', auth, async (req: Request, res: Response) => {
   try {
     const result = await habitService.completeHabit(req.params.id)
 
-    res.json({
+    return res.json({
       success: true,
       data: result.habit,
       streakIncreased: result.streakIncreased,
       message: 'Habit marked complete',
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -111,12 +111,12 @@ router.delete('/:id', auth, async (req: Request, res: Response) => {
   try {
     await habitService.deleteHabit(req.params.id)
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Habit deleted successfully',
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -128,12 +128,12 @@ router.get('/stats/summary', auth, async (req: Request, res: Response) => {
   try {
     const stats = await habitService.getHabitStats(req.userId as string)
 
-    res.json({
+    return res.json({
       success: true,
       data: stats,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -148,12 +148,12 @@ router.get('/category/:category', auth, async (req: Request, res: Response) => {
       req.params.category
     )
 
-    res.json({
+    return res.json({
       success: true,
       data: habits,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -166,12 +166,12 @@ router.get('/:id/data', auth, async (req: Request, res: Response) => {
     const days = parseInt(req.query.days as string) || 30
     const data = await habitService.getHabitCompletionData(req.params.id, days)
 
-    res.json({
+    return res.json({
       success: true,
       data,
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -183,12 +183,12 @@ router.post('/check-streaks', auth, async (req: Request, res: Response) => {
   try {
     await habitService.checkAndResetStreaks(req.userId as string)
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Streaks checked and updated',
     })
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    return res.status(500).json({ success: false, error: error.message })
   }
 })
 
