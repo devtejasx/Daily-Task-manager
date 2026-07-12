@@ -7,25 +7,8 @@
 
 describe('TaskService', () => {
   let taskService: any;
-  let mockDatabase: any;
-  let mockCache: any;
 
   beforeEach(() => {
-    // Setup mocks
-    mockDatabase = {
-      create: jest.fn(),
-      findById: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      find: jest.fn()
-    };
-
-    mockCache = {
-      get: jest.fn(),
-      set: jest.fn(),
-      delete: jest.fn()
-    };
-
     // Mock TaskService (replace with actual import when available)
     taskService = {
       createTask: jest.fn(),
@@ -78,9 +61,17 @@ describe('TaskService', () => {
         priority: 'low'
       };
 
-      // These are example assertions
-      // In real implementation, XP calculation logic would be tested
-      expect(true).toBe(true);
+      // Example XP rule; replace with the real calculation when the
+      // service is wired up.
+      taskService.createTask.mockImplementation(async (task: any) => ({
+        ...task,
+        xpReward: task.priority === 'high' ? 100 : 25
+      }));
+
+      const high = await taskService.createTask(highPriorityTask);
+      const low = await taskService.createTask(lowPriorityTask);
+
+      expect(high.xpReward).toBeGreaterThan(low.xpReward);
     });
 
     it('should throw error if title is empty', async () => {
@@ -172,7 +163,7 @@ describe('TaskService', () => {
 
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(2);
-      result.forEach(task => {
+      result.forEach((task: any) => {
         expect(task.status).toBe('pending');
         expect(task.priority).toBe('high');
       });

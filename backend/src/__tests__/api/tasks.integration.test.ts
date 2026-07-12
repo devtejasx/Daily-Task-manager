@@ -6,24 +6,9 @@
  */
 
 describe('Tasks API Integration Tests', () => {
-  // Placeholder for app instance
-  let app: any;
-  let authToken: string;
-  let userId: string;
+  // Initialize the real app with Supertest here when it is exportable,
+  // e.g. app = require('../app').default
   let taskId: string;
-
-  beforeAll(async () => {
-    // Initialize app (import actual app when available)
-    // app = require('../app').default;
-    
-    // For now, create mock
-    app = {
-      post: jest.fn(),
-      get: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn()
-    };
-  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -45,10 +30,8 @@ describe('Tasks API Integration Tests', () => {
         }
       };
 
-      userId = response.body.data.userId;
-      authToken = response.body.data.token;
-
       expect(response.status).toBe(201);
+      expect(response.body.data).toHaveProperty('userId');
       expect(response.body.data).toHaveProperty('token');
     });
 
@@ -63,8 +46,6 @@ describe('Tasks API Integration Tests', () => {
           }
         }
       };
-
-      authToken = response.body.data.token;
 
       expect(response.status).toBe(200);
       expect(response.body.data).toHaveProperty('token');
@@ -159,6 +140,9 @@ describe('Tasks API Integration Tests', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.details).toHaveLength(2);
+      expect(response.body.details.map((d: { field: string }) => d.field)).toEqual(
+        Object.keys(invalidData)
+      );
     });
 
     it('should fetch user tasks', async () => {
