@@ -1,14 +1,17 @@
-# Backend Dockerfile
+# Backend Dockerfile (build context: repo root — the lockfile lives there)
 FROM node:18-alpine
 
 WORKDIR /app
 
-COPY backend/package*.json ./
+COPY package.json package-lock.json ./
+COPY backend/package.json ./backend/
 
-RUN npm ci
+RUN npm ci --workspace=task-manager-backend
 
-COPY backend/src ./src
-COPY backend/tsconfig.json ./
+COPY backend/src ./backend/src
+COPY backend/tsconfig.json ./backend/
+
+WORKDIR /app/backend
 
 EXPOSE 5000
 
