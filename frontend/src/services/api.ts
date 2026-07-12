@@ -276,5 +276,9 @@ class ApiClient {
   }
 }
 
-export const api = new ApiClient()
-export default api
+export const apiClient = new ApiClient()
+
+// Alias kept for callers that import { api }.
+export const api = apiClient
+
+export default apiClient
