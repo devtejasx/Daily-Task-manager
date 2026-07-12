@@ -59,13 +59,14 @@ export const useTasks = () => {
     }
   }
 
-  const deleteTaskItem = async (id: string) => {
+  const deleteTaskItem = async (id: string): Promise<boolean> => {
     try {
       await apiClient.deleteTask(id)
       removeTask(id)
+      return true
     } catch (err: any) {
       setError(err.message)
-      throw err
+      return false
     }
   }
 
