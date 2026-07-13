@@ -6,6 +6,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
+import { Task } from '../models/Task';
+import { Team } from '../models/Team';
 
 // User roles
 export enum Role {
@@ -220,20 +222,24 @@ export const authorizeResourceOwner = (resource: Resource) => {
       return next();
     }
 
-    // Check ownership based on resource type
-    const owner = null;
+    // Look up the owning user id for the resource.
+    let owner: string | null = null;
 
     if (resource === Resource.TASKS) {
-      // TODO: Verify user owns the task
-      // const task = await Task.findById(resourceId);
-      // owner = task?.userId;
+      const task = await Task.findById(resourceId).select('userId');
+      if (!task) {
+        return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+      }
+      owner = task.userId?.toString() ?? null;
     } else if (resource === Resource.TEAMS) {
-      // TODO: Verify user owns or manages the team
-      // const team = await Team.findById(resourceId);
-      // owner = team?.ownerId;
+      const team = await Team.findById(resourceId).select('ownerId');
+      if (!team) {
+        return res.status(404).json({ success: false, error: 'NOT_FOUND' });
+      }
+      owner = team.ownerId?.toString() ?? null;
     }
 
-    if (owner !== user.id) {
+    if (owner === null || owner !== user.id?.toString()) {
       logger.warn('Resource owner check failed', {
         userId: user.id,
         resourceId,
