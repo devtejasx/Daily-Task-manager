@@ -13,6 +13,16 @@ export interface XPReward {
   onTimeBonus: number
 }
 
+// Cumulative XP required to reach each level. Index i is the floor of level i,
+// so a user is at level L when LEVEL_THRESHOLDS[L-1] <= totalXP < LEVEL_THRESHOLDS[L].
+const LEVEL_THRESHOLDS = [
+  0, 100, 350, 800, 1500, 2500, 3500, 4500, 5500, 6500, 8500, 10500, 12500,
+  14500, 16500, 18500, 20500, 22500, 24500, 26500, 31500, 36500, 41500, 46500,
+  51500, 61500, 71500, 81500, 91500, 101500, 151500, 201500, 251500, 301500,
+  351500, 401500, 451500, 501500, 551500, 601500,
+]
+const XP_PER_LEVEL_AFTER_MAX = 50000
+
 export class GamificationService {
   /**
    * Calculate XP reward for completing a task
@@ -107,38 +117,29 @@ export class GamificationService {
    * Calculate level from total XP
    */
   calculateLevel(totalXP: number): number {
-    const thresholds = [
-      0, 100, 350, 800, 1500, 2500, 3500, 4500, 5500, 6500, 8500, 10500, 12500,
-      14500, 16500, 18500, 20500, 22500, 24500, 26500, 31500, 36500, 41500,
-      46500, 51500, 61500, 71500, 81500, 91500, 101500, 151500, 201500, 251500,
-      301500, 351500, 401500, 451500, 501500, 551500, 601500,
-    ]
-
-    for (let level = 0; level < thresholds.length; level++) {
-      if (totalXP < thresholds[level]) {
+    // Level L means the user has passed LEVEL_THRESHOLDS[L-1] but not [L].
+    // A fresh user (0 XP) is level 1, since 0 < LEVEL_THRESHOLDS[1] (=100).
+    for (let level = 0; level < LEVEL_THRESHOLDS.length; level++) {
+      if (totalXP < LEVEL_THRESHOLDS[level]) {
         return level
       }
     }
 
-    return 50 // Max level
+    return LEVEL_THRESHOLDS.length // Max level
   }
 
   /**
-   * Get XP threshold for next level
+   * Total XP required to advance out of the given level (i.e. the ceiling of
+   * the current level / the floor of the next one).
    */
   getNextLevelThreshold(level: number): number {
-    const thresholds = [
-      0, 100, 350, 800, 1500, 2500, 3500, 4500, 5500, 6500, 8500, 10500, 12500,
-      14500, 16500, 18500, 20500, 22500, 24500, 26500, 31500, 36500, 41500,
-      46500, 51500, 61500, 71500, 81500, 91500, 101500, 151500, 201500, 251500,
-      301500, 351500, 401500, 451500, 501500, 551500, 601500,
-    ]
-
-    if (level + 1 < thresholds.length) {
-      return thresholds[level + 1]
+    if (level < LEVEL_THRESHOLDS.length) {
+      return LEVEL_THRESHOLDS[level]
     }
 
-    return thresholds[thresholds.length - 1] + 50000 // 50k per level after max
+    // Past the defined table: a flat cost per level beyond the last threshold.
+    const beyond = level - (LEVEL_THRESHOLDS.length - 1)
+    return LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1] + beyond * XP_PER_LEVEL_AFTER_MAX
   }
 
   /**
@@ -146,18 +147,16 @@ export class GamificationService {
    */
   getLevelProgress(totalXP: number): number {
     const level = this.calculateLevel(totalXP)
-    const currentThreshold = [
-      0, 100, 350, 800, 1500, 2500, 3500, 4500, 5500, 6500, 8500, 10500, 12500,
-      14500, 16500, 18500, 20500, 22500, 24500, 26500, 31500, 36500, 41500,
-      46500, 51500, 61500, 71500, 81500, 91500, 101500, 151500, 201500, 251500,
-      301500, 351500, 401500, 451500, 501500, 551500, 601500,
-    ][level] || 0
-
+    // Floor of the current level is the previous threshold; using
+    // LEVEL_THRESHOLDS[level] here was the off-by-one that produced negative
+    // progress (e.g. 150 XP at level 2 gave (150-350)/450 = -44%).
+    const currentThreshold = LEVEL_THRESHOLDS[level - 1] ?? 0
     const nextThreshold = this.getNextLevelThreshold(level)
     const xpInCurrentLevel = totalXP - currentThreshold
     const xpNeeded = nextThreshold - currentThreshold
 
-    return (xpInCurrentLevel / xpNeeded) * 100
+    if (xpNeeded <= 0) return 100
+    return Math.max(0, Math.min(100, (xpInCurrentLevel / xpNeeded) * 100))
   }
 
   /**
@@ -281,7 +280,7 @@ export class GamificationService {
 
     const completedTasks = await Task.countDocuments({
       userId: new mongoose.Types.ObjectId(userId),
-      status: 'Completed',
+      status: TaskStatus.Completed,
     })
 
     const achievements = await Achievement.countDocuments({

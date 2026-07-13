@@ -155,8 +155,8 @@ export default function Dashboard() {
           <LevelProgress
             currentLevel={gameStats.level}
             currentXP={gameStats.totalXP}
-            xpInCurrentLevel={gameStats.totalXP - (LEVEL_XP_THRESHOLDS[gameStats.level] || 0)}
-            xpNeededForNextLevel={gameStats.nextLevelXP - (LEVEL_XP_THRESHOLDS[gameStats.level] || 0)}
+            xpInCurrentLevel={gameStats.totalXP - (LEVEL_XP_THRESHOLDS[gameStats.level - 1] || 0)}
+            xpNeededForNextLevel={gameStats.nextLevelXP - (LEVEL_XP_THRESHOLDS[gameStats.level - 1] || 0)}
             showDetails
           />
         </motion.div>
