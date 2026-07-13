@@ -94,20 +94,24 @@ export class TaskService {
     const subtaskBonus = task.subtasks ? task.subtasks.length * 50 : 0
     const totalXP = baseXPCalculation + subtaskBonus
 
+    // Persist the completion before the streak calculation runs: updateStreak
+    // queries for a task completed today, so the task must already be saved or
+    // the streak never advances.
+    await task.save()
+
+    // Increment the user's completed-task counter atomically. The previous
+    // load-modify-save here raced awardXP's and updateStreak's own saves of
+    // the same document, so the increment could be silently clobbered.
+    await User.updateOne(
+      { _id: userId },
+      { $inc: { completedTasks: 1 } }
+    )
+
     // Award XP and handle level-up
     const result = await this.gamificationService.awardXP(userId, Math.floor(totalXP))
 
-    // Update streak
+    // Update streak (now sees the saved task)
     const streakResult = await this.gamificationService.updateStreak(userId)
-
-    // Increment completed tasks
-    const user = await User.findById(userId)
-    if (user) {
-      user.completedTasks += 1
-      await user.save()
-    }
-
-    await task.save()
 
     return {
       task,
