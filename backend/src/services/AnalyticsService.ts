@@ -1,4 +1,4 @@
-import { TaskStatus } from '../types'
+import { TaskStatus, TaskPriority } from '../types'
 import { User } from '../models/User'
 import { Task } from '../models/Task'
 import mongoose from 'mongoose'
@@ -48,15 +48,16 @@ export class AnalyticsService {
       }
     })
 
-    // Priority distribution
+    // Priority distribution (keys match the lowercase TaskPriority values the
+    // documents actually store; capitalized keys left every bucket at 0).
     const priorityDistribution: Record<string, number> = {
-      Critical: 0,
-      High: 0,
-      Medium: 0,
-      Low: 0,
+      [TaskPriority.Critical]: 0,
+      [TaskPriority.High]: 0,
+      [TaskPriority.Medium]: 0,
+      [TaskPriority.Low]: 0,
     }
     allTasks.forEach((task) => {
-      priorityDistribution[task.priority]++
+      priorityDistribution[task.priority] = (priorityDistribution[task.priority] ?? 0) + 1
     })
 
     // Peak productivity hour
@@ -110,12 +111,23 @@ export class AnalyticsService {
     const endOfDay = new Date(today)
     endOfDay.setHours(23, 59, 59, 999)
 
-    // Today's tasks
+    // Counts a task as "completed today" when it was completed within the
+    // window, keyed on completedAt. The previous version keyed on dueDate, so
+    // a task completed today with no due date (or one due on another day) was
+    // never counted.
+    const countCompletedBetween = (start: Date, end: Date) =>
+      Task.countDocuments({
+        userId: userId_obj,
+        status: TaskStatus.Completed,
+        completedAt: { $gte: start, $lte: end },
+      })
+
+    // Today's tasks (scheduled for today) and completions today
     const todayTasks = await Task.find({
       userId: userId_obj,
       dueDate: { $gte: today, $lte: endOfDay },
     })
-    const completedToday = todayTasks.filter((t) => t.status === TaskStatus.Completed).length
+    const completedToday = await countCompletedBetween(today, endOfDay)
 
     // This week
     const weekStart = new Date(today)
@@ -128,7 +140,7 @@ export class AnalyticsService {
       userId: userId_obj,
       dueDate: { $gte: weekStart, $lte: weekEnd },
     })
-    const completedWeek = weekTasks.filter((t) => t.status === TaskStatus.Completed).length
+    const completedWeek = await countCompletedBetween(weekStart, weekEnd)
 
     // This month
     const monthStart = new Date(today)
@@ -142,7 +154,7 @@ export class AnalyticsService {
       userId: userId_obj,
       dueDate: { $gte: monthStart, $lte: monthEnd },
     })
-    const completedMonth = monthTasks.filter((t) => t.status === TaskStatus.Completed).length
+    const completedMonth = await countCompletedBetween(monthStart, monthEnd)
 
     const allTasks = await Task.find({ userId: userId_obj })
     const overdue = allTasks.filter((t) => {
