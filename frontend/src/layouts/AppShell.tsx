@@ -15,18 +15,15 @@ import { PageLoader } from '@/components/common/Loader'
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const user = useAuthStore((s) => s.user)
+  const { user, initialized } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  // zustand persist rehydrates after mount — wait a tick before deciding auth
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => setHydrated(true), [])
 
   useEffect(() => {
-    if (hydrated && !user) router.replace('/login')
-  }, [hydrated, user, router])
+    // Wait for Firebase to restore the session before deciding
+    if (initialized && !user) router.replace('/login')
+  }, [initialized, user, router])
 
-  if (!hydrated || !user) {
+  if (!initialized || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <PageLoader />

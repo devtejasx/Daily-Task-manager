@@ -62,14 +62,18 @@ export default function SettingsPage() {
     if (user) setProfile({ name: user.name, email: user.email })
   }, [user])
 
-  const handleProfileSave = (e: FormEvent) => {
+  const handleProfileSave = async (e: FormEvent) => {
     e.preventDefault()
-    if (!profile.name.trim() || !profile.email.trim()) {
-      toast.error('Name and email are required')
+    if (!profile.name.trim()) {
+      toast.error('Name is required')
       return
     }
-    updateProfile({ name: profile.name.trim(), email: profile.email.trim() })
-    toast.success('Profile updated')
+    try {
+      await updateProfile({ name: profile.name.trim() })
+      toast.success('Profile updated')
+    } catch {
+      toast.error('Failed to update profile')
+    }
   }
 
   return (
@@ -131,9 +135,13 @@ export default function SettingsPage() {
                   id="profile-email"
                   type="email"
                   value={profile.email}
-                  onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
-                  className={inputClass}
+                  disabled
+                  aria-describedby="profile-email-hint"
+                  className={`${inputClass} cursor-not-allowed opacity-60`}
                 />
+                <p id="profile-email-hint" className="mt-1 text-xs text-gray-400">
+                  Email is managed by your sign-in provider
+                </p>
               </div>
             </div>
             <button

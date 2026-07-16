@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// Firestore security rules for TaskMaster.
+// Paste these into: Firebase Console → Firestore Database → Rules → Publish.
+//
+// Each task document carries a `userId` field (set by the app). These rules
+// ensure a signed-in user can only read and write their OWN tasks.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /tasks/{taskId} {
+      // Read/update/delete only tasks you own
+      allow read, update, delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+
+      // Create only tasks stamped with your own uid
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+    }
+  }
+}

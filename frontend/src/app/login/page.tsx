@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { CheckSquare, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { authErrorMessage } from '@/lib/firebase'
 import { Loader } from '@/components/common/Loader'
 
 const inputClass =
@@ -14,7 +15,7 @@ const inputClass =
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, loginWithGoogle } = useAuthStore()
+  const { login, loginWithGoogle, resetPassword } = useAuthStore()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,6 +33,8 @@ export default function LoginPage() {
       await login(email.trim(), password)
       toast.success('Welcome back!')
       router.push('/dashboard')
+    } catch (error) {
+      toast.error(authErrorMessage(error))
     } finally {
       setLoading(false)
     }
@@ -43,8 +46,23 @@ export default function LoginPage() {
       await loginWithGoogle()
       toast.success('Signed in with Google')
       router.push('/dashboard')
+    } catch (error) {
+      toast.error(authErrorMessage(error))
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast.error('Enter your email above first, then click Forgot password')
+      return
+    }
+    try {
+      await resetPassword(email.trim())
+      toast.success('Password reset email sent — check your inbox')
+    } catch (error) {
+      toast.error(authErrorMessage(error))
     }
   }
 
@@ -106,7 +124,7 @@ export default function LoginPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => toast.info('Password reset will be available once Firebase is connected')}
+                  onClick={handleForgotPassword}
                   className="text-xs font-medium text-primary hover:underline"
                 >
                   Forgot password?

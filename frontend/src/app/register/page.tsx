@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import { CheckSquare, Lock, Mail, User } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { authErrorMessage } from '@/lib/firebase'
 import { Loader } from '@/components/common/Loader'
 
 const inputClass =
@@ -43,6 +44,8 @@ export default function RegisterPage() {
       await register(form.name.trim(), form.email.trim(), form.password)
       toast.success('Account created — welcome!')
       router.push('/dashboard')
+    } catch (error) {
+      toast.error(authErrorMessage(error))
     } finally {
       setLoading(false)
     }

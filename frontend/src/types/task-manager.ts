@@ -19,10 +19,11 @@ export interface Task {
   important: boolean
   createdAt: string // ISO timestamp
   completedAt?: string // ISO timestamp, set when marked complete
+  userId?: string // Firestore owner uid, set by taskService
 }
 
-/** Payload for creating/updating a task (id + timestamps are managed by the service). */
-export type TaskInput = Omit<Task, 'id' | 'createdAt' | 'completedAt'>
+/** Payload for creating/updating a task (id, owner + timestamps are managed by the service). */
+export type TaskInput = Omit<Task, 'id' | 'createdAt' | 'completedAt' | 'userId'>
 
 export type TaskFilter = 'all' | 'completed' | 'pending' | 'high' | 'important'
 

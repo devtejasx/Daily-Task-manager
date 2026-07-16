@@ -1,81 +1,61 @@
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  deleteField,
+  doc,
+  getDocs,
+  query,
+  updateDoc,
+  where,
+} from 'firebase/firestore'
+import { auth, db } from '@/lib/firebase'
 import { Task, TaskInput } from '@/types/task-manager'
-import { mockTasks } from '@/data/mockTasks'
 
 /**
- * Task data service — the single place the UI talks to for task data.
+ * Task data service backed by Firebase Firestore.
  *
- * Currently backed by localStorage (seeded with mock data) with a small
- * artificial delay so loading states are visible.
+ * Collection: "tasks" — one document per task, shaped exactly like the
+ * `Task` type (plain serializable values) plus a `userId` field so each
+ * user only ever sees their own tasks.
  *
- * FIREBASE INTEGRATION: to switch to Firestore, replace the bodies of these
- * functions with Firestore calls (collection "tasks") and keep the same
- * signatures — nothing in the UI layer needs to change:
- *
- *   getTasks()        -> getDocs(collection(db, 'tasks'))
- *   addTask(input)    -> addDoc(collection(db, 'tasks'), {...})
- *   updateTask(id, p) -> updateDoc(doc(db, 'tasks', id), p)
- *   deleteTask(id)    -> deleteDoc(doc(db, 'tasks', id))
+ * Sorting/filtering is done client-side (see TaskList), so the only query
+ * here is a simple equality filter — no composite indexes required.
  */
 
-const STORAGE_KEY = 'taskmaster.tasks'
-const LATENCY_MS = 400 // simulated network latency for realistic loading UX
+const tasksCollection = collection(db, 'tasks')
 
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-function readStore(): Task[] {
-  if (typeof window === 'undefined') return mockTasks
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as Task[]
-  } catch {
-    // corrupt storage — fall through to seed
-  }
-  writeStore(mockTasks)
-  return mockTasks
-}
-
-function writeStore(tasks: Task[]) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
+/** Current user's uid; all reads/writes are scoped to it. */
+function requireUid(): string {
+  const user = auth.currentUser
+  if (!user) throw new Error('You must be signed in')
+  return user.uid
 }
 
 export async function getTasks(): Promise<Task[]> {
-  await delay(LATENCY_MS)
-  return readStore()
+  const snapshot = await getDocs(query(tasksCollection, where('userId', '==', requireUid())))
+  return snapshot.docs.map((d) => ({ ...(d.data() as Omit<Task, 'id'>), id: d.id }))
 }
 
 export async function addTask(input: TaskInput): Promise<Task> {
-  await delay(LATENCY_MS)
-  const task: Task = {
+  const data = {
     ...input,
-    id: crypto.randomUUID(),
+    userId: requireUid(),
     createdAt: new Date().toISOString(),
   }
-  writeStore([task, ...readStore()])
-  return task
+  const ref = await addDoc(tasksCollection, data)
+  return { ...data, id: ref.id }
 }
 
-export async function updateTask(id: string, patch: Partial<Task>): Promise<Task> {
-  await delay(LATENCY_MS)
-  const tasks = readStore()
-  const index = tasks.findIndex((t) => t.id === id)
-  if (index === -1) throw new Error(`Task ${id} not found`)
-  const updated = { ...tasks[index], ...patch, id }
-  tasks[index] = updated
-  writeStore(tasks)
-  return updated
+export async function updateTask(id: string, patch: Partial<Task>): Promise<void> {
+  // Firestore rejects `undefined` values — translate them to field deletes
+  const { id: _ignored, ...rest } = patch
+  const data = Object.fromEntries(
+    Object.entries(rest).map(([key, value]) => [key, value === undefined ? deleteField() : value])
+  )
+  await updateDoc(doc(db, 'tasks', id), data)
 }
 
 export async function deleteTask(id: string): Promise<void> {
-  await delay(LATENCY_MS)
-  writeStore(readStore().filter((t) => t.id !== id))
-}
-
-/** Toggle between Pending and Completed, stamping/clearing completedAt. */
-export async function toggleComplete(task: Task): Promise<Task> {
-  const completing = task.status !== 'Completed'
-  return updateTask(task.id, {
-    status: completing ? 'Completed' : 'Pending',
-    completedAt: completing ? new Date().toISOString() : undefined,
-  })
+  await deleteDoc(doc(db, 'tasks', id))
 }
