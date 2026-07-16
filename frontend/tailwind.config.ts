@@ -8,7 +8,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#6366f1',
+        primary: {
+          DEFAULT: '#2563EB', // blue-600 — main brand color
+          dark: '#1D4ED8', // blue-700 — hover state
+          light: '#3B82F6', // blue-500
+        },
         secondary: '#8b5cf6',
         accent: '#ec4899',
         success: '#10b981',
