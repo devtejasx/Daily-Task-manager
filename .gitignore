@@ -52,3 +52,6 @@ temp/
 tmp/
 frontend/tsconfig.tsbuildinfo
 backend/logs/
+
+# Claude Code local settings
+.claude/settings.local.json
