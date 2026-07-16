@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { initializeFirestore } from 'firebase/firestore'
 import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics'
 
 /**
@@ -22,7 +22,12 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
 
 export const auth = getAuth(app)
-export const db = getFirestore(app)
+// Force long-polling: Firestore's default WebChannel transport is blocked by
+// some proxies/firewalls/embedded browsers, which makes writes hang forever.
+// Long-polling works everywhere; the perf difference is negligible at this scale.
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+})
 export const googleProvider = new GoogleAuthProvider()
 
 // Analytics only works in the browser (and not in all environments)
