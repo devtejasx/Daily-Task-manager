@@ -21,10 +21,10 @@ export default function WelcomeIntro({ onEnter }) {
   const [leaving, setLeaving] = useState(false);
   const [showEnter, setShowEnter] = useState(reducedMotion);
 
-  // Reveal the ENTER button after the title sequence has played.
+  // Reveal the ENTER button after the (short) title sequence has played.
   useEffect(() => {
     if (reducedMotion) return undefined;
-    const t = window.setTimeout(() => setShowEnter(true), 5000);
+    const t = window.setTimeout(() => setShowEnter(true), 2800);
     return () => window.clearTimeout(t);
   }, [reducedMotion]);
 
@@ -73,7 +73,7 @@ export default function WelcomeIntro({ onEnter }) {
             }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: d(1), duration: 1.6, ease: "easeOut" }}
+            transition={{ delay: d(0.3), duration: 1.4, ease: "easeOut" }}
           />
 
           {/* skip — always available */}
@@ -90,7 +90,7 @@ export default function WelcomeIntro({ onEnter }) {
               className="text-[11px] sm:text-sm font-semibold tracking-[0.6em] text-slate-400"
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: d(2), duration: 0.8, ease: "easeOut" }}
+              transition={{ delay: d(0.6), duration: 0.6, ease: "easeOut" }}
             >
               WELCOME TO
             </motion.p>
@@ -108,7 +108,7 @@ export default function WelcomeIntro({ onEnter }) {
                 }}
                 initial={{ opacity: 0, scaleX: 0.2 }}
                 animate={{ opacity: [0, 1, 0.35], scaleX: [0.2, 1.1, 1] }}
-                transition={{ delay: d(3), duration: 0.9, ease: "easeOut" }}
+                transition={{ delay: d(1.3), duration: 0.8, ease: "easeOut" }}
               />
               <motion.h1
                 className="relative font-display text-6xl sm:text-8xl md:text-9xl font-black tracking-[0.12em]
@@ -119,7 +119,7 @@ export default function WelcomeIntro({ onEnter }) {
                 }}
                 initial={{ opacity: 0, scale: reducedMotion ? 1 : 1.35, filter: "blur(18px)" }}
                 animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                transition={{ delay: d(3), duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: d(1.3), duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
               >
                 ARISE
                 {/* white flash overlay on reveal */}
@@ -129,7 +129,7 @@ export default function WelcomeIntro({ onEnter }) {
                     className="absolute inset-0 flex items-center justify-center font-display font-black tracking-[0.12em] text-white"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 0.9, 0] }}
-                    transition={{ delay: d(3), duration: 0.7, ease: "easeOut" }}
+                    transition={{ delay: d(1.3), duration: 0.6, ease: "easeOut" }}
                   >
                     ARISE
                   </motion.span>
@@ -142,9 +142,18 @@ export default function WelcomeIntro({ onEnter }) {
               style={{ filter: "drop-shadow(0 0 14px rgba(6,182,212,0.5))" }}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: d(4), duration: 0.8, ease: "easeOut" }}
+              transition={{ delay: d(2), duration: 0.6, ease: "easeOut" }}
             >
               COMMAND CENTER
+            </motion.p>
+
+            <motion.p
+              className="mt-5 text-xs sm:text-sm text-slate-400/90"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: d(2.5), duration: 0.7, ease: "easeOut" }}
+            >
+              Organize your missions. Level up your life.
             </motion.p>
 
             {/* ENTER button */}
