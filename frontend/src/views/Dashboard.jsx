@@ -67,6 +67,14 @@ export default function Dashboard({
   const todaysBoard = missions.filter((m) => m.dueDate === todayISO);
   const activeToday = todaysBoard.filter((m) => m.status !== "completed");
   const clearedToday = todaysBoard.filter((m) => m.status === "completed");
+  // priority hierarchy: what's late, what's today, what's coming
+  const overdue = missions
+    .filter((m) => m.status !== "completed" && m.dueDate < todayISO)
+    .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
+  const upcoming = missions
+    .filter((m) => m.status !== "completed" && m.dueDate > todayISO)
+    .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1))
+    .slice(0, 4);
 
   const recentAchievements = Object.entries(achievements)
     .sort((a, b) => (a[1] < b[1] ? 1 : -1))
@@ -293,6 +301,38 @@ export default function Dashboard({
         </Widget>
       </div>
 
+      {/* overdue — highest priority, surfaced first */}
+      {overdue.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="font-display font-bold text-sm tracking-[0.2em] text-rose-300">OVERDUE</h2>
+            <span className="text-[10px] font-bold tracking-widest text-rose-400/80 px-2 py-0.5 rounded-full border border-rose-400/30 bg-rose-500/10">
+              {overdue.length}
+            </span>
+          </div>
+          <div className="grid gap-4">
+            <AnimatePresence mode="popLayout">
+              {overdue.map((m, index) => (
+                <MissionCard
+                  key={m.id}
+                  mission={m}
+                  onComplete={onComplete}
+                  onDelete={onDelete}
+                  isDaily={dailySelected.includes(m.id)}
+                  dailyFull={dailySelected.length >= 4}
+                  onToggleDaily={onToggleDaily}
+                  enterDelay={0.05 + index * 0.05}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
+
       {/* today's board */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
@@ -365,6 +405,31 @@ export default function Dashboard({
           </AnimatePresence>
         </div>
       </motion.div>
+
+      {/* upcoming — a look ahead, de-emphasised */}
+      {upcoming.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.66, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <h2 className="font-display font-bold text-sm tracking-[0.2em] text-slate-400 mb-3">UPCOMING</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {upcoming.map((m, index) => (
+              <MissionCard
+                key={m.id}
+                mission={m}
+                onComplete={onComplete}
+                onDelete={onDelete}
+                isDaily={dailySelected.includes(m.id)}
+                dailyFull={dailySelected.length >= 4}
+                onToggleDaily={onToggleDaily}
+                enterDelay={0.04 + index * 0.05}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
