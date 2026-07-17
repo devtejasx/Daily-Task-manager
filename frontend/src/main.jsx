@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import Login from "./views/Login.jsx";
+import WelcomeIntro from "./components/cinematic/WelcomeIntro.jsx";
+import { AuthGateProvider } from "./components/auth/AuthGate.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { loadSave } from "./lib/saveService";
 import "./index.css";
+
+const INTRO_KEY = "arise-intro-seen";
 
 /** Full-screen themed status panel used while auth/save are resolving. */
 function BootScreen({ label, error, onRetry }) {
@@ -51,11 +54,7 @@ function SaveGate({ user, onSignOut }) {
 
   if (error)
     return (
-      <BootScreen
-        label="CLOUD SYNC FAILED"
-        error
-        onRetry={() => setAttempt((n) => n + 1)}
-      />
+      <BootScreen label="CLOUD SYNC FAILED" error onRetry={() => setAttempt((n) => n + 1)} />
     );
   if (save === undefined) return <BootScreen label="SYNCING HUNTER DATA" />;
   return <App user={user} initialSave={save} onSignOut={onSignOut} />;
@@ -63,11 +62,32 @@ function SaveGate({ user, onSignOut }) {
 
 function Root() {
   const { user, loading, logout } = useAuth();
+  // Intro plays once per browser session, on initial site entry — not on
+  // subsequent in-app navigation or refreshes within the same session.
+  const [introDone, setIntroDone] = useState(
+    () => sessionStorage.getItem(INTRO_KEY) === "1"
+  );
 
-  if (loading) return <BootScreen label="CONNECTING TO THE SYSTEM" />;
-  if (!user) return <Login />;
-  // key by uid so switching accounts fully remounts the game state
-  return <SaveGate key={user.uid} user={user} onSignOut={logout} />;
+  const finishIntro = () => {
+    sessionStorage.setItem(INTRO_KEY, "1");
+    setIntroDone(true);
+  };
+
+  return (
+    <AuthGateProvider user={user}>
+      {!introDone && <WelcomeIntro onEnter={finishIntro} />}
+
+      {loading ? (
+        <BootScreen label="CONNECTING TO THE SYSTEM" />
+      ) : user ? (
+        // key by uid so switching accounts fully remounts the game state
+        <SaveGate key={user.uid} user={user} onSignOut={logout} />
+      ) : (
+        // Guest mode: explore the empty UI; protected actions open the login modal
+        <App user={null} initialSave={null} onSignOut={null} />
+      )}
+    </AuthGateProvider>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
