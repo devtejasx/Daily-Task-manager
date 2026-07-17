@@ -1,19 +1,14 @@
 {
-  "name": "task-manager-app",
+  "name": "hunter-command-center-app",
   "version": "1.0.0",
-  "description": "Modern task manager application with gamification, AI insights, and team collaboration",
+  "description": "Gamified daily task manager (Solo-Leveling-style) built with React + Vite, backed by Firebase Auth and Firestore",
   "private": true,
   "workspaces": [
-    "frontend",
-    "backend"
+    "frontend"
   ],
   "scripts": {
-    "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\"",
-    "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
-    "test": "npm run test --workspaces",
-    "lint": "npm run lint --workspaces"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.0"
+    "dev": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "preview": "npm run preview --workspace=frontend"
   }
 }
