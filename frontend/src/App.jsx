@@ -13,7 +13,8 @@ import {
   ToastStack,
   useToastAutoDismiss,
 } from "./components/Cinematics";
-import { CinematicIntro, XPAnimation } from "./components/CinematicLayers";
+import { XPAnimation } from "./components/CinematicLayers";
+import { useAuthGate } from "./components/auth/AuthGate";
 import Dashboard from "./views/Dashboard";
 import Missions from "./views/Missions";
 import Calendar from "./views/Calendar";
@@ -29,13 +30,16 @@ const pageVariants = {
 };
 
 export default function App({ user, initialSave, onSignOut }) {
+  const { requireAuth } = useAuthGate();
+
   const persist = useCallback(
     (state) => {
+      if (!user) return; // guests explore in-memory only; nothing is written
       writeSave(user.uid, state).catch((err) =>
         console.error("Cloud save failed:", err)
       );
     },
-    [user.uid]
+    [user]
   );
 
   const {
@@ -67,6 +71,14 @@ export default function App({ user, initialSave, onSignOut }) {
   const previousPromotion = useRef(state.fx.promotion);
 
   useToastAutoDismiss(state.fx.toasts, actions.dismissToast);
+
+  // The cinematic intro now lives at the app root (WelcomeIntro, once per
+  // session). Settle FX baselines shortly after mount so loading a save
+  // doesn't fire an XP burst / level-up on the first render.
+  useEffect(() => {
+    const t = window.setTimeout(() => setIntroDone(true), 400);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!introDone) {
@@ -139,6 +151,9 @@ export default function App({ user, initialSave, onSignOut }) {
     );
   }, [state.missions, search]);
 
+  // Protected actions: run for signed-in hunters, prompt login for guests.
+  const openAdd = () => requireAuth(() => setModalOpen(true));
+
   const viewProps = {
     missions: filtered,
     history: state.history,
@@ -155,10 +170,11 @@ export default function App({ user, initialSave, onSignOut }) {
     totalXP: state.totalXP,
     weeklySeries,
     achievements: state.achievements,
-    onComplete: actions.completeMission,
-    onDelete: actions.deleteMission,
-    onToggleDaily: actions.toggleDaily,
-    onOpenAdd: () => setModalOpen(true),
+    isGuest: !user,
+    onComplete: (id) => requireAuth(() => actions.completeMission(id)),
+    onDelete: (id) => requireAuth(() => actions.deleteMission(id)),
+    onToggleDaily: (id) => requireAuth(() => actions.toggleDaily(id)),
+    onOpenAdd: openAdd,
     setView,
   };
 
@@ -176,7 +192,6 @@ export default function App({ user, initialSave, onSignOut }) {
         promotionPulse={promotionPulse}
       />
       <div className="rank-aura" aria-hidden />
-      <CinematicIntro onComplete={() => setIntroDone(true)} />
       <Sidebar view={view} setView={setView} />
 
       <div className="lg:pl-[92px] xl:pl-60 pb-24 lg:pb-8 min-h-screen flex flex-col">
@@ -204,10 +219,10 @@ export default function App({ user, initialSave, onSignOut }) {
                   user={user}
                   onSignOut={onSignOut}
                   sim={{
-                    nextDay: actions.simNextDay,
-                    addStreak: actions.simAddStreak,
-                    addXP: actions.simAddXP,
-                    reset: actions.resetSave,
+                    nextDay: () => requireAuth(actions.simNextDay),
+                    addStreak: (days) => requireAuth(() => actions.simAddStreak(days)),
+                    addXP: (xp) => requireAuth(() => actions.simAddXP(xp)),
+                    reset: () => requireAuth(actions.resetSave),
                   }}
                 />
               )}
@@ -218,7 +233,7 @@ export default function App({ user, initialSave, onSignOut }) {
 
       {/* floating add button */}
       <motion.button
-        onClick={() => setModalOpen(true)}
+        onClick={openAdd}
         aria-label="Add mission"
         className="fixed bottom-20 lg:bottom-8 right-5 z-40 p-4 rounded-2xl text-white
           bg-gradient-to-br from-violet-600 to-cyan-500

@@ -67,6 +67,10 @@ export default function Dashboard({
     .map(([id, date]) => ({ ...ACHIEVEMENTS.find((a) => a.id === id), date }))
     .filter((a) => a.id);
 
+  // A brand-new hunter (or signed-out guest) has no missions, no history and
+  // no XP — greet them with an onboarding empty state instead of "welcome back".
+  const isFresh = missions.length === 0 && history.length === 0 && (totalXP ?? 0) === 0;
+
   return (
     <div className="space-y-5">
       {/* headline + rank */}
@@ -79,16 +83,49 @@ export default function Dashboard({
         <div>
           <p className="text-[10px] tracking-[0.4em] text-cyan-300/70 font-bold">SYSTEM MESSAGE</p>
           <h1 className="font-display font-black text-2xl sm:text-3xl text-slate-100 mt-1 text-glow-arcane">
-            WELCOME BACK, HUNTER
+            {isFresh ? "YOUR COMMAND CENTER AWAITS" : "WELCOME BACK, HUNTER"}
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            {dayComplete
+            {isFresh
+              ? "No missions assigned yet. Create your first task to begin."
+              : dayComplete
               ? "Daily quest complete. The system is pleased... for today."
               : `${4 - dailyDone} required ${4 - dailyDone === 1 ? "mission" : "missions"} left before midnight. Do not fail.`}
           </p>
         </div>
         <RankBadge rank={rank} size={56} showTitle />
       </motion.div>
+
+      {/* first-run onboarding hero */}
+      {isFresh && (
+        <motion.div
+          className="glass neon-border rounded-2xl px-6 py-10 text-center flex flex-col items-center"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-600/80 to-cyan-500/80 shadow-[0_0_30px_rgba(124,58,237,0.45)] mb-5">
+            <Swords size={26} className="text-white" />
+          </div>
+          <h2 className="font-display font-black text-xl sm:text-2xl text-slate-100 text-glow-arcane">
+            YOUR COMMAND CENTER AWAITS
+          </h2>
+          <p className="text-slate-400 text-sm mt-2 max-w-md">
+            No missions, no history — a clean slate, Hunter. Forge your first mission and
+            begin your ascent.
+          </p>
+          <motion.button
+            onClick={onOpenAdd}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.96 }}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold tracking-[0.15em] text-white
+              bg-gradient-to-r from-violet-600 to-cyan-500
+              shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:shadow-[0_0_40px_rgba(6,182,212,0.65)] transition-shadow"
+          >
+            <Plus size={16} /> CREATE FIRST TASK
+          </motion.button>
+        </motion.div>
+      )}
 
       {/* stat grid */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
