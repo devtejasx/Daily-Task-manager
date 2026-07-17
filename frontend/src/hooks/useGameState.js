@@ -9,21 +9,25 @@ import {
   ACHIEVEMENTS,
   DAILY_REQUIRED,
 } from "../game/constants";
-import { INITIAL_MISSIONS, INITIAL_HISTORY, nextId } from "../data/missions";
+import { nextId } from "../data/missions";
 
 let toastId = 0;
 
-/* ---------------- initial state ---------------- */
+/* ---------------- initial state ----------------
+ * A brand-new hunter (and any signed-out guest) starts completely EMPTY:
+ * no missions, no history, no XP, no streak, no achievements. Existing
+ * users are unaffected — their saved doc is spread over this in loadState,
+ * overriding every field below.                                          */
 function freshState() {
   const today = localISO();
   return {
-    missions: INITIAL_MISSIONS,
-    history: INITIAL_HISTORY, // [{id,title,xp,category,difficulty,completedAt}]
-    totalXP: 1600,
-    streak: 5,
-    longestStreak: 12,
+    missions: [],
+    history: [], // [{id,title,xp,category,difficulty,completedAt}]
+    totalXP: 0,
+    streak: 0,
+    longestStreak: 0,
     bestRankIndex: 0,
-    dailySelected: INITIAL_MISSIONS.slice(0, 3).map((m) => m.id), // 3 of 4 -> shows the warning
+    dailySelected: [],
     dailyDate: today,
     dayComplete: false,
     achievements: {}, // {id: unlockedISO}
