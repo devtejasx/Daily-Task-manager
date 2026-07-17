@@ -1,22 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, ChevronDown } from "lucide-react";
 import { DIFFICULTIES, CATEGORIES } from "../data/missions";
 import { PRIORITIES, localISO } from "../game/constants";
 
-export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300 }) {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    difficulty: "C",
-    priority: "MEDIUM",
-    dueDate: localISO(),
-    dueTime: "18:00",
-    category: "Training",
-    xp: null, // null -> use defaultXP
-  });
+const BLANK = {
+  title: "",
+  description: "",
+  difficulty: "C",
+  priority: "MEDIUM",
+  dueDate: localISO(),
+  dueTime: "18:00",
+  category: "Training",
+  xp: null, // null -> use defaultXP
+};
+
+export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300, initial = null }) {
+  const [form, setForm] = useState(BLANK);
   const [pulsing, setPulsing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Seed the form from a quick-start template when the modal opens.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open && !wasOpen.current) {
+      setForm({ ...BLANK, ...(initial || {}) });
+      setShowAdvanced(false);
+    }
+    wasOpen.current = open;
+  }, [open, initial]);
 
   // Esc to close (Enter-to-create is native form submit)
   useEffect(() => {

@@ -92,9 +92,31 @@ export default function Missions({ missions, dailySelected, onComplete, onDelete
           ))}
         </AnimatePresence>
         {shown.length === 0 && (
-          <p className="text-sm text-slate-500 glass rounded-xl p-6 text-center md:col-span-2">
-            No missions in this sector.
-          </p>
+          <div className="glass rounded-2xl p-8 text-center md:col-span-2 flex flex-col items-center">
+            <div className="p-3 rounded-xl border border-violet-400/25 bg-violet-500/10 mb-4">
+              <Target size={22} className="text-violet-300" />
+            </div>
+            <h3 className="font-display font-bold text-slate-200 tracking-wide">
+              {filter === "completed" ? "NO MISSIONS COMPLETED YET" : "NO MISSIONS ASSIGNED"}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
+              {filter === "completed"
+                ? "Complete your first mission to begin your progress."
+                : filter === "daily"
+                ? "Mark up to four missions as today's daily quest from the board."
+                : "Create your first mission to begin your ascent."}
+            </p>
+            {filter !== "completed" && (
+              <button
+                onClick={onOpenAdd}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold tracking-[0.15em] text-white
+                  bg-gradient-to-r from-violet-600 to-cyan-500 shadow-[0_0_18px_rgba(124,58,237,0.5)]
+                  hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transition-shadow"
+              >
+                <Plus size={14} /> NEW MISSION
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

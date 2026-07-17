@@ -1,6 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, CheckCircle2, Plus, Flame, Trophy, History, BarChart3 } from "lucide-react";
+import {
+  Swords, CheckCircle2, Plus, Flame, Trophy, History, BarChart3,
+  Dumbbell, BookOpen, Target, Briefcase,
+} from "lucide-react";
 import { iconByName } from "../game/icons";
+import { TASK_TEMPLATES } from "../data/taskTemplates";
+
+const TEMPLATE_ICONS = { Dumbbell, BookOpen, Target, Briefcase };
 import StatCard from "../components/StatCard";
 import ProgressRing from "../components/ProgressRing";
 import XPBar from "../components/XPBar";
@@ -47,6 +53,7 @@ export default function Dashboard({
   onComplete,
   onDelete,
   onOpenAdd,
+  onUseTemplate,
   onToggleDaily,
   dailySelected,
   setView,
@@ -124,6 +131,24 @@ export default function Dashboard({
           >
             <Plus size={16} /> CREATE FIRST TASK
           </motion.button>
+
+          {/* quick-start templates — these only pre-fill the form, nothing is created yet */}
+          <p className="mt-7 text-[10px] font-bold tracking-[0.3em] text-slate-500">OR START FROM A TEMPLATE</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            {TASK_TEMPLATES.map((t) => {
+              const Icon = TEMPLATE_ICONS[t.icon] ?? Plus;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => onUseTemplate?.(t.preset)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs font-semibold text-slate-300
+                    hover:border-cyan-400/40 hover:text-cyan-200 hover:bg-cyan-400/5 transition-colors"
+                >
+                  <Icon size={14} className="text-violet-300" /> {t.label}
+                </button>
+              );
+            })}
+          </div>
         </motion.div>
       )}
 
