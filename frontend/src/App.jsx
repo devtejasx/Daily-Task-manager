@@ -30,7 +30,7 @@ const pageVariants = {
 };
 
 export default function App({ user, initialSave, onSignOut }) {
-  const { requireAuth } = useAuthGate();
+  const { requireAuth, pendingIntent, consumeIntent } = useAuthGate();
 
   const persist = useCallback(
     (state) => {
@@ -152,7 +152,16 @@ export default function App({ user, initialSave, onSignOut }) {
   }, [state.missions, search]);
 
   // Protected actions: run for signed-in hunters, prompt login for guests.
-  const openAdd = () => requireAuth(() => setModalOpen(true));
+  // "create-mission" intent lets a guest resume the New Mission form after login.
+  const openAdd = () => requireAuth(() => setModalOpen(true), "create-mission");
+
+  // Resume a pending action carried across the guest -> authed remount.
+  useEffect(() => {
+    if (user && pendingIntent === "create-mission") {
+      setModalOpen(true);
+      consumeIntent();
+    }
+  }, [user, pendingIntent, consumeIntent]);
 
   const viewProps = {
     missions: filtered,
