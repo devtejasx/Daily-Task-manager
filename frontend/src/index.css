@@ -1,0 +1,349 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Orbitron", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Rajdhani", ui-sans-serif, system-ui, sans-serif;
+
+  --color-void: #05060a;
+  --color-abyss: #0b1120;
+  --color-panel: #111827;
+
+  --color-arcane: #7c3aed;
+  --color-arcane-bright: #a78bfa;
+  --color-volt: #3b82f6;
+  --color-holo: #06b6d4;
+
+  --color-rise: #10b981;
+  --color-doom: #ef4444;
+
+  --shadow-glow-arcane: 0 0 20px rgba(124, 58, 237, 0.35),
+    0 0 60px rgba(124, 58, 237, 0.12);
+  --shadow-glow-holo: 0 0 20px rgba(6, 182, 212, 0.3),
+    0 0 60px rgba(6, 182, 212, 0.1);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-void);
+  color: #e2e8f0;
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- scrollbars ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.4) transparent;
+}
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7c3aed66, #06b6d466);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- glass panel ---------- */
+.glass {
+  background: linear-gradient(
+    160deg,
+    rgba(17, 24, 39, 0.72),
+    rgba(11, 17, 32, 0.55)
+  );
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+}
+
+/* ---------- animated neon border ---------- */
+.neon-border {
+  position: relative;
+  isolation: isolate;
+}
+.neon-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    rgba(124, 58, 237, 0.9) 12%,
+    rgba(6, 182, 212, 0.9) 24%,
+    transparent 38%,
+    transparent 60%,
+    rgba(59, 130, 246, 0.8) 76%,
+    transparent 92%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: border-spin 5s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes border-spin {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+/* ---------- text glow ---------- */
+.text-glow-arcane {
+  text-shadow: 0 0 12px rgba(167, 139, 250, 0.8), 0 0 40px rgba(124, 58, 237, 0.4);
+}
+.text-glow-holo {
+  text-shadow: 0 0 12px rgba(103, 232, 249, 0.8), 0 0 40px rgba(6, 182, 212, 0.4);
+}
+
+/* ---------- shimmer sweep on xp bars ---------- */
+.xp-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 70%
+  );
+  animation: shimmer 2.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ---------- slow float ---------- */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+/* ---------- runic ring spin ---------- */
+@keyframes ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ring-spin-rev {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes ring-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    scale: 1;
+  }
+  50% {
+    opacity: 0.6;
+    scale: 1.04;
+  }
+}
+
+/* ---------- star twinkle ---------- */
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: var(--tw-min, 0.15);
+    transform: scale(1);
+  }
+  50% {
+    opacity: var(--tw-max, 0.85);
+    transform: scale(1.25);
+  }
+}
+
+/* ---------- mist drift ---------- */
+@keyframes mist-drift {
+  0% {
+    transform: translateX(-12%) translateY(0) scale(1);
+  }
+  50% {
+    transform: translateX(8%) translateY(-4%) scale(1.15);
+  }
+  100% {
+    transform: translateX(-12%) translateY(0) scale(1);
+  }
+}
+
+/* ---------- light ray sweep ---------- */
+@keyframes ray-sweep {
+  0%,
+  100% {
+    opacity: 0.06;
+    transform: rotate(14deg) translateX(-4%);
+  }
+  50% {
+    opacity: 0.18;
+    transform: rotate(18deg) translateX(4%);
+  }
+}
+
+/* ---------- energy crack flicker ---------- */
+@keyframes crack-flicker {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  42% {
+    opacity: 0.5;
+  }
+  47% {
+    opacity: 0.2;
+  }
+  52% {
+    opacity: 0.65;
+  }
+  70% {
+    opacity: 0.3;
+  }
+}
+
+/* ---------- holo scanline on cards ---------- */
+.holo-scan {
+  position: relative;
+  overflow: hidden;
+}
+.holo-scan::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 40%;
+  top: 0;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(6, 182, 212, 0.06),
+    transparent
+  );
+  animation: scan 5.5s linear infinite;
+  pointer-events: none;
+  will-change: transform;
+}
+@keyframes scan {
+  0% {
+    transform: translateY(-110%);
+  }
+  100% {
+    transform: translateY(310%);
+  }
+}
+
+/* ---------- input focus glow ---------- */
+.holo-input {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease,
+    background-color 0.3s ease;
+}
+.holo-input:focus {
+  outline: none;
+  border-color: rgba(6, 182, 212, 0.7);
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.4), 0 0 18px rgba(6, 182, 212, 0.25),
+    inset 0 0 12px rgba(6, 182, 212, 0.06);
+  background-color: rgba(6, 182, 212, 0.04);
+}
+
+/* ---------- rank-tier theme escalation ---------- */
+/* the app root carries data-rank; higher ranks charge the whole interface */
+[data-rank] .rank-aura {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -5;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+[data-rank="B"] .rank-aura,
+[data-rank="S"] .rank-aura,
+[data-rank="NATIONAL"] .rank-aura {
+  opacity: 1;
+}
+[data-rank="B"] .rank-aura {
+  background: radial-gradient(ellipse at 50% -10%, rgba(59, 130, 246, 0.14), transparent 55%);
+}
+[data-rank="S"] .rank-aura {
+  background: radial-gradient(ellipse at 50% -10%, rgba(167, 139, 250, 0.2), transparent 60%),
+    radial-gradient(ellipse at 50% 110%, rgba(124, 58, 237, 0.14), transparent 55%);
+}
+[data-rank="NATIONAL"] .rank-aura {
+  background: radial-gradient(ellipse at 50% -10%, rgba(245, 158, 11, 0.18), transparent 60%),
+    radial-gradient(ellipse at 15% 110%, rgba(124, 58, 237, 0.16), transparent 50%),
+    radial-gradient(ellipse at 85% 110%, rgba(6, 182, 212, 0.12), transparent 50%);
+  animation: ring-pulse 5s ease-in-out infinite;
+}
+
+[data-rank="B"] .glass {
+  border-color: rgba(59, 130, 246, 0.28);
+}
+[data-rank="S"] .glass {
+  border-color: rgba(167, 139, 250, 0.32);
+  box-shadow: 0 0 24px rgba(124, 58, 237, 0.08);
+}
+[data-rank="NATIONAL"] .glass {
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.07);
+}
+/* legendary neon borders for the National-Level hunter */
+[data-rank="NATIONAL"] .neon-border::before {
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    rgba(245, 158, 11, 0.95) 12%,
+    rgba(252, 211, 77, 0.9) 24%,
+    transparent 38%,
+    transparent 60%,
+    rgba(124, 58, 237, 0.85) 76%,
+    transparent 92%
+  );
+}
+[data-rank="NATIONAL"] .text-glow-arcane {
+  text-shadow: 0 0 12px rgba(252, 211, 77, 0.8), 0 0 40px rgba(245, 158, 11, 0.45);
+}
+
+/* reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
