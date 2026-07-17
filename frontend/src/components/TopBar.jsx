@@ -1,12 +1,15 @@
 import { motion } from "framer-motion";
-import { Search, Bell, Moon, Sun, UserCircle2, Flame } from "lucide-react";
+import { Search, Bell, Moon, Sun, UserCircle2, Flame, LogIn } from "lucide-react";
 import XPBar from "./XPBar";
 import RankBadge from "./RankBadge";
 import { useCountUp } from "../hooks/useCountUp";
+import { useAuthGate } from "./auth/AuthGate";
 
 export default function TopBar({ levelInfo, rank, streak, search, setSearch, dimmed, setDimmed, user }) {
   const xpInLevel = useCountUp(levelInfo.xpInLevel);
-  const hunterName = (user?.displayName || user?.email?.split("@")[0] || "Hunter").toUpperCase();
+  const { openLogin } = useAuthGate();
+  const isGuest = !user;
+  const hunterName = isGuest ? "GUEST" : (user.displayName || user.email?.split("@")[0] || "Hunter").toUpperCase();
 
   return (
     <motion.header
@@ -23,9 +26,11 @@ export default function TopBar({ levelInfo, rank, streak, search, setSearch, dim
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#0b1120] shadow-[0_0_6px_#10b981]" />
           </div>
           <div className="hidden md:block min-w-0">
-            <p className="font-display font-bold text-[13px] text-slate-100 truncate">HUNTER {hunterName}</p>
+            <p className="font-display font-bold text-[13px] text-slate-100 truncate">
+              {isGuest ? "GUEST HUNTER" : `HUNTER ${hunterName}`}
+            </p>
             <p className="text-[10px] tracking-[0.2em] text-cyan-300/80 font-semibold">
-              LV. {levelInfo.level} · SHADOW DIVISION
+              {isGuest ? "EXPLORING · NOT SAVED" : `LV. ${levelInfo.level} · SHADOW DIVISION`}
             </p>
           </div>
         </div>
@@ -42,7 +47,22 @@ export default function TopBar({ levelInfo, rank, streak, search, setSearch, dim
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
+          {/* guest sign-in */}
+          {isGuest && (
+            <motion.button
+              onClick={openLogin}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-2 text-[11px] font-bold tracking-[0.15em] text-white
+                bg-gradient-to-r from-violet-600 to-cyan-500 shadow-[0_0_18px_rgba(124,58,237,0.5)]
+                hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transition-shadow"
+            >
+              <LogIn size={14} /> SIGN IN
+            </motion.button>
+          )}
+
           {/* streak */}
+          {!isGuest && (
           <motion.div
             className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-400/30 bg-amber-400/10"
             animate={streak > 0 ? { boxShadow: ["0 0 8px rgba(245,158,11,0.2)", "0 0 18px rgba(245,158,11,0.5)", "0 0 8px rgba(245,158,11,0.2)"] } : {}}
@@ -52,6 +72,7 @@ export default function TopBar({ levelInfo, rank, streak, search, setSearch, dim
             <Flame size={15} className={streak > 0 ? "text-amber-400" : "text-slate-600"} style={streak > 0 ? { filter: "drop-shadow(0 0 6px rgba(245,158,11,0.9))" } : {}} />
             <span className="font-display font-bold text-sm text-amber-300">{streak}</span>
           </motion.div>
+          )}
 
           {/* notifications */}
           <motion.button
