@@ -15,6 +15,18 @@ export default function Achievements({ achievements }) {
         </p>
       </motion.div>
 
+      {unlockedCount === 0 && (
+        <motion.div
+          className="glass rounded-2xl p-6 text-center border border-violet-400/20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.6 }}
+        >
+          <h3 className="font-display font-bold text-slate-200 tracking-wide">YOUR LEGEND HAS YET TO BEGIN</h3>
+          <p className="text-sm text-slate-500 mt-1.5">Complete missions to unlock achievements and etch your name into the system.</p>
+        </motion.div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {ACHIEVEMENTS.map((a, i) => {
           const unlockedAt = achievements[a.id];

@@ -30,7 +30,7 @@ const pageVariants = {
 };
 
 export default function App({ user, initialSave, onSignOut }) {
-  const { requireAuth } = useAuthGate();
+  const { requireAuth, pendingIntent, consumeIntent } = useAuthGate();
 
   const persist = useCallback(
     (state) => {
@@ -58,6 +58,7 @@ export default function App({ user, initialSave, onSignOut }) {
   const [view, setView] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [templateSeed, setTemplateSeed] = useState(null);
   const [dimmed, setDimmed] = useState(false);
   const [introDone, setIntroDone] = useState(false);
   const [xpBurst, setXpBurst] = useState(null);
@@ -152,7 +153,24 @@ export default function App({ user, initialSave, onSignOut }) {
   }, [state.missions, search]);
 
   // Protected actions: run for signed-in hunters, prompt login for guests.
-  const openAdd = () => requireAuth(() => setModalOpen(true));
+  // "create-mission" intent lets a guest resume the New Mission form after login.
+  const openAdd = (seed = null) =>
+    requireAuth(() => {
+      setTemplateSeed(seed);
+      setModalOpen(true);
+    }, "create-mission");
+  const closeAdd = () => {
+    setModalOpen(false);
+    setTemplateSeed(null);
+  };
+
+  // Resume a pending action carried across the guest -> authed remount.
+  useEffect(() => {
+    if (user && pendingIntent === "create-mission") {
+      setModalOpen(true);
+      consumeIntent();
+    }
+  }, [user, pendingIntent, consumeIntent]);
 
   const viewProps = {
     missions: filtered,
@@ -174,7 +192,8 @@ export default function App({ user, initialSave, onSignOut }) {
     onComplete: (id) => requireAuth(() => actions.completeMission(id)),
     onDelete: (id) => requireAuth(() => actions.deleteMission(id)),
     onToggleDaily: (id) => requireAuth(() => actions.toggleDaily(id)),
-    onOpenAdd: openAdd,
+    onOpenAdd: () => openAdd(),
+    onUseTemplate: (preset) => openAdd(preset),
     setView,
   };
 
@@ -233,7 +252,7 @@ export default function App({ user, initialSave, onSignOut }) {
 
       {/* floating add button */}
       <motion.button
-        onClick={openAdd}
+        onClick={() => openAdd()}
         aria-label="Add mission"
         className="fixed bottom-20 lg:bottom-8 right-5 z-40 p-4 rounded-2xl text-white
           bg-gradient-to-br from-violet-600 to-cyan-500
@@ -249,7 +268,8 @@ export default function App({ user, initialSave, onSignOut }) {
 
       <AddMissionModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={closeAdd}
+        initial={templateSeed}
         onAdd={actions.addMission}
         defaultXP={defaultMissionXP}
       />
