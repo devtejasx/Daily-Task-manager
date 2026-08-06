@@ -4,49 +4,30 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import WelcomeIntro from "./components/cinematic/WelcomeIntro.jsx";
 import { AuthGateProvider } from "./components/auth/AuthGate.jsx";
+import BootScreen from "./components/ui/BootScreen.jsx";
+import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { loadSave } from "./services/saveService";
 import "./index.css";
 
 const INTRO_KEY = "arise-intro-seen";
 
-/** Full-screen themed status panel used while auth/save are resolving. */
-function BootScreen({ label, error, onRetry }) {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#05070f]">
-      {!error && (
-        <div className="w-10 h-10 rounded-full border-2 border-cyan-400/60 border-t-transparent animate-spin" />
-      )}
-      <p className="text-xs tracking-[0.3em] text-slate-500 font-semibold">{label}</p>
-      {error && (
-        <button
-          onClick={onRetry}
-          className="text-xs font-bold tracking-wider text-cyan-300 border border-cyan-400/30 bg-cyan-400/10 rounded-xl px-4 py-2"
-        >
-          RETRY
-        </button>
-      )}
-    </div>
-  );
-}
-
 /** Loads the signed-in hunter's cloud save before mounting the game. */
 function SaveGate({ user, onSignOut }) {
   const [save, setSave] = useState(undefined); // undefined = loading
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setSave(undefined);
-    setError(false);
+    setError(null);
     loadSave(user.uid)
       .then((data) => {
         if (!cancelled) setSave(data); // null = new hunter, object = existing save
       })
       .catch((err) => {
-        console.error("Failed to load cloud save:", err);
-        if (!cancelled) setError(true);
+        if (!cancelled) setError(err);
       });
     return () => {
       cancelled = true;
@@ -55,7 +36,16 @@ function SaveGate({ user, onSignOut }) {
 
   if (error)
     return (
-      <BootScreen label="CLOUD SYNC FAILED" error onRetry={() => setAttempt((n) => n + 1)} />
+      <BootScreen
+        label="CLOUD SYNC FAILED"
+        detail={
+          navigator.onLine === false
+            ? "You appear to be offline. Reconnect and try again — nothing has been lost."
+            : "The system couldn't reach your hunter record. Your data is safe in the cloud."
+        }
+        error
+        onRetry={() => setAttempt((n) => n + 1)}
+      />
     );
   if (save === undefined) return <BootScreen label="SYNCING HUNTER DATA" />;
   return <App user={user} initialSave={save} onSignOut={onSignOut} />;
@@ -96,7 +86,11 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     {/* Real URLs, real browser history — the Netlify SPA redirect already
         serves index.html for every path. */}
     <BrowserRouter>
-      <Root />
+      {/* Last line of defence: a render crash shows a themed panel with a
+          reload action instead of a white screen. */}
+      <ErrorBoundary>
+        <Root />
+      </ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>
 );
