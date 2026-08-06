@@ -3,8 +3,12 @@ import { useEffect, useRef, useState } from "react";
 /**
  * Smoothly animates a number toward `target` with an ease-out curve.
  * Re-animates from the current displayed value whenever `target` changes.
+ *
+ * @param {number} target
+ * @param {number} [duration]  ms
+ * @param {number} [decimals]  decimal places to keep (0 = whole numbers)
  */
-export function useCountUp(target, duration = 1200) {
+export function useCountUp(target, duration = 1200, decimals = 0) {
   const [value, setValue] = useState(0);
   const fromRef = useRef(0);
   const rafRef = useRef(0);
@@ -27,5 +31,7 @@ export function useCountUp(target, duration = 1200) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [target, duration]);
 
-  return Math.round(value);
+  if (decimals <= 0) return Math.round(value);
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
 }
