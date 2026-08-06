@@ -113,6 +113,17 @@ export const PRIORITIES = {
   CRITICAL: { label: "Critical", color: "#ef4444" },
 };
 
+/* ---------- interface themes ----------
+ * Themes re-tint the ambient aura, neon borders and glows via the
+ * [data-theme] selectors in index.css. The Solo-Leveling glass/hologram
+ * language is identical across all four — only the mana colour changes. */
+export const THEMES = {
+  arcane: { label: "Arcane", desc: "Violet & cyan — the system default.", swatch: ["#7c3aed", "#06b6d4"] },
+  shadow: { label: "Shadow", desc: "Deep monarch violet, low light.", swatch: ["#4c1d95", "#a78bfa"] },
+  frost: { label: "Frost", desc: "Ice blue, high clarity.", swatch: ["#0ea5e9", "#67e8f9"] },
+  ember: { label: "Ember", desc: "Molten amber for late raids.", swatch: ["#f59e0b", "#ef4444"] },
+};
+
 /* ---------- recurrence ---------- */
 export const RECURRENCE_TYPES = {
   daily: { label: "Daily", desc: "Repeats every day" },

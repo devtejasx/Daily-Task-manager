@@ -71,7 +71,17 @@ export default function App({ user, initialSave, onSignOut }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [pomodoroOpen, setPomodoroOpen] = useState(false);
   const [templateSeed, setTemplateSeed] = useState(null);
-  const [dimmed, setDimmed] = useState(false);
+  // Dimmed ambience is a persisted preference now, so it survives a reload
+  // and follows the hunter across devices. Supports the updater form the
+  // top-bar toggle uses.
+  const dimmed = state.settings.dimmed;
+  const setDimmed = useCallback(
+    (next) =>
+      actions.updateSettings({
+        dimmed: typeof next === "function" ? next(state.settings.dimmed) : next,
+      }),
+    [actions, state.settings.dimmed]
+  );
   const [introDone, setIntroDone] = useState(false);
   const [xpBurst, setXpBurst] = useState(null);
   const [xpPulse, setXpPulse] = useState(0);
@@ -230,6 +240,8 @@ export default function App({ user, initialSave, onSignOut }) {
   return (
     <div
       data-rank={rank.key}
+      data-theme={state.settings.theme}
+      data-animations={state.settings.animations ? "on" : "off"}
       className="min-h-full transition-[filter] duration-700"
       style={{ filter: dimmed ? "brightness(0.72) saturate(0.85)" : "none" }}
     >
@@ -320,6 +332,11 @@ export default function App({ user, initialSave, onSignOut }) {
                   path="/settings"
                   element={
                     <Settings
+                      settings={state.settings}
+                      onUpdateSettings={(patch) => requireAuth(() => actions.updateSettings(patch))}
+                      state={state}
+                      onImport={(save) => requireAuth(() => actions.importSave(save))}
+                      levelXP={defaultMissionXP}
                       dimmed={dimmed}
                       setDimmed={setDimmed}
                       user={user}
