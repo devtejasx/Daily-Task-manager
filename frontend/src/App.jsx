@@ -6,6 +6,7 @@ import Background from "./components/Background";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import AddMissionModal from "./components/AddMissionModal";
+import PomodoroTimer from "./components/PomodoroTimer";
 import {
   LevelUpOverlay,
   PromotionOverlay,
@@ -68,6 +69,7 @@ export default function App({ user, initialSave, onSignOut }) {
   const setView = useCallback((view) => navigate(pathForView(view)), [navigate]);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [pomodoroOpen, setPomodoroOpen] = useState(false);
   const [templateSeed, setTemplateSeed] = useState(null);
   const [dimmed, setDimmed] = useState(false);
   const [introDone, setIntroDone] = useState(false);
@@ -258,6 +260,8 @@ export default function App({ user, initialSave, onSignOut }) {
           setSearch={(value) => patch({ search: value })}
           dimmed={dimmed}
           setDimmed={setDimmed}
+          onTogglePomodoro={() => setPomodoroOpen((v) => !v)}
+          pomodoroOpen={pomodoroOpen}
         />
         <main id="main-content" className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-6xl w-full mx-auto">
           {/* Keyed on pathname so the page transition still plays on navigation,
@@ -360,6 +364,14 @@ export default function App({ user, initialSave, onSignOut }) {
         onAdd={actions.addMission}
         defaultXP={defaultMissionXP}
         defaults={state.settings.defaults}
+      />
+
+      {/* Mounted at the root so the countdown survives route changes. */}
+      <PomodoroTimer
+        open={pomodoroOpen}
+        onClose={() => setPomodoroOpen(false)}
+        settings={state.settings}
+        onUpdateDurations={(pomodoro) => actions.updateSettings({ pomodoro })}
       />
 
       <XPAnimation amount={xpBurst?.amount ?? 0} active={Boolean(xpBurst)} />

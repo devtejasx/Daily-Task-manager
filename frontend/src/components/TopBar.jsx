@@ -1,11 +1,22 @@
 import { motion } from "framer-motion";
-import { Search, Bell, Moon, Sun, UserCircle2, Flame, LogIn } from "lucide-react";
+import { Search, Bell, Moon, Sun, UserCircle2, Flame, LogIn, Timer } from "lucide-react";
 import XPBar from "./XPBar";
 import RankBadge from "./RankBadge";
 import { useCountUp } from "../hooks/useCountUp";
 import { useAuthGate } from "./auth/AuthGate";
 
-export default function TopBar({ levelInfo, rank, streak, search, setSearch, dimmed, setDimmed, user }) {
+export default function TopBar({
+  levelInfo,
+  rank,
+  streak,
+  search,
+  setSearch,
+  dimmed,
+  setDimmed,
+  user,
+  onTogglePomodoro,
+  pomodoroOpen = false,
+}) {
   const xpInLevel = useCountUp(levelInfo.xpInLevel);
   const { openLogin } = useAuthGate();
   const isGuest = !user;
@@ -74,14 +85,32 @@ export default function TopBar({ levelInfo, rank, streak, search, setSearch, dim
           </motion.div>
           )}
 
+          {/* pomodoro */}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onTogglePomodoro}
+            aria-label="Focus timer"
+            aria-pressed={pomodoroOpen}
+            title="Pomodoro focus timer"
+            className={`relative p-2 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
+              pomodoroOpen
+                ? "text-violet-200 bg-violet-500/20 shadow-[0_0_14px_rgba(124,58,237,0.45)]"
+                : "text-slate-400 hover:text-violet-300 hover:bg-violet-500/10"
+            }`}
+          >
+            <Timer size={18} aria-hidden />
+          </motion.button>
+
           {/* notifications */}
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="relative p-2 rounded-xl text-slate-400 hover:text-cyan-300 hover:bg-cyan-400/10 transition-colors"
+            className="relative p-2 rounded-xl text-slate-400 hover:text-cyan-300 hover:bg-cyan-400/10 transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
             aria-label="Notifications"
           >
-            <Bell size={18} />
+            <Bell size={18} aria-hidden />
             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444] animate-pulse" />
           </motion.button>
 
