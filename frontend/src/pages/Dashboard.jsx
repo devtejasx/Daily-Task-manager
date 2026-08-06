@@ -10,13 +10,13 @@ const TEMPLATE_ICONS = { Dumbbell, BookOpen, Target, Briefcase };
 import StatCard from "../components/StatCard";
 import ProgressRing from "../components/ProgressRing";
 import XPBar from "../components/XPBar";
-import MissionCard from "../components/MissionCard";
+import MissionList from "../components/MissionList";
 import DailyQuestPanel from "../components/DailyQuestPanel";
 import RankBadge from "../components/RankBadge";
 import WeeklyXPChart from "../components/WeeklyXPChart";
 import HistoryTimeline from "../components/HistoryTimeline";
 import { useCountUp } from "../hooks/useCountUp";
-import { ACHIEVEMENTS, nextRank, localISO } from "../game/constants";
+import { ACHIEVEMENTS, DAILY_REQUIRED, nextRank, localISO } from "../game/constants";
 
 function Widget({ title, icon: Icon, children, delay = 0, className = "" }) {
   return (
@@ -77,6 +77,18 @@ export default function Dashboard({
     .filter((m) => m.status !== "completed" && m.dueDate > todayISO)
     .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1))
     .slice(0, 4);
+
+  // The dashboard renders four separate mission lists; they all take the same
+  // handlers, so bundle them once.
+  const cardProps = {
+    onComplete,
+    onDelete,
+    dailySelected,
+    dailyFull: dailySelected.length >= DAILY_REQUIRED,
+    onToggleDaily,
+    onSkipOccurrence,
+    onToggleRecurrencePaused,
+  };
 
   const recentAchievements = Object.entries(achievements)
     .sort((a, b) => (a[1] < b[1] ? 1 : -1))
@@ -316,24 +328,7 @@ export default function Dashboard({
               {overdue.length}
             </span>
           </div>
-          <div className="grid gap-4">
-            <AnimatePresence mode="popLayout">
-              {overdue.map((m, index) => (
-                <MissionCard
-                  key={m.id}
-                  mission={m}
-                  onComplete={onComplete}
-                  onDelete={onDelete}
-                  isDaily={dailySelected.includes(m.id)}
-                  dailyFull={dailySelected.length >= 4}
-                  onToggleDaily={onToggleDaily}
-                onSkipOccurrence={onSkipOccurrence}
-                onToggleRecurrencePaused={onToggleRecurrencePaused}
-                  enterDelay={0.05 + index * 0.05}
-                />
-              ))}
-            </AnimatePresence>
-          </div>
+          <MissionList missions={overdue} className="grid gap-4" {...cardProps} />
         </motion.div>
       )}
 
@@ -355,27 +350,16 @@ export default function Dashboard({
           </motion.button>
         </div>
         <div className="grid gap-4">
-          <AnimatePresence mode="popLayout">
-            {activeToday.length === 0 && clearedToday.length === 0 && (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-slate-500 glass rounded-xl p-5 text-center">
-                No gates due today. The realm is quiet... for now.
-              </motion.p>
-            )}
-            {activeToday.map((m, index) => (
-              <MissionCard
-                key={m.id}
-                mission={m}
-                onComplete={onComplete}
-                onDelete={onDelete}
-                isDaily={dailySelected.includes(m.id)}
-                dailyFull={dailySelected.length >= 4}
-                onToggleDaily={onToggleDaily}
-                onSkipOccurrence={onSkipOccurrence}
-                onToggleRecurrencePaused={onToggleRecurrencePaused}
-                enterDelay={0.08 + index * 0.08}
-              />
-            ))}
-          </AnimatePresence>
+          {activeToday.length === 0 && clearedToday.length === 0 && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-sm text-slate-500 glass rounded-xl p-5 text-center"
+            >
+              No gates due today. The realm is quiet... for now.
+            </motion.p>
+          )}
+          <MissionList missions={activeToday} className="grid gap-4" {...cardProps} />
 
           <AnimatePresence>
             {clearedToday.length > 0 && (
@@ -390,26 +374,7 @@ export default function Dashboard({
                   CLEARED TODAY
                   <span className="h-px flex-1 bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
                 </div>
-                <div className="grid gap-3">
-                  <AnimatePresence mode="popLayout">
-                    {clearedToday.map((m, index) => (
-                      <MissionCard
-                        key={m.id}
-                        mission={m}
-                        onComplete={onComplete}
-                        onDelete={onDelete}
-                        isDaily={dailySelected.includes(m.id)}
-                        dailyFull={dailySelected.length >= 4}
-                        onToggleDaily={onToggleDaily}
-                      onSkipOccurrence={onSkipOccurrence}
-                      onToggleRecurrencePaused={onToggleRecurrencePaused}
-                onSkipOccurrence={onSkipOccurrence}
-                onToggleRecurrencePaused={onToggleRecurrencePaused}
-                        enterDelay={0.04 + index * 0.05}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
+                <MissionList missions={clearedToday} className="grid gap-3" {...cardProps} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -424,22 +389,7 @@ export default function Dashboard({
           transition={{ delay: 0.66, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           <h2 className="font-display font-bold text-sm tracking-[0.2em] text-slate-400 mb-3">UPCOMING</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {upcoming.map((m, index) => (
-              <MissionCard
-                key={m.id}
-                mission={m}
-                onComplete={onComplete}
-                onDelete={onDelete}
-                isDaily={dailySelected.includes(m.id)}
-                dailyFull={dailySelected.length >= 4}
-                onToggleDaily={onToggleDaily}
-                onSkipOccurrence={onSkipOccurrence}
-                onToggleRecurrencePaused={onToggleRecurrencePaused}
-                enterDelay={0.04 + index * 0.05}
-              />
-            ))}
-          </div>
+          <MissionList missions={upcoming} className="grid gap-4 md:grid-cols-2" {...cardProps} />
         </motion.div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Plus } from "lucide-react";
@@ -17,14 +17,21 @@ import {
 } from "./components/Cinematics";
 import { XPAnimation } from "./components/CinematicLayers";
 import { useAuthGate } from "./components/auth/AuthGate";
+import { PageSkeleton } from "./components/ui/Skeleton";
+import { pathForView } from "./routes";
+
+/* Route-level code splitting. Dashboard and the mission board are the two
+   screens a hunter lands on, so they stay in the main bundle; everything
+   else — including the Recharts-heavy analytics page — is fetched on first
+   visit and cached from then on. */
 import Dashboard from "./pages/Dashboard";
 import Missions from "./pages/Missions";
-import Calendar from "./pages/Calendar";
-import Achievements from "./pages/Achievements";
-import Analytics from "./pages/Analytics";
-import Habits from "./pages/Habits";
-import Settings from "./pages/Settings";
-import { pathForView } from "./routes";
+
+const Calendar = lazy(() => import("./pages/Calendar"));
+const Achievements = lazy(() => import("./pages/Achievements"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Habits = lazy(() => import("./pages/Habits"));
+const Settings = lazy(() => import("./pages/Settings"));
 import { useGameState } from "./hooks/useGameState";
 import { useReminders } from "./hooks/useReminders";
 import { useMissionFilters } from "./hooks/useMissionFilters";
@@ -298,6 +305,7 @@ export default function App({ user, initialSave, onSignOut }) {
               animate="animate"
               exit="exit"
             >
+              <Suspense fallback={<PageSkeleton cards={2} />}>
               <Routes location={location}>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<Dashboard {...viewProps} />} />
@@ -376,6 +384,7 @@ export default function App({ user, initialSave, onSignOut }) {
                 {/* Unknown URL -> the command center, never a blank screen. */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </main>
