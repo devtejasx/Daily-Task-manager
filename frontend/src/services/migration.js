@@ -122,6 +122,7 @@ function toV2(save) {
   return {
     ...save,
     missions: (save.missions || []).map(normalizeMission),
+    history: Array.isArray(save.history) ? save.history : [],
     habits: (save.habits || []).map(normalizeHabit),
     settings: mergeSettings(save.settings),
     version: 2,
@@ -156,6 +157,9 @@ export function migrateSave(save) {
     ...out,
     version: SCHEMA_VERSION,
     missions: (out.missions || []).map(normalizeMission),
+    // History rows are append-only and never reshaped, but the array itself
+    // must exist — every analytics and achievement path indexes into it.
+    history: Array.isArray(out.history) ? out.history : [],
     habits: (out.habits || []).map(normalizeHabit),
     settings: mergeSettings(out.settings),
   };
