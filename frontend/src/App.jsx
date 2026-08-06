@@ -21,6 +21,7 @@ import Missions from "./pages/Missions";
 import Calendar from "./pages/Calendar";
 import Achievements from "./pages/Achievements";
 import Analytics from "./pages/Analytics";
+import Habits from "./pages/Habits";
 import Settings from "./pages/Settings";
 import { pathForView } from "./routes";
 import { useGameState } from "./hooks/useGameState";
@@ -284,6 +285,17 @@ export default function App({ user, initialSave, onSignOut }) {
                   }
                 />
                 <Route path="/calendar" element={<Calendar missions={searchFiltered} />} />
+                <Route
+                  path="/habits"
+                  element={
+                    <Habits
+                      habits={state.habits}
+                      onAdd={(data) => requireAuth(() => actions.addHabit(data))}
+                      onDelete={(id) => requireAuth(() => actions.deleteHabit(id))}
+                      onToggleDay={(id, day) => requireAuth(() => actions.toggleHabitDay(id, day))}
+                    />
+                  }
+                />
                 <Route
                   path="/analytics"
                   element={
