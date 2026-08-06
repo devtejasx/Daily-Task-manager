@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 import Background from "./components/Background";
@@ -15,11 +16,12 @@ import {
 } from "./components/Cinematics";
 import { XPAnimation } from "./components/CinematicLayers";
 import { useAuthGate } from "./components/auth/AuthGate";
-import Dashboard from "./views/Dashboard";
-import Missions from "./views/Missions";
-import Calendar from "./views/Calendar";
-import Achievements from "./views/Achievements";
-import Settings from "./views/Settings";
+import Dashboard from "./pages/Dashboard";
+import Missions from "./pages/Missions";
+import Calendar from "./pages/Calendar";
+import Achievements from "./pages/Achievements";
+import Settings from "./pages/Settings";
+import { pathForView } from "./routes";
 import { useGameState } from "./hooks/useGameState";
 import { useReminders } from "./hooks/useReminders";
 import { useMissionFilters } from "./hooks/useMissionFilters";
@@ -58,7 +60,11 @@ export default function App({ user, initialSave, onSignOut }) {
     defaultMissionXP,
   } = useGameState(initialSave, persist);
 
-  const [view, setView] = useState("dashboard");
+  const location = useLocation();
+  const navigate = useNavigate();
+  /** Legacy call sites still say setView("achievements"); route them. */
+  const setView = useCallback((view) => navigate(pathForView(view)), [navigate]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [templateSeed, setTemplateSeed] = useState(null);
   const [dimmed, setDimmed] = useState(false);
@@ -231,7 +237,14 @@ export default function App({ user, initialSave, onSignOut }) {
         promotionPulse={promotionPulse}
       />
       <div className="rank-aura" aria-hidden />
-      <Sidebar view={view} setView={setView} />
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2
+          focus:rounded-xl focus:bg-violet-600 focus:text-white focus:text-xs focus:font-bold focus:tracking-widest"
+      >
+        SKIP TO CONTENT
+      </a>
+      <Sidebar />
 
       <div className="lg:pl-[92px] xl:pl-60 pb-24 lg:pb-8 min-h-screen flex flex-col">
         <TopBar
@@ -244,34 +257,56 @@ export default function App({ user, initialSave, onSignOut }) {
           dimmed={dimmed}
           setDimmed={setDimmed}
         />
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-6xl w-full mx-auto">
+        <main id="main-content" className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-6xl w-full mx-auto">
+          {/* Keyed on pathname so the page transition still plays on navigation,
+              including browser back/forward. */}
           <AnimatePresence mode="wait">
-            <motion.div key={view} variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              {view === "dashboard" && <Dashboard {...viewProps} />}
-              {view === "missions" && (
-                <Missions
-                  {...viewProps}
-                  missions={filtered}
-                  totalMissions={state.missions.length}
-                  filterProps={filterProps}
+            <motion.div
+              key={location.pathname}
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <Routes location={location}>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard {...viewProps} />} />
+                <Route
+                  path="/tasks"
+                  element={
+                    <Missions
+                      {...viewProps}
+                      missions={filtered}
+                      totalMissions={state.missions.length}
+                      filterProps={filterProps}
+                    />
+                  }
                 />
-              )}
-              {view === "calendar" && <Calendar missions={searchFiltered} />}
-              {view === "achievements" && <Achievements achievements={state.achievements} />}
-              {view === "settings" && (
-                <Settings
-                  dimmed={dimmed}
-                  setDimmed={setDimmed}
-                  user={user}
-                  onSignOut={onSignOut}
-                  sim={{
-                    nextDay: () => requireAuth(actions.simNextDay),
-                    addStreak: (days) => requireAuth(() => actions.simAddStreak(days)),
-                    addXP: (xp) => requireAuth(() => actions.simAddXP(xp)),
-                    reset: () => requireAuth(actions.resetSave),
-                  }}
+                <Route path="/calendar" element={<Calendar missions={searchFiltered} />} />
+                <Route
+                  path="/achievements"
+                  element={<Achievements achievements={state.achievements} />}
                 />
-              )}
+                <Route
+                  path="/settings"
+                  element={
+                    <Settings
+                      dimmed={dimmed}
+                      setDimmed={setDimmed}
+                      user={user}
+                      onSignOut={onSignOut}
+                      sim={{
+                        nextDay: () => requireAuth(actions.simNextDay),
+                        addStreak: (days) => requireAuth(() => actions.simAddStreak(days)),
+                        addXP: (xp) => requireAuth(() => actions.simAddXP(xp)),
+                        reset: () => requireAuth(actions.resetSave),
+                      }}
+                    />
+                  }
+                />
+                {/* Unknown URL -> the command center, never a blank screen. */}
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
             </motion.div>
           </AnimatePresence>
         </main>
