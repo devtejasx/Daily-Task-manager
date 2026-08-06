@@ -11,10 +11,12 @@ import {
 } from "../game/constants";
 import { nextId } from "../data/missions";
 import { buildNextOccurrence, nextOccurrenceISO } from "../utils/recurrence";
+import { toggleDay, currentStreak } from "../utils/habits";
 import {
   migrateSave,
   mergeSettings,
   normalizeMission,
+  normalizeHabit,
   SCHEMA_VERSION,
   DEFAULT_SETTINGS,
 } from "../services/migration";
@@ -340,6 +342,85 @@ function reducer(state, action) {
       return sweepAchievements({ ...next, fx });
     }
 
+    /* ---------- habits ---------- */
+
+    case "ADD_HABIT": {
+      const topOrder = state.habits.reduce((min, h) => Math.min(min, h.order ?? 0), 0);
+      const habit = normalizeHabit({
+        id: nextId(),
+        createdAt: localISO(),
+        ...action.data,
+        order: topOrder - 1,
+        log: {},
+      });
+      return { ...state, habits: [habit, ...state.habits] };
+    }
+
+    case "UPDATE_HABIT":
+      return {
+        ...state,
+        habits: state.habits.map((h) =>
+          h.id === action.id ? normalizeHabit({ ...h, ...action.patch }) : h
+        ),
+      };
+
+    case "DELETE_HABIT":
+      return { ...state, habits: state.habits.filter((h) => h.id !== action.id) };
+
+    case "TOGGLE_HABIT_DAY": {
+      const habit = state.habits.find((h) => h.id === action.id);
+      if (!habit) return state;
+
+      const day = action.day ?? localISO();
+      const wasDone = Boolean(habit.log?.[day]);
+      const next = toggleDay(habit, day);
+
+      // Ticking awards the habit's XP; un-ticking takes it straight back, so a
+      // mis-click can never inflate the hunter's level.
+      const delta = wasDone ? -habit.xp : habit.xp;
+      const levelBefore = getLevelInfo(state.totalXP).level;
+      const totalXP = Math.max(0, state.totalXP + delta);
+      const levelAfter = getLevelInfo(totalXP).level;
+
+      const fx = { ...state.fx };
+      if (levelAfter > levelBefore) fx.levelUp = levelAfter;
+      if (!wasDone) {
+        const streak = currentStreak(next, day);
+        fx.toasts = [
+          ...state.fx.toasts,
+          {
+            id: ++toastId,
+            kind: "habit",
+            title: "HABIT LOGGED",
+            desc: `${habit.title} · +${habit.xp} XP${streak > 1 ? ` · ${streak}-day streak` : ""}`,
+            color: habit.color,
+          },
+        ];
+      }
+
+      return sweepAchievements({
+        ...state,
+        totalXP,
+        habits: state.habits.map((h) => (h.id === action.id ? next : h)),
+        fx,
+      });
+    }
+
+    case "REORDER_HABITS": {
+      const rank = new Map(action.orderedIds.map((id, i) => [id, i]));
+      const slots = state.habits
+        .filter((h) => rank.has(h.id))
+        .map((h) => h.order ?? 0)
+        .sort((a, b) => a - b);
+      if (slots.length !== action.orderedIds.length) return state;
+      return {
+        ...state,
+        habits: state.habits.map((h) =>
+          rank.has(h.id) ? { ...h, order: slots[rank.get(h.id)] } : h
+        ),
+      };
+    }
+
     case "DISMISS_FX":
       return { ...state, fx: { ...state.fx, [action.key]: action.key === "levelUp" || action.key === "promotion" ? null : false } };
 
@@ -466,6 +547,11 @@ export function useGameState(initialSave, onPersist) {
       updateSettings: (patch) => dispatch({ type: "UPDATE_SETTINGS", patch }),
       updateMission: (id, patch) => dispatch({ type: "UPDATE_MISSION", id, patch }),
       reorderMissions: (orderedIds) => dispatch({ type: "REORDER_MISSIONS", orderedIds }),
+      addHabit: (data) => dispatch({ type: "ADD_HABIT", data }),
+      updateHabit: (id, patch) => dispatch({ type: "UPDATE_HABIT", id, patch }),
+      deleteHabit: (id) => dispatch({ type: "DELETE_HABIT", id }),
+      toggleHabitDay: (id, day) => dispatch({ type: "TOGGLE_HABIT_DAY", id, day }),
+      reorderHabits: (orderedIds) => dispatch({ type: "REORDER_HABITS", orderedIds }),
       skipOccurrence: (id) => dispatch({ type: "SKIP_OCCURRENCE", id }),
       setRecurrencePaused: (id, paused) =>
         dispatch({ type: "SET_RECURRENCE_PAUSED", id, paused }),
