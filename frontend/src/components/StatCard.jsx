@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { useCountUp } from "../hooks/useCountUp";
 
-export default function StatCard({
+function StatCard({
   icon: Icon,
   label,
   value,
@@ -54,3 +55,6 @@ export default function StatCard({
     </motion.div>
   );
 }
+
+// Stat values change rarely; the parent re-renders constantly.
+export default memo(StatCard);
