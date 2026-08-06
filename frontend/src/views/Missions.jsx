@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Target } from "lucide-react";
-import MissionCard from "../components/MissionCard";
+import { motion } from "framer-motion";
+import { Plus, Target, GripVertical } from "lucide-react";
+import MissionList from "../components/MissionList";
 import { DAILY_REQUIRED } from "../game/constants";
 
 const FILTERS = [
@@ -20,6 +20,7 @@ export default function Missions({
   onToggleDaily,
   onSkipOccurrence,
   onToggleRecurrencePaused,
+  onReorder,
 }) {
   const [filter, setFilter] = useState("all");
   const shown = missions.filter((m) => {
@@ -85,23 +86,26 @@ export default function Missions({
         ))}
       </motion.div>
 
+      <p className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] font-semibold text-slate-600">
+        <GripVertical size={12} aria-hidden />
+        DRAG A CARD TO REORDER · SPACE THEN ARROWS WITH A KEYBOARD
+      </p>
+
+      {shown.length > 0 && (
+        <MissionList
+          missions={shown}
+          onReorder={onReorder}
+          onComplete={onComplete}
+          onDelete={onDelete}
+          dailySelected={dailySelected}
+          dailyFull={dailySelected.length >= DAILY_REQUIRED}
+          onToggleDaily={onToggleDaily}
+          onSkipOccurrence={onSkipOccurrence}
+          onToggleRecurrencePaused={onToggleRecurrencePaused}
+        />
+      )}
+
       <div className="grid gap-3 md:grid-cols-2">
-        <AnimatePresence mode="popLayout">
-          {shown.map((m, index) => (
-            <MissionCard
-              key={m.id}
-              mission={m}
-              onComplete={onComplete}
-              onDelete={onDelete}
-              isDaily={dailySelected.includes(m.id)}
-              dailyFull={dailySelected.length >= DAILY_REQUIRED}
-              onToggleDaily={onToggleDaily}
-              onSkipOccurrence={onSkipOccurrence}
-              onToggleRecurrencePaused={onToggleRecurrencePaused}
-              enterDelay={0.05 + index * 0.05}
-            />
-          ))}
-        </AnimatePresence>
         {shown.length === 0 && (
           <div className="glass rounded-2xl p-8 text-center md:col-span-2 flex flex-col items-center">
             <div className="p-3 rounded-xl border border-violet-400/25 bg-violet-500/10 mb-4">

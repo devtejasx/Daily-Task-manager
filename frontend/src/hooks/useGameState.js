@@ -151,6 +151,24 @@ function reducer(state, action) {
       };
     }
 
+    case "REORDER_MISSIONS": {
+      // `orderedIds` covers only the currently visible slice of the board, so
+      // we renumber just those rows and leave every other mission untouched.
+      const rank = new Map(action.orderedIds.map((id, i) => [id, i]));
+      const slots = state.missions
+        .filter((m) => rank.has(m.id))
+        .map((m) => m.order ?? 0)
+        .sort((a, b) => a - b);
+      if (slots.length !== action.orderedIds.length) return state;
+
+      return {
+        ...state,
+        missions: state.missions.map((m) =>
+          rank.has(m.id) ? { ...m, order: slots[rank.get(m.id)] } : m
+        ),
+      };
+    }
+
     /* ---------- recurring missions ---------- */
 
     case "SKIP_OCCURRENCE": {
@@ -447,6 +465,7 @@ export function useGameState(initialSave, onPersist) {
       addMission: (data) => dispatch({ type: "ADD_MISSION", data }),
       updateSettings: (patch) => dispatch({ type: "UPDATE_SETTINGS", patch }),
       updateMission: (id, patch) => dispatch({ type: "UPDATE_MISSION", id, patch }),
+      reorderMissions: (orderedIds) => dispatch({ type: "REORDER_MISSIONS", orderedIds }),
       skipOccurrence: (id) => dispatch({ type: "SKIP_OCCURRENCE", id }),
       setRecurrencePaused: (id, paused) =>
         dispatch({ type: "SET_RECURRENCE_PAUSED", id, paused }),

@@ -146,16 +146,23 @@ export default function App({ user, initialSave, onSignOut }) {
     return undefined;
   }, [introDone, state.fx.promotion]);
 
+  // The board is always presented in the hunter's manual order; search only
+  // narrows it, never re-sorts it.
+  const ordered = useMemo(
+    () => [...state.missions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [state.missions]
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return state.missions;
-    return state.missions.filter(
+    if (!q) return ordered;
+    return ordered.filter(
       (m) =>
         m.title.toLowerCase().includes(q) ||
         m.description.toLowerCase().includes(q) ||
         m.category.toLowerCase().includes(q)
     );
-  }, [state.missions, search]);
+  }, [ordered, search]);
 
   // Protected actions: run for signed-in hunters, prompt login for guests.
   // "create-mission" intent lets a guest resume the New Mission form after login.
@@ -198,6 +205,7 @@ export default function App({ user, initialSave, onSignOut }) {
     onDelete: (id) => requireAuth(() => actions.deleteMission(id)),
     onToggleDaily: (id) => requireAuth(() => actions.toggleDaily(id)),
     onSkipOccurrence: (id) => requireAuth(() => actions.skipOccurrence(id)),
+    onReorder: (orderedIds) => requireAuth(() => actions.reorderMissions(orderedIds)),
     onToggleRecurrencePaused: (id, paused) =>
       requireAuth(() => actions.setRecurrencePaused(id, paused)),
     onOpenAdd: () => openAdd(),
