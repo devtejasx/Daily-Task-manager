@@ -1,33 +1,13 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { CalendarDays, Clock, Zap, Check, Swords, Flag } from "lucide-react";
+import { Zap, Check, Swords, Flag } from "lucide-react";
 import { DIFFICULTIES } from "../data/missions";
-import { PRIORITIES, localISO } from "../game/constants";
+import { PRIORITIES } from "../game/constants";
+import { isOverdue } from "../utils/date";
 import ParticleBurst from "./ParticleBurst";
 import MissionActions from "./mission/MissionActions";
 import RecurrenceBadge from "./mission/RecurrenceBadge";
-
-function DueLabel({ dueDate }) {
-  const today = localISO();
-  const overdue = dueDate < today;
-  const isToday = dueDate === today;
-  const text = isToday
-    ? "Today"
-    : new Date(dueDate + "T00:00:00").toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      });
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-        overdue ? "text-red-400" : isToday ? "text-cyan-300" : "text-slate-400"
-      }`}
-    >
-      <CalendarDays size={13} />
-      {overdue ? `Overdue · ${text}` : text}
-    </span>
-  );
-}
+import DeadlineMeta from "./mission/DeadlineMeta";
 
 const MissionCard = forwardRef(function MissionCard(
   {
@@ -46,6 +26,7 @@ const MissionCard = forwardRef(function MissionCard(
   const diff = DIFFICULTIES[mission.difficulty];
   const priority = PRIORITIES[mission.priority] ?? null;
   const completed = mission.status === "completed";
+  const overdue = isOverdue(mission);
   const [bursting, setBursting] = useState(false);
   const [sweeping, setSweeping] = useState(false);
   const [xpFloat, setXpFloat] = useState(false);
@@ -117,8 +98,16 @@ const MissionCard = forwardRef(function MissionCard(
       <div
         className={`glass holo-scan neon-border rounded-2xl p-4 sm:p-5 relative overflow-hidden transition-shadow duration-300
           group-hover:shadow-[0_18px_50px_-12px_rgba(124,58,237,0.45),0_0_30px_rgba(6,182,212,0.15)]
-          ${completed ? "opacity-75" : ""}`}
+          ${completed ? "opacity-75" : ""}
+          ${overdue ? "is-overdue" : ""}`}
       >
+        {/* overdue rail — a red pulse down the leading edge */}
+        {overdue && (
+          <span
+            className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-red-500 via-rose-400 to-red-500 animate-pulse"
+            aria-hidden
+          />
+        )}
         {/* energy sweep when completing */}
         <AnimatePresence>
           {sweeping && (
@@ -211,13 +200,7 @@ const MissionCard = forwardRef(function MissionCard(
             </p>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3">
-              <DueLabel dueDate={mission.dueDate} />
-              {mission.dueTime && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
-                  <Clock size={12} />
-                  {mission.dueTime}
-                </span>
-              )}
+              <DeadlineMeta mission={mission} />
               <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300/90">
                 <Zap size={13} className="fill-amber-300/40" />+{mission.xp} XP
               </span>
