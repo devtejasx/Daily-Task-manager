@@ -408,6 +408,26 @@ body {
   transition-duration: 0.01ms !important;
 }
 
+/* ---------- loading skeletons ---------- */
+.skeleton {
+  background: linear-gradient(
+    100deg,
+    rgba(148, 163, 184, 0.06) 30%,
+    rgba(124, 58, 237, 0.16) 50%,
+    rgba(148, 163, 184, 0.06) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
 /* ---------- overdue missions ---------- */
 .is-overdue {
   border-color: rgba(239, 68, 68, 0.42) !important;
