@@ -153,6 +153,37 @@ function reducer(state, action) {
       };
     }
 
+    case "MOVE_MISSION": {
+      // Calendar drag: re-schedule to a new day, carrying a multi-day span
+      // along with it rather than stretching or collapsing it.
+      const mission = state.missions.find((m) => m.id === action.id);
+      if (!mission || mission.dueDate === action.dueDate) return state;
+
+      const spanDays =
+        mission.endDate && mission.endDate > mission.dueDate
+          ? Math.round(
+              (new Date(`${mission.endDate}T12:00:00`) -
+                new Date(`${mission.dueDate}T12:00:00`)) /
+                86_400_000
+            )
+          : 0;
+
+      return {
+        ...state,
+        missions: state.missions.map((m) =>
+          m.id === action.id
+            ? {
+                ...m,
+                dueDate: action.dueDate,
+                endDate: spanDays > 0 ? addDaysISO(action.dueDate, spanDays) : m.endDate,
+                // The old reminder window no longer applies to the new date.
+                reminderFiredAt: null,
+              }
+            : m
+        ),
+      };
+    }
+
     case "REORDER_MISSIONS": {
       // `orderedIds` covers only the currently visible slice of the board, so
       // we renumber just those rows and leave every other mission untouched.
@@ -566,6 +597,7 @@ export function useGameState(initialSave, onPersist) {
       updateSettings: (patch) => dispatch({ type: "UPDATE_SETTINGS", patch }),
       updateMission: (id, patch) => dispatch({ type: "UPDATE_MISSION", id, patch }),
       reorderMissions: (orderedIds) => dispatch({ type: "REORDER_MISSIONS", orderedIds }),
+      moveMission: (id, dueDate) => dispatch({ type: "MOVE_MISSION", id, dueDate }),
       addHabit: (data) => dispatch({ type: "ADD_HABIT", data }),
       updateHabit: (id, patch) => dispatch({ type: "UPDATE_HABIT", id, patch }),
       deleteHabit: (id) => dispatch({ type: "DELETE_HABIT", id }),
