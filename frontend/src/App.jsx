@@ -21,6 +21,7 @@ import Calendar from "./views/Calendar";
 import Achievements from "./views/Achievements";
 import Settings from "./views/Settings";
 import { useGameState } from "./hooks/useGameState";
+import { useReminders } from "./hooks/useReminders";
 import { writeSave } from "./services/saveService";
 
 const pageVariants = {
@@ -72,6 +73,10 @@ export default function App({ user, initialSave, onSignOut }) {
   const previousPromotion = useRef(state.fx.promotion);
 
   useToastAutoDismiss(state.fx.toasts, actions.dismissToast);
+
+  // Deadline reminders. Guests get none — nothing they do is persisted, so a
+  // notification would outlive the state that produced it.
+  useReminders(user ? state.missions : [], state.settings, actions.updateMission);
 
   // The cinematic intro now lives at the app root (WelcomeIntro, once per
   // session). Settle FX baselines shortly after mount so loading a save
@@ -275,6 +280,7 @@ export default function App({ user, initialSave, onSignOut }) {
         initial={templateSeed}
         onAdd={actions.addMission}
         defaultXP={defaultMissionXP}
+        defaults={state.settings.defaults}
       />
 
       <XPAnimation amount={xpBurst?.amount ?? 0} active={Boolean(xpBurst)} />
