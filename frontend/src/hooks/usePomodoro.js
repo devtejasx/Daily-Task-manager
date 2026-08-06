@@ -32,6 +32,12 @@ export function usePomodoro(durations = POMODORO_DEFAULTS, options = {}) {
   const deadlineRef = useRef(null);
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
+  // The deadline we've already run handleFinish for. Several 250ms ticks can
+  // observe "time's up" before React re-renders and tears the interval down,
+  // which would otherwise fire the chime and notification more than once.
+  const finishedRef = useRef(null);
+  // The duration config currently loaded into the timer face.
+  const appliedConfigRef = useRef(config);
 
   const phaseSeconds = useCallback(
     (which) => Math.max(1, Math.round((config[which] ?? 25) * 60)),
@@ -44,6 +50,7 @@ export function usePomodoro(durations = POMODORO_DEFAULTS, options = {}) {
       const seconds = phaseSeconds(which);
       setPhase(which);
       setRemaining(seconds);
+      finishedRef.current = null;
       if (autoStart) {
         deadlineRef.current = Date.now() + seconds * 1000;
         setRunning(true);
@@ -83,8 +90,10 @@ export function usePomodoro(durations = POMODORO_DEFAULTS, options = {}) {
         tag: "pomodoro",
       });
     }
-    // Breaks roll straight into focus; focus waits for a deliberate start.
-    loadPhase(next, finished !== "work");
+    // A finished focus block rolls straight into its break — you've earned it.
+    // A finished break does NOT auto-start the next focus block: coming back
+    // to work is the hunter's decision, not the timer's.
+    loadPhase(next, finished === "work");
   }, [completedRounds, nextPhase, sound, notifications, loadPhase]);
 
   /* countdown loop — recomputed from the deadline every tick */
@@ -92,8 +101,13 @@ export function usePomodoro(durations = POMODORO_DEFAULTS, options = {}) {
     if (!running || deadlineRef.current == null) return undefined;
 
     const tick = () => {
-      const left = Math.round((deadlineRef.current - Date.now()) / 1000);
+      const deadline = deadlineRef.current;
+      if (deadline == null) return;
+
+      const left = Math.round((deadline - Date.now()) / 1000);
       if (left <= 0) {
+        if (finishedRef.current === deadline) return; // already handled
+        finishedRef.current = deadline;
         setRemaining(0);
         handleFinish();
         return;
@@ -106,11 +120,14 @@ export function usePomodoro(durations = POMODORO_DEFAULTS, options = {}) {
     return () => window.clearInterval(id);
   }, [running, handleFinish]);
 
-  /* a duration change while idle re-loads the current phase */
+  /* A duration change while idle re-loads the current phase.
+     Guarded on the CONFIG actually changing: keying this on `running` alone
+     would reset the clock to full every time the hunter hit pause. */
   useEffect(() => {
-    if (running) return;
+    if (running || appliedConfigRef.current === config) return;
+    appliedConfigRef.current = config;
     setRemaining(phaseSeconds(phaseRef.current));
-  }, [phaseSeconds, running]);
+  }, [config, phaseSeconds, running]);
 
   const start = useCallback(() => {
     if (running) return;
