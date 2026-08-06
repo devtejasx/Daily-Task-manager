@@ -4,7 +4,7 @@ import App from "./App.jsx";
 import WelcomeIntro from "./components/cinematic/WelcomeIntro.jsx";
 import { AuthGateProvider } from "./components/auth/AuthGate.jsx";
 import { useAuth } from "./hooks/useAuth";
-import { loadSave } from "./lib/saveService";
+import { loadSave } from "./services/saveService";
 import "./index.css";
 
 const INTRO_KEY = "arise-intro-seen";

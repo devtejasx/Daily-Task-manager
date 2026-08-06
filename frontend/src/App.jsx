@@ -21,7 +21,7 @@ import Calendar from "./views/Calendar";
 import Achievements from "./views/Achievements";
 import Settings from "./views/Settings";
 import { useGameState } from "./hooks/useGameState";
-import { writeSave } from "./lib/saveService";
+import { writeSave } from "./services/saveService";
 
 const pageVariants = {
   initial: { opacity: 0, y: 26, filter: "blur(6px)" },
