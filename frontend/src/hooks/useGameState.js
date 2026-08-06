@@ -10,6 +10,13 @@ import {
   DAILY_REQUIRED,
 } from "../game/constants";
 import { nextId } from "../data/missions";
+import {
+  migrateSave,
+  mergeSettings,
+  normalizeMission,
+  SCHEMA_VERSION,
+  DEFAULT_SETTINGS,
+} from "../services/migration";
 
 let toastId = 0;
 
@@ -21,8 +28,11 @@ let toastId = 0;
 function freshState() {
   const today = localISO();
   return {
+    version: SCHEMA_VERSION,
     missions: [],
     history: [], // [{id,title,xp,category,difficulty,completedAt}]
+    habits: [], // [{id,title,icon,color,cadence,xp,log:{ISO:true}}]
+    settings: { ...DEFAULT_SETTINGS },
     totalXP: 0,
     streak: 0,
     longestStreak: 0,
@@ -36,11 +46,16 @@ function freshState() {
   };
 }
 
-/** Build the initial reducer state from a cloud save (or null for a new hunter). */
+/**
+ * Build the initial reducer state from a cloud save (or null for a new hunter).
+ * Old saves are upgraded by services/migration before they reach the reducer,
+ * so every field below is guaranteed to exist from here on.
+ */
 function loadState(cloudSave) {
   try {
     if (!cloudSave) return rollover(seedAchievements(freshState()));
-    const base = { ...freshState(), ...cloudSave };
+    const base = { ...freshState(), ...migrateSave(cloudSave) };
+    base.settings = mergeSettings(base.settings);
     base.fx = { levelUp: null, promotion: null, failed: false, newDay: false, toasts: [] };
     return rollover(base);
   } catch {
@@ -105,9 +120,24 @@ function reducer(state, action) {
       return rollover(state);
 
     case "ADD_MISSION": {
-      const mission = { id: nextId(), status: "active", createdAt: localISO(), ...action.data };
+      // New missions land at the top of the manual order, matching where they
+      // appear in the list before any drag-and-drop has happened.
+      const topOrder = state.missions.reduce(
+        (min, m) => Math.min(min, m.order ?? 0),
+        0
+      );
+      const mission = normalizeMission({
+        id: nextId(),
+        status: "active",
+        createdAt: localISO(),
+        ...action.data,
+        order: topOrder - 1,
+      });
       return { ...state, missions: [mission, ...state.missions] };
     }
+
+    case "UPDATE_SETTINGS":
+      return { ...state, settings: mergeSettings({ ...state.settings, ...action.patch }) };
 
     case "DELETE_MISSION":
       return {
@@ -322,6 +352,7 @@ export function useGameState(initialSave, onPersist) {
   const actions = useMemo(
     () => ({
       addMission: (data) => dispatch({ type: "ADD_MISSION", data }),
+      updateSettings: (patch) => dispatch({ type: "UPDATE_SETTINGS", patch }),
       deleteMission: (id) => dispatch({ type: "DELETE_MISSION", id }),
       completeMission: (id) => dispatch({ type: "COMPLETE_MISSION", id }),
       toggleDaily: (id) => dispatch({ type: "TOGGLE_DAILY", id }),
