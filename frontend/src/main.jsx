@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import WelcomeIntro from "./components/cinematic/WelcomeIntro.jsx";
 import { AuthGateProvider } from "./components/auth/AuthGate.jsx";
@@ -92,6 +93,10 @@ function Root() {
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <Root />
+    {/* Real URLs, real browser history — the Netlify SPA redirect already
+        serves index.html for every path. */}
+    <BrowserRouter>
+      <Root />
+    </BrowserRouter>
   </React.StrictMode>
 );
