@@ -1,5 +1,5 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Plus } from "lucide-react";
 import Background from "./components/Background";
@@ -17,27 +17,16 @@ import {
 } from "./components/Cinematics";
 import { XPAnimation } from "./components/CinematicLayers";
 import { useAuthGate } from "./components/auth/AuthGate";
-import { PageSkeleton } from "./components/ui/Skeleton";
 import LiveAnnouncer from "./components/ui/LiveAnnouncer";
+import AppRoutes from "./AppRoutes";
 import { pathForView } from "./routes";
-
-/* Route-level code splitting. Dashboard and the mission board are the two
-   screens a hunter lands on, so they stay in the main bundle; everything
-   else — including the Recharts-heavy analytics page — is fetched on first
-   visit and cached from then on. */
-import Dashboard from "./pages/Dashboard";
-import Missions from "./pages/Missions";
-
-const Calendar = lazy(() => import("./pages/Calendar"));
-const Achievements = lazy(() => import("./pages/Achievements"));
-const Analytics = lazy(() => import("./pages/Analytics"));
-const Habits = lazy(() => import("./pages/Habits"));
-const Settings = lazy(() => import("./pages/Settings"));
 import { useGameState } from "./hooks/useGameState";
+import { useGameFx } from "./hooks/useGameFx";
 import { useReminders } from "./hooks/useReminders";
 import { useMissionFilters } from "./hooks/useMissionFilters";
 import { applyFilters } from "./utils/filters";
 import { useCloudSave } from "./hooks/useCloudSave";
+import { useProtectedActions } from "./hooks/useProtectedActions";
 
 const pageVariants = {
   initial: { opacity: 0, y: 26, filter: "blur(6px)" },
@@ -99,90 +88,15 @@ export default function App({ user, initialSave, onSignOut }) {
       }),
     [actions, state.settings.dimmed]
   );
-  const [introDone, setIntroDone] = useState(false);
-  const [xpBurst, setXpBurst] = useState(null);
-  const [xpPulse, setXpPulse] = useState(0);
-  const [missionPulse, setMissionPulse] = useState(0);
-  const [levelPulse, setLevelPulse] = useState(0);
-  const [promotionPulse, setPromotionPulse] = useState(0);
-  const previousXP = useRef(state.totalXP);
-  const previousHistoryId = useRef(state.history[0]?.id ?? null);
-  const previousLevelUp = useRef(state.fx.levelUp);
-  const previousPromotion = useRef(state.fx.promotion);
+  // One-shot cinematics derived from state transitions (XP bursts, level-up
+  // and promotion pulses through the background scene).
+  const { xpBurst, xpPulse, missionPulse, levelPulse, promotionPulse } = useGameFx(state);
 
   useToastAutoDismiss(state.fx.toasts, actions.dismissToast);
 
   // Deadline reminders. Guests get none — nothing they do is persisted, so a
   // notification would outlive the state that produced it.
   useReminders(user ? state.missions : [], state.settings, actions.updateMission);
-
-  // The cinematic intro now lives at the app root (WelcomeIntro, once per
-  // session). Settle FX baselines shortly after mount so loading a save
-  // doesn't fire an XP burst / level-up on the first render.
-  useEffect(() => {
-    const t = window.setTimeout(() => setIntroDone(true), 400);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  useEffect(() => {
-    if (!introDone) {
-      previousXP.current = state.totalXP;
-      return undefined;
-    }
-    const before = previousXP.current;
-    if (state.totalXP > before) {
-      setXpBurst({ id: `${before}-${state.totalXP}-${Date.now()}`, amount: state.totalXP - before });
-      setXpPulse((value) => value + 1);
-    }
-    previousXP.current = state.totalXP;
-    return undefined;
-  }, [introDone, state.totalXP]);
-
-  useEffect(() => {
-    if (!xpBurst) return undefined;
-    const timer = window.setTimeout(() => setXpBurst(null), 1600);
-    return () => window.clearTimeout(timer);
-  }, [xpBurst]);
-
-  useEffect(() => {
-    if (!introDone) {
-      previousHistoryId.current = state.history[0]?.id ?? null;
-      return undefined;
-    }
-
-    const latestHistoryId = state.history[0]?.id ?? null;
-    if (latestHistoryId && latestHistoryId !== previousHistoryId.current) {
-      setMissionPulse((value) => value + 1);
-    }
-    previousHistoryId.current = latestHistoryId;
-    return undefined;
-  }, [introDone, state.history]);
-
-  useEffect(() => {
-    if (!introDone) {
-      previousLevelUp.current = state.fx.levelUp;
-      return undefined;
-    }
-    if (state.fx.levelUp && state.fx.levelUp !== previousLevelUp.current) {
-      setLevelPulse((value) => value + 1);
-    }
-    if (!state.fx.levelUp) previousLevelUp.current = null;
-    else previousLevelUp.current = state.fx.levelUp;
-    return undefined;
-  }, [introDone, state.fx.levelUp]);
-
-  useEffect(() => {
-    if (!introDone) {
-      previousPromotion.current = state.fx.promotion;
-      return undefined;
-    }
-    if (state.fx.promotion && state.fx.promotion !== previousPromotion.current) {
-      setPromotionPulse((value) => value + 1);
-    }
-    if (!state.fx.promotion) previousPromotion.current = null;
-    else previousPromotion.current = state.fx.promotion;
-    return undefined;
-  }, [introDone, state.fx.promotion]);
 
   // The board is always presented in the hunter's manual order; search only
   // narrows it, never re-sorts it.
@@ -225,34 +139,8 @@ export default function App({ user, initialSave, onSignOut }) {
     setTemplateSeed(null);
   }, []);
 
-  const handleComplete = useCallback(
-    (id) => requireAuth(() => actions.completeMission(id)),
-    [requireAuth, actions]
-  );
-  const handleDelete = useCallback(
-    (id) => requireAuth(() => actions.deleteMission(id)),
-    [requireAuth, actions]
-  );
-  const handleToggleDaily = useCallback(
-    (id) => requireAuth(() => actions.toggleDaily(id)),
-    [requireAuth, actions]
-  );
-  const handleSkipOccurrence = useCallback(
-    (id) => requireAuth(() => actions.skipOccurrence(id)),
-    [requireAuth, actions]
-  );
-  const handleReorder = useCallback(
-    (orderedIds) => requireAuth(() => actions.reorderMissions(orderedIds)),
-    [requireAuth, actions]
-  );
-  const handleTogglePaused = useCallback(
-    (id, paused) => requireAuth(() => actions.setRecurrencePaused(id, paused)),
-    [requireAuth, actions]
-  );
-  const handleMoveMission = useCallback(
-    (id, dueDate) => requireAuth(() => actions.moveMission(id, dueDate)),
-    [requireAuth, actions]
-  );
+  /** Every state-changing action, wrapped in the guest login gate. */
+  const guarded = useProtectedActions(actions, requireAuth);
   const handleQuickAdd = useCallback((dueDate) => openAdd({ dueDate }), [openAdd]);
 
   // Resume a pending action carried across the guest -> authed remount.
@@ -281,12 +169,12 @@ export default function App({ user, initialSave, onSignOut }) {
       weeklySeries,
       achievements: state.achievements,
       isGuest: !user,
-      onComplete: handleComplete,
-      onDelete: handleDelete,
-      onToggleDaily: handleToggleDaily,
-      onSkipOccurrence: handleSkipOccurrence,
-      onReorder: handleReorder,
-      onToggleRecurrencePaused: handleTogglePaused,
+      onComplete: guarded.complete,
+      onDelete: guarded.remove,
+      onToggleDaily: guarded.toggleDaily,
+      onSkipOccurrence: guarded.skipOccurrence,
+      onReorder: guarded.reorder,
+      onToggleRecurrencePaused: guarded.setRecurrencePaused,
       onOpenAdd: openAdd,
       onUseTemplate: openAdd,
       setView,
@@ -308,14 +196,67 @@ export default function App({ user, initialSave, onSignOut }) {
       dailyDone,
       weeklySeries,
       user,
-      handleComplete,
-      handleDelete,
-      handleToggleDaily,
-      handleSkipOccurrence,
-      handleReorder,
-      handleTogglePaused,
+      guarded,
       openAdd,
       setView,
+    ]
+  );
+
+  /** Extra props only the mission board needs (its own filtered slice). */
+  const boardProps = useMemo(
+    () => ({
+      missions: filtered,
+      totalMissions: state.missions.length,
+      filterProps,
+    }),
+    [filtered, state.missions.length, filterProps]
+  );
+
+  /** Per-route props for the pages that don't take the shared viewProps. */
+  const pageProps = useMemo(
+    () => ({
+      calendar: {
+        missions: searchFiltered,
+        onMoveMission: guarded.moveMission,
+        onQuickAdd: handleQuickAdd,
+      },
+      habits: {
+        habits: state.habits,
+        onAdd: guarded.addHabit,
+        onDelete: guarded.deleteHabit,
+        onToggleDay: guarded.toggleHabitDay,
+      },
+      analytics: {
+        missions: state.missions,
+        history: state.history,
+        streak: state.streak,
+        longestStreak: state.longestStreak,
+        totalXP: state.totalXP,
+      },
+      achievements: { achievements: state.achievements },
+      settings: {
+        settings: state.settings,
+        onUpdateSettings: guarded.updateSettings,
+        state,
+        onImport: guarded.importSave,
+        levelXP: defaultMissionXP,
+        dimmed,
+        setDimmed,
+        user,
+        onSignOut,
+        sim: guarded.sim,
+      },
+    }),
+    [
+      state,
+      searchFiltered,
+      defaultMissionXP,
+      dimmed,
+      setDimmed,
+      user,
+      onSignOut,
+      guarded,
+      handleQuickAdd,
     ]
   );
 
@@ -371,84 +312,12 @@ export default function App({ user, initialSave, onSignOut }) {
               animate="animate"
               exit="exit"
             >
-              <Suspense fallback={<PageSkeleton cards={2} />}>
-              <Routes location={location}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard {...viewProps} />} />
-                <Route
-                  path="/tasks"
-                  element={
-                    <Missions
-                      {...viewProps}
-                      missions={filtered}
-                      totalMissions={state.missions.length}
-                      filterProps={filterProps}
-                    />
-                  }
-                />
-                <Route
-                  path="/calendar"
-                  element={
-                    <Calendar
-                      missions={searchFiltered}
-                      onMoveMission={handleMoveMission}
-                      onQuickAdd={handleQuickAdd}
-                    />
-                  }
-                />
-                <Route
-                  path="/habits"
-                  element={
-                    <Habits
-                      habits={state.habits}
-                      onAdd={(data) => requireAuth(() => actions.addHabit(data))}
-                      onDelete={(id) => requireAuth(() => actions.deleteHabit(id))}
-                      onToggleDay={(id, day) => requireAuth(() => actions.toggleHabitDay(id, day))}
-                    />
-                  }
-                />
-                <Route
-                  path="/analytics"
-                  element={
-                    <Analytics
-                      missions={state.missions}
-                      history={state.history}
-                      streak={state.streak}
-                      longestStreak={state.longestStreak}
-                      totalXP={state.totalXP}
-                    />
-                  }
-                />
-                <Route
-                  path="/achievements"
-                  element={<Achievements achievements={state.achievements} />}
-                />
-                <Route
-                  path="/settings"
-                  element={
-                    <Settings
-                      settings={state.settings}
-                      onUpdateSettings={(patch) => requireAuth(() => actions.updateSettings(patch))}
-                      state={state}
-                      onImport={(save) => requireAuth(() => actions.importSave(save))}
-                      levelXP={defaultMissionXP}
-                      dimmed={dimmed}
-                      setDimmed={setDimmed}
-                      user={user}
-                      onSignOut={onSignOut}
-                      sim={{
-                        nextDay: () => requireAuth(actions.simNextDay),
-                        addStreak: (days) => requireAuth(() => actions.simAddStreak(days)),
-                        addXP: (xp) => requireAuth(() => actions.simAddXP(xp)),
-                        reset: () => requireAuth(actions.resetSave),
-                      }}
-                    />
-                  }
-                />
-                {/* Unknown URL -> the command center, never a blank screen. */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
-              </Suspense>
+              <AppRoutes
+                location={location}
+                viewProps={viewProps}
+                boardProps={boardProps}
+                pageProps={pageProps}
+              />
             </motion.div>
           </AnimatePresence>
         </main>
