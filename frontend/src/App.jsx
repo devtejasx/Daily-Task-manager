@@ -22,6 +22,8 @@ import Achievements from "./views/Achievements";
 import Settings from "./views/Settings";
 import { useGameState } from "./hooks/useGameState";
 import { useReminders } from "./hooks/useReminders";
+import { useMissionFilters } from "./hooks/useMissionFilters";
+import { applyFilters } from "./utils/filters";
 import { writeSave } from "./services/saveService";
 
 const pageVariants = {
@@ -57,7 +59,6 @@ export default function App({ user, initialSave, onSignOut }) {
   } = useGameState(initialSave, persist);
 
   const [view, setView] = useState("dashboard");
-  const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [templateSeed, setTemplateSeed] = useState(null);
   const [dimmed, setDimmed] = useState(false);
@@ -153,16 +154,19 @@ export default function App({ user, initialSave, onSignOut }) {
     [state.missions]
   );
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return ordered;
-    return ordered.filter(
-      (m) =>
-        m.title.toLowerCase().includes(q) ||
-        m.description.toLowerCase().includes(q) ||
-        m.category.toLowerCase().includes(q)
-    );
-  }, [ordered, search]);
+  // One filter store, two consumers: the mission board applies every facet,
+  // while the dashboard and calendar only honour the shared search term so a
+  // "completed only" filter can't hollow out today's gates.
+  const { filters, filtered, activeCount, patch, toggle, reset } = useMissionFilters(ordered, {
+    dailySelected: state.dailySelected,
+  });
+
+  const searchFiltered = useMemo(
+    () => applyFilters(ordered, { search: filters.search }),
+    [ordered, filters.search]
+  );
+
+  const filterProps = { filters, activeCount, patch, toggle, reset };
 
   // Protected actions: run for signed-in hunters, prompt login for guests.
   // "create-mission" intent lets a guest resume the New Mission form after login.
@@ -185,7 +189,7 @@ export default function App({ user, initialSave, onSignOut }) {
   }, [user, pendingIntent, consumeIntent]);
 
   const viewProps = {
-    missions: filtered,
+    missions: searchFiltered,
     history: state.history,
     stats,
     levelInfo,
@@ -235,8 +239,8 @@ export default function App({ user, initialSave, onSignOut }) {
           levelInfo={levelInfo}
           rank={rank}
           streak={state.streak}
-          search={search}
-          setSearch={setSearch}
+          search={filters.search}
+          setSearch={(value) => patch({ search: value })}
           dimmed={dimmed}
           setDimmed={setDimmed}
         />
@@ -244,8 +248,15 @@ export default function App({ user, initialSave, onSignOut }) {
           <AnimatePresence mode="wait">
             <motion.div key={view} variants={pageVariants} initial="initial" animate="animate" exit="exit">
               {view === "dashboard" && <Dashboard {...viewProps} />}
-              {view === "missions" && <Missions {...viewProps} />}
-              {view === "calendar" && <Calendar missions={filtered} />}
+              {view === "missions" && (
+                <Missions
+                  {...viewProps}
+                  missions={filtered}
+                  totalMissions={state.missions.length}
+                  filterProps={filterProps}
+                />
+              )}
+              {view === "calendar" && <Calendar missions={searchFiltered} />}
               {view === "achievements" && <Achievements achievements={state.achievements} />}
               {view === "settings" && (
                 <Settings
