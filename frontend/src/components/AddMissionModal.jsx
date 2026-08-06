@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, ChevronDown } from "lucide-react";
 import { DIFFICULTIES, CATEGORIES } from "../data/missions";
 import { PRIORITIES, localISO } from "../game/constants";
+import RecurrencePicker from "./mission/RecurrencePicker";
 
 const BLANK = {
   title: "",
@@ -13,6 +14,7 @@ const BLANK = {
   dueTime: "18:00",
   category: "Training",
   xp: null, // null -> use defaultXP
+  recurrence: null, // null -> one-off mission
 };
 
 export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300, initial = null }) {
@@ -55,7 +57,7 @@ export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300,
         status: "active",
       });
       setPulsing(false);
-      setForm((f) => ({ ...f, title: "", description: "", xp: null }));
+      setForm((f) => ({ ...f, title: "", description: "", xp: null, recurrence: null }));
       onClose();
     }, 350);
   };
@@ -209,6 +211,11 @@ export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300,
                         className="holo-input mt-1.5 w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 resize-none"
                       />
                     </div>
+
+                    <RecurrencePicker
+                      value={form.recurrence}
+                      onChange={(recurrence) => setForm((f) => ({ ...f, recurrence }))}
+                    />
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>

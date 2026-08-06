@@ -1,9 +1,11 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { CalendarDays, Clock, Trash2, Zap, Check, Swords, Target, Flag } from "lucide-react";
+import { CalendarDays, Clock, Zap, Check, Swords, Flag } from "lucide-react";
 import { DIFFICULTIES } from "../data/missions";
 import { PRIORITIES, localISO } from "../game/constants";
 import ParticleBurst from "./ParticleBurst";
+import MissionActions from "./mission/MissionActions";
+import RecurrenceBadge from "./mission/RecurrenceBadge";
 
 function DueLabel({ dueDate }) {
   const today = localISO();
@@ -28,7 +30,17 @@ function DueLabel({ dueDate }) {
 }
 
 const MissionCard = forwardRef(function MissionCard(
-  { mission, onComplete, onDelete, isDaily = false, dailyFull = false, onToggleDaily, enterDelay = 0 },
+  {
+    mission,
+    onComplete,
+    onDelete,
+    isDaily = false,
+    dailyFull = false,
+    onToggleDaily,
+    onSkipOccurrence,
+    onToggleRecurrencePaused,
+    enterDelay = 0,
+  },
   ref
 ) {
   const diff = DIFFICULTIES[mission.difficulty];
@@ -222,6 +234,7 @@ const MissionCard = forwardRef(function MissionCard(
                   {priority.label}
                 </span>
               )}
+              <RecurrenceBadge recurrence={mission.recurrence} />
               <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-violet-300/70 border border-violet-400/25 bg-violet-500/10 px-2 py-0.5 rounded-full">
                 {mission.category}
               </span>
@@ -237,42 +250,16 @@ const MissionCard = forwardRef(function MissionCard(
             </div>
           </div>
 
-          <div className="flex flex-col gap-1 shrink-0">
-          {/* daily quest toggle */}
-          {onToggleDaily && !completed && (
-            <motion.button
-              onClick={() => onToggleDaily(mission.id)}
-              aria-label={isDaily ? "Remove from daily missions" : "Set as daily mission"}
-              title={
-                isDaily
-                  ? "Remove from today's required missions"
-                  : dailyFull
-                  ? "Daily slots full (4/4)"
-                  : "Set as today's required mission"
-              }
-              disabled={!isDaily && dailyFull}
-              className={`p-2 rounded-lg transition-all ${
-                isDaily
-                  ? "text-violet-300 bg-violet-500/15 shadow-[0_0_14px_rgba(124,58,237,0.45)]"
-                  : dailyFull
-                  ? "text-slate-700 cursor-not-allowed"
-                  : "text-slate-500 hover:text-violet-300 hover:bg-violet-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-              }`}
-              whileTap={{ scale: 0.85 }}
-            >
-              <Target size={16} />
-            </motion.button>
-          )}
-          {/* delete */}
-          <motion.button
-            onClick={() => onDelete(mission.id)}
-            aria-label="Delete mission"
-            className="shrink-0 p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 hover:shadow-[0_0_14px_rgba(239,68,68,0.35)] transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-            whileTap={{ scale: 0.85 }}
-          >
-            <Trash2 size={16} />
-          </motion.button>
-          </div>
+          <MissionActions
+            mission={mission}
+            completed={completed}
+            isDaily={isDaily}
+            dailyFull={dailyFull}
+            onToggleDaily={onToggleDaily}
+            onSkipOccurrence={onSkipOccurrence}
+            onToggleRecurrencePaused={onToggleRecurrencePaused}
+            onDelete={onDelete}
+          />
         </div>
       </div>
     </motion.div>

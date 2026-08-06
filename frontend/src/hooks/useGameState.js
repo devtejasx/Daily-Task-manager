@@ -10,6 +10,7 @@ import {
   DAILY_REQUIRED,
 } from "../game/constants";
 import { nextId } from "../data/missions";
+import { buildNextOccurrence, nextOccurrenceISO } from "../utils/recurrence";
 import {
   migrateSave,
   mergeSettings,
@@ -139,6 +140,83 @@ function reducer(state, action) {
     case "UPDATE_SETTINGS":
       return { ...state, settings: mergeSettings({ ...state.settings, ...action.patch }) };
 
+    case "UPDATE_MISSION": {
+      const exists = state.missions.some((m) => m.id === action.id);
+      if (!exists) return state;
+      return {
+        ...state,
+        missions: state.missions.map((m) =>
+          m.id === action.id ? normalizeMission({ ...m, ...action.patch }) : m
+        ),
+      };
+    }
+
+    /* ---------- recurring missions ---------- */
+
+    case "SKIP_OCCURRENCE": {
+      // Jump the series forward one step without awarding XP and without
+      // writing a history entry — the occurrence simply never happened.
+      const mission = state.missions.find((m) => m.id === action.id);
+      if (!mission?.recurrence) return state;
+
+      const nextDue = nextOccurrenceISO(mission.dueDate, mission.recurrence);
+      if (!nextDue) return state;
+
+      return {
+        ...state,
+        missions: state.missions.map((m) =>
+          m.id === action.id
+            ? {
+                ...m,
+                dueDate: nextDue,
+                occurrence: (m.occurrence ?? 0) + 1,
+                reminderFiredAt: null,
+                recurrence: { ...m.recurrence, skipped: m.recurrence.skipped + 1 },
+              }
+            : m
+        ),
+        fx: {
+          ...state.fx,
+          toasts: [
+            ...state.fx.toasts,
+            {
+              id: ++toastId,
+              kind: "system",
+              title: "OCCURRENCE SKIPPED",
+              desc: `${mission.title} · next on ${nextDue}`,
+              color: "#f59e0b",
+            },
+          ],
+        },
+      };
+    }
+
+    case "SET_RECURRENCE_PAUSED": {
+      const mission = state.missions.find((m) => m.id === action.id);
+      if (!mission?.recurrence) return state;
+      return {
+        ...state,
+        missions: state.missions.map((m) =>
+          m.id === action.id
+            ? { ...m, recurrence: { ...m.recurrence, paused: action.paused } }
+            : m
+        ),
+        fx: {
+          ...state.fx,
+          toasts: [
+            ...state.fx.toasts,
+            {
+              id: ++toastId,
+              kind: "system",
+              title: action.paused ? "SERIES PAUSED" : "SERIES RESUMED",
+              desc: mission.title,
+              color: action.paused ? "#94a3b8" : "#10b981",
+            },
+          ],
+        },
+      };
+    }
+
     case "DELETE_MISSION":
       return {
         ...state,
@@ -165,12 +243,25 @@ function reducer(state, action) {
       const totalXP = state.totalXP + mission.xp;
       const levelAfter = getLevelInfo(totalXP).level;
 
+      // A recurring mission spawns its follow-up occurrence immediately, so
+      // the board never goes empty and the cleared card keeps its history.
+      const spawned = buildNextOccurrence(mission, "completed");
+      const clearedBoard = state.missions.map((m) =>
+        m.id === action.id
+          ? {
+              ...m,
+              status: "completed",
+              recurrence: m.recurrence
+                ? { ...m.recurrence, completed: m.recurrence.completed + 1 }
+                : null,
+            }
+          : m
+      );
+
       let next = {
         ...state,
         totalXP,
-        missions: state.missions.map((m) =>
-          m.id === action.id ? { ...m, status: "completed" } : m
-        ),
+        missions: spawned ? [spawned, ...clearedBoard] : clearedBoard,
         history: [
           {
             id: mission.id,
@@ -179,6 +270,8 @@ function reducer(state, action) {
             category: mission.category,
             difficulty: mission.difficulty,
             completedAt: localISO(),
+            // keeps a repeating mission's occurrences groupable in analytics
+            seriesId: mission.seriesId || (mission.recurrence ? mission.id : null),
           },
           ...state.history,
         ],
@@ -353,6 +446,10 @@ export function useGameState(initialSave, onPersist) {
     () => ({
       addMission: (data) => dispatch({ type: "ADD_MISSION", data }),
       updateSettings: (patch) => dispatch({ type: "UPDATE_SETTINGS", patch }),
+      updateMission: (id, patch) => dispatch({ type: "UPDATE_MISSION", id, patch }),
+      skipOccurrence: (id) => dispatch({ type: "SKIP_OCCURRENCE", id }),
+      setRecurrencePaused: (id, paused) =>
+        dispatch({ type: "SET_RECURRENCE_PAUSED", id, paused }),
       deleteMission: (id) => dispatch({ type: "DELETE_MISSION", id }),
       completeMission: (id) => dispatch({ type: "COMPLETE_MISSION", id }),
       toggleDaily: (id) => dispatch({ type: "TOGGLE_DAILY", id }),
