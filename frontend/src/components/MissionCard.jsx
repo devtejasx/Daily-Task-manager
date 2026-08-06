@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { Zap, Check, Swords, Flag } from "lucide-react";
+import { Zap, Check, Swords, Flag, GripVertical } from "lucide-react";
 import { DIFFICULTIES } from "../data/missions";
 import { PRIORITIES } from "../game/constants";
 import { isOverdue } from "../utils/date";
@@ -20,6 +20,8 @@ const MissionCard = forwardRef(function MissionCard(
     onSkipOccurrence,
     onToggleRecurrencePaused,
     enterDelay = 0,
+    dragHandleProps = null,
+    isDragging = false,
   },
   ref
 ) {
@@ -74,15 +76,20 @@ const MissionCard = forwardRef(function MissionCard(
 
   return (
     <motion.div
-      layout
+      /* layout animations would fight dnd-kit's transform mid-drag */
+      layout={!isDragging}
       ref={(node) => {
         cardRef.current = node;
         if (typeof ref === "function") ref(node);
         else if (ref) ref.current = node;
       }}
-      onMouseMove={handleMove}
+      onMouseMove={isDragging ? undefined : handleMove}
       onMouseLeave={handleLeave}
-      style={{ rotateX: rX, rotateY: rY, transformPerspective: 900 }}
+      style={
+        isDragging
+          ? { transformPerspective: 900 }
+          : { rotateX: rX, rotateY: rY, transformPerspective: 900 }
+      }
       className="group relative"
       initial={{ opacity: 0, y: 46, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -147,6 +154,22 @@ const MissionCard = forwardRef(function MissionCard(
           >
             DAILY
           </span>
+        )}
+
+        {/* drag handle — only rendered inside a sortable list */}
+        {dragHandleProps && (
+          <button
+            type="button"
+            {...dragHandleProps}
+            aria-label={`Reorder mission: ${mission.title}. Press space, then use the arrow keys.`}
+            title="Drag to reorder · Space + arrows with a keyboard"
+            className="absolute top-1.5 right-1.5 z-20 p-1.5 rounded-lg text-slate-600 hover:text-cyan-300 hover:bg-cyan-400/10
+              cursor-grab active:cursor-grabbing touch-none transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70
+              opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+          >
+            <GripVertical size={14} aria-hidden />
+          </button>
         )}
 
         <div className="flex items-start gap-3 sm:gap-4 relative">
