@@ -27,13 +27,14 @@ export function useCloudSave(uid, pushToast) {
     async (manual = false) => {
       if (!uid || latestRef.current == null) return;
 
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        setStatus("offline");
-        return;
-      }
+      const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+      setStatus(isOffline ? "offline" : "saving");
 
-      setStatus("saving");
       try {
+        // Fire the write even when offline: Firestore's IndexedDB persistence
+        // queues it and replays it on reconnect. The promise simply stays
+        // pending until the server acknowledges, which is exactly the
+        // behaviour we want — no spurious failure toast for a queued write.
         await writeSave(uid, latestRef.current);
         attemptRef.current = 0;
         setStatus("idle");
@@ -54,7 +55,7 @@ export function useCloudSave(uid, pushToast) {
             kind: "error",
             key: "cloud-save",
             title: "CLOUD SYNC FAILED",
-            desc: "Your progress is safe in this tab but hasn't reached the cloud.",
+            desc: "Your progress is saved on this device but hasn't reached the cloud.",
             color: "#ef4444",
             icon: "ShieldCheck",
             action: {
