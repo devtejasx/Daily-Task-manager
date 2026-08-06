@@ -29,7 +29,7 @@ import { useGameState } from "./hooks/useGameState";
 import { useReminders } from "./hooks/useReminders";
 import { useMissionFilters } from "./hooks/useMissionFilters";
 import { applyFilters } from "./utils/filters";
-import { writeSave } from "./services/saveService";
+import { useCloudSave } from "./hooks/useCloudSave";
 
 const pageVariants = {
   initial: { opacity: 0, y: 26, filter: "blur(6px)" },
@@ -40,14 +40,21 @@ const pageVariants = {
 export default function App({ user, initialSave, onSignOut }) {
   const { requireAuth, pendingIntent, consumeIntent } = useAuthGate();
 
+  // Cloud save owns its own retry/backoff and reports failures as a toast.
+  // The toast dispatcher lives in the reducer below, so it is reached through
+  // a ref to break the circular dependency (save needs toasts, toasts live in
+  // the state the save persists).
+  const pushToastRef = useRef(null);
+  const { persist: writeToCloud } = useCloudSave(user?.uid ?? null, (toast) =>
+    pushToastRef.current?.(toast)
+  );
+
   const persist = useCallback(
-    (state) => {
+    (nextState) => {
       if (!user) return; // guests explore in-memory only; nothing is written
-      writeSave(user.uid, state).catch((err) =>
-        console.error("Cloud save failed:", err)
-      );
+      writeToCloud(nextState);
     },
-    [user]
+    [user, writeToCloud]
   );
 
   const {
@@ -62,6 +69,8 @@ export default function App({ user, initialSave, onSignOut }) {
     weeklySeries,
     defaultMissionXP,
   } = useGameState(initialSave, persist);
+
+  pushToastRef.current = actions.pushToast;
 
   const location = useLocation();
   const navigate = useNavigate();

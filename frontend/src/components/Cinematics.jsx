@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Award, ShieldAlert, Sunrise, X } from "lucide-react";
+import { Award, ShieldAlert, Sunrise, X, RefreshCw } from "lucide-react";
 import { HUNTER_RANKS } from "../game/constants";
 import { iconByName } from "../game/icons";
 import ParticleBurst from "./ParticleBurst";
@@ -411,6 +411,7 @@ export function ToastStack({ toasts, onDismiss }) {
               exit={{ opacity: 0, x: 40, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 300, damping: 26 }}
               onClick={() => onDismiss(t.id)}
+              role={t.kind === "error" ? "alert" : "status"}
             >
               <div
                 className="p-2 rounded-lg shrink-0"
@@ -418,14 +419,31 @@ export function ToastStack({ toasts, onDismiss }) {
               >
                 <Icon size={17} style={{ color: t.color }} />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="font-display font-bold text-[11px] tracking-[0.18em]" style={{ color: t.color }}>
                   {t.kind === "achievement" ? "ACHIEVEMENT UNLOCKED" : t.title}
                 </p>
-                <p className="text-xs text-slate-300 truncate">
+                <p className={`text-xs text-slate-300 ${t.action ? "" : "truncate"}`}>
                   {t.kind === "achievement" ? `${t.title} — ${t.desc}` : t.desc}
                 </p>
               </div>
+              {/* recoverable failures carry their own fix-it action */}
+              {t.action && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    t.action.run?.();
+                    onDismiss(t.id);
+                  }}
+                  className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold tracking-wider rounded-lg px-2.5 py-1.5 border transition-colors
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+                  style={{ color: t.color, borderColor: `${t.color}55`, background: `${t.color}14` }}
+                >
+                  <RefreshCw size={11} aria-hidden />
+                  {t.action.label}
+                </button>
+              )}
             </motion.div>
           );
         })}
@@ -434,11 +452,13 @@ export function ToastStack({ toasts, onDismiss }) {
   );
 }
 
-/* auto-expire toasts */
+/* auto-expire toasts — errors linger, since they carry an action to take */
 export function useToastAutoDismiss(toasts, onDismiss, ms = 4500) {
   useEffect(() => {
     if (toasts.length === 0) return;
-    const timers = toasts.map((t) => setTimeout(() => onDismiss(t.id), ms));
+    const timers = toasts
+      .filter((t) => t.kind !== "error" && !t.sticky)
+      .map((t) => setTimeout(() => onDismiss(t.id), ms));
     return () => timers.forEach(clearTimeout);
   }, [toasts, onDismiss, ms]);
 }
