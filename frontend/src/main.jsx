@@ -6,6 +6,7 @@ import WelcomeIntro from "./components/cinematic/WelcomeIntro.jsx";
 import { AuthGateProvider } from "./components/auth/AuthGate.jsx";
 import BootScreen from "./components/ui/BootScreen.jsx";
 import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
+import PWAPrompt from "./components/ui/PWAPrompt.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { loadSave } from "./services/saveService";
 import "./index.css";
@@ -90,6 +91,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           reload action instead of a white screen. */}
       <ErrorBoundary>
         <Root />
+        <PWAPrompt />
       </ErrorBoundary>
     </BrowserRouter>
   </React.StrictMode>
