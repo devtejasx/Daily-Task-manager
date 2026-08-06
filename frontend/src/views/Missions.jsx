@@ -11,7 +11,16 @@ const FILTERS = [
   { id: "completed", label: "CLEARED" },
 ];
 
-export default function Missions({ missions, dailySelected, onComplete, onDelete, onOpenAdd, onToggleDaily }) {
+export default function Missions({
+  missions,
+  dailySelected,
+  onComplete,
+  onDelete,
+  onOpenAdd,
+  onToggleDaily,
+  onSkipOccurrence,
+  onToggleRecurrencePaused,
+}) {
   const [filter, setFilter] = useState("all");
   const shown = missions.filter((m) => {
     if (filter === "all") return true;
@@ -87,6 +96,8 @@ export default function Missions({ missions, dailySelected, onComplete, onDelete
               isDaily={dailySelected.includes(m.id)}
               dailyFull={dailySelected.length >= DAILY_REQUIRED}
               onToggleDaily={onToggleDaily}
+              onSkipOccurrence={onSkipOccurrence}
+              onToggleRecurrencePaused={onToggleRecurrencePaused}
               enterDelay={0.05 + index * 0.05}
             />
           ))}

@@ -55,6 +55,8 @@ export default function Dashboard({
   onOpenAdd,
   onUseTemplate,
   onToggleDaily,
+  onSkipOccurrence,
+  onToggleRecurrencePaused,
   dailySelected,
   setView,
 }) {
@@ -325,6 +327,8 @@ export default function Dashboard({
                   isDaily={dailySelected.includes(m.id)}
                   dailyFull={dailySelected.length >= 4}
                   onToggleDaily={onToggleDaily}
+                onSkipOccurrence={onSkipOccurrence}
+                onToggleRecurrencePaused={onToggleRecurrencePaused}
                   enterDelay={0.05 + index * 0.05}
                 />
               ))}
@@ -366,6 +370,8 @@ export default function Dashboard({
                 isDaily={dailySelected.includes(m.id)}
                 dailyFull={dailySelected.length >= 4}
                 onToggleDaily={onToggleDaily}
+                onSkipOccurrence={onSkipOccurrence}
+                onToggleRecurrencePaused={onToggleRecurrencePaused}
                 enterDelay={0.08 + index * 0.08}
               />
             ))}
@@ -395,6 +401,10 @@ export default function Dashboard({
                         isDaily={dailySelected.includes(m.id)}
                         dailyFull={dailySelected.length >= 4}
                         onToggleDaily={onToggleDaily}
+                      onSkipOccurrence={onSkipOccurrence}
+                      onToggleRecurrencePaused={onToggleRecurrencePaused}
+                onSkipOccurrence={onSkipOccurrence}
+                onToggleRecurrencePaused={onToggleRecurrencePaused}
                         enterDelay={0.04 + index * 0.05}
                       />
                     ))}
@@ -424,6 +434,8 @@ export default function Dashboard({
                 isDaily={dailySelected.includes(m.id)}
                 dailyFull={dailySelected.length >= 4}
                 onToggleDaily={onToggleDaily}
+                onSkipOccurrence={onSkipOccurrence}
+                onToggleRecurrencePaused={onToggleRecurrencePaused}
                 enterDelay={0.04 + index * 0.05}
               />
             ))}

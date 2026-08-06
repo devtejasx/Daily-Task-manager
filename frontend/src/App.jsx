@@ -192,6 +192,9 @@ export default function App({ user, initialSave, onSignOut }) {
     onComplete: (id) => requireAuth(() => actions.completeMission(id)),
     onDelete: (id) => requireAuth(() => actions.deleteMission(id)),
     onToggleDaily: (id) => requireAuth(() => actions.toggleDaily(id)),
+    onSkipOccurrence: (id) => requireAuth(() => actions.skipOccurrence(id)),
+    onToggleRecurrencePaused: (id, paused) =>
+      requireAuth(() => actions.setRecurrencePaused(id, paused)),
     onOpenAdd: () => openAdd(),
     onUseTemplate: (preset) => openAdd(preset),
     setView,
