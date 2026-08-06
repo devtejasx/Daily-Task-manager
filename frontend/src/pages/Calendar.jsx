@@ -1,36 +1,66 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DIFFICULTIES } from "../data/missions";
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  pointerWithin,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { ChevronLeft, ChevronRight, CalendarDays, Repeat } from "lucide-react";
+import CalendarDay from "../components/calendar/CalendarDay";
+import { PRIORITIES, localISO } from "../game/constants";
+import { monthGrid, weekGrid, monthLabel, weekLabel, shiftCursor } from "../utils/calendar";
 
 const DAY_LABELS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const VIEWS = [
+  { id: "month", label: "MONTH" },
+  { id: "week", label: "WEEK" },
+];
 
-export default function Calendar({ missions }) {
-  const [cursor, setCursor] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  });
+export default function Calendar({ missions = [], onMoveMission, onQuickAdd }) {
+  const today = localISO();
+  const [view, setView] = useState("month");
+  const [cursor, setCursor] = useState(today);
+  const [dragging, setDragging] = useState(null);
 
-  const year = cursor.getFullYear();
-  const month = cursor.getMonth();
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const cells = useMemo(
+    () => (view === "week" ? weekGrid(cursor) : monthGrid(cursor)),
+    [view, cursor]
+  );
 
-  const cells = [
-    ...Array.from({ length: firstDay }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Long-press before a drag starts, so scrolling the calendar still works.
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor)
+  );
 
-  const missionsOn = (day) => {
-    const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return missions.filter((m) => m.dueDate === iso);
-  };
+  const handleDragEnd = useCallback(
+    ({ active, over }) => {
+      setDragging(null);
+      if (!over) return;
+      const { missionId, fromISO } = active.data.current ?? {};
+      const toISO = over.data.current?.iso;
+      if (!missionId || !toISO || toISO === fromISO) return;
+      onMoveMission?.(missionId, toISO);
+    },
+    [onMoveMission]
+  );
+
+  const draggedMission = useMemo(
+    () => missions.find((m) => m.id === dragging?.missionId) ?? null,
+    [missions, dragging]
+  );
+  const draggedColor = (PRIORITIES[draggedMission?.priority] ?? PRIORITIES.MEDIUM).color;
 
   return (
     <div className="space-y-5">
       <motion.div
-        className="flex items-center justify-between"
+        className="flex flex-wrap items-center justify-between gap-3"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -39,25 +69,69 @@ export default function Calendar({ missions }) {
           <h1 className="font-display font-black text-2xl text-slate-100 text-glow-arcane">
             GATE CALENDAR
           </h1>
-          <p className="text-slate-400 text-sm mt-0.5">Scheduled portal openings.</p>
+          <p className="text-slate-400 text-sm mt-0.5">
+            Drag a mission to another day to reschedule it.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* month / week */}
+          <div className="flex gap-1 glass rounded-xl p-1" role="tablist" aria-label="Calendar view">
+            {VIEWS.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                role="tab"
+                aria-selected={view === v.id}
+                onClick={() => setView(v.id)}
+                className={`relative px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-[0.2em] transition-colors
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
+                    view === v.id ? "text-cyan-200" : "text-slate-500 hover:text-slate-300"
+                  }`}
+              >
+                {view === v.id && (
+                  <motion.span
+                    layoutId="cal-view-active"
+                    className="absolute inset-0 rounded-lg bg-cyan-400/10 border border-cyan-400/30"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                  />
+                )}
+                <span className="relative">{v.label}</span>
+              </button>
+            ))}
+          </div>
+
           <button
-            onClick={() => setCursor(new Date(year, month - 1, 1))}
-            className="p-2 rounded-lg glass text-slate-300 hover:text-cyan-300 transition-colors"
-            aria-label="Previous month"
+            type="button"
+            onClick={() => setCursor((c) => shiftCursor(c, view, -1))}
+            className="p-2 rounded-lg glass text-slate-300 hover:text-cyan-300 transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+            aria-label={view === "week" ? "Previous week" : "Previous month"}
           >
-            <ChevronLeft size={17} />
+            <ChevronLeft size={17} aria-hidden />
           </button>
-          <span className="font-display font-bold text-sm tracking-[0.2em] text-cyan-300 min-w-32 text-center">
-            {cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" }).toUpperCase()}
+          <span
+            className="font-display font-bold text-xs sm:text-sm tracking-[0.15em] text-cyan-300 min-w-40 text-center"
+            aria-live="polite"
+          >
+            {view === "week" ? weekLabel(cursor) : monthLabel(cursor)}
           </span>
           <button
-            onClick={() => setCursor(new Date(year, month + 1, 1))}
-            className="p-2 rounded-lg glass text-slate-300 hover:text-cyan-300 transition-colors"
-            aria-label="Next month"
+            type="button"
+            onClick={() => setCursor((c) => shiftCursor(c, view, 1))}
+            className="p-2 rounded-lg glass text-slate-300 hover:text-cyan-300 transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+            aria-label={view === "week" ? "Next week" : "Next month"}
           >
-            <ChevronRight size={17} />
+            <ChevronRight size={17} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => setCursor(today)}
+            className="text-[10px] font-bold tracking-[0.2em] text-slate-400 hover:text-cyan-300 border border-white/10 rounded-lg px-3 py-2 transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+          >
+            TODAY
           </button>
         </div>
       </motion.div>
@@ -70,54 +144,72 @@ export default function Calendar({ missions }) {
       >
         <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2">
           {DAY_LABELS.map((d) => (
-            <div key={d} className="text-center text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-violet-300/70 py-1">
+            <div
+              key={d}
+              className="text-center text-[9px] sm:text-[10px] font-bold tracking-[0.2em] text-violet-300/70 py-1"
+            >
               {d}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
-          {cells.map((day, i) => {
-            if (day === null) return <div key={`e${i}`} />;
-            const dayMissions = missionsOn(day);
-            const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const isToday = iso === todayISO;
-            return (
-              <motion.div
-                key={iso}
-                className={`relative min-h-14 sm:min-h-20 rounded-xl p-1.5 sm:p-2 border transition-colors ${
-                  isToday
-                    ? "border-cyan-400/60 bg-cyan-400/10 shadow-[0_0_16px_rgba(6,182,212,0.3)]"
-                    : "border-white/5 bg-white/[0.02] hover:bg-violet-500/10 hover:border-violet-400/30"
-                }`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.15 + i * 0.008 }}
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={pointerWithin}
+          onDragStart={({ active }) => setDragging(active.data.current)}
+          onDragCancel={() => setDragging(null)}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+            {cells.map((cell, i) => (
+              <CalendarDay
+                key={cell.iso}
+                cell={cell}
+                index={i}
+                missions={missions}
+                today={today}
+                expanded={view === "week"}
+                onQuickAdd={onQuickAdd}
+              />
+            ))}
+          </div>
+
+          <DragOverlay>
+            {draggedMission ? (
+              <span
+                className="inline-block text-[10px] font-semibold px-2 py-1 rounded border shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                style={{
+                  color: draggedColor,
+                  borderColor: `${draggedColor}88`,
+                  background: "rgba(11,17,32,0.95)",
+                }}
               >
-                <span className={`text-[10px] sm:text-xs font-bold ${isToday ? "text-cyan-300" : "text-slate-400"}`}>
-                  {day}
-                </span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {dayMissions.slice(0, 3).map((m) => (
-                    <span
-                      key={m.id}
-                      title={m.title}
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{
-                        background: DIFFICULTIES[m.difficulty].color,
-                        boxShadow: `0 0 6px ${DIFFICULTIES[m.difficulty].color}`,
-                        opacity: m.status === "completed" ? 0.4 : 1,
-                      }}
-                    />
-                  ))}
-                  {dayMissions.length > 3 && (
-                    <span className="text-[8px] text-slate-500 font-bold">+{dayMissions.length - 3}</span>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                {draggedMission.title}
+              </span>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </motion.div>
+
+      {/* legend */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] tracking-[0.15em] font-semibold text-slate-500">
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarDays size={12} aria-hidden /> PRIORITY
+        </span>
+        {Object.values(PRIORITIES).map((p) => (
+          <span key={p.label} className="inline-flex items-center gap-1.5">
+            <span
+              className="w-2.5 h-2.5 rounded-sm"
+              style={{ background: `${p.color}55`, border: `1px solid ${p.color}` }}
+              aria-hidden
+            />
+            {p.label.toUpperCase()}
+          </span>
+        ))}
+        <span className="inline-flex items-center gap-1.5 text-violet-300/70">
+          <Repeat size={11} aria-hidden /> RECURRING
+        </span>
+      </div>
     </div>
   );
 }

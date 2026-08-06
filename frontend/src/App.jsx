@@ -303,7 +303,18 @@ export default function App({ user, initialSave, onSignOut }) {
                     />
                   }
                 />
-                <Route path="/calendar" element={<Calendar missions={searchFiltered} />} />
+                <Route
+                  path="/calendar"
+                  element={
+                    <Calendar
+                      missions={searchFiltered}
+                      onMoveMission={(id, dueDate) =>
+                        requireAuth(() => actions.moveMission(id, dueDate))
+                      }
+                      onQuickAdd={(dueDate) => openAdd({ dueDate })}
+                    />
+                  }
+                />
                 <Route
                   path="/habits"
                   element={
