@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Plus } from "lucide-react";
 import Background from "./components/Background";
 import Sidebar from "./components/Sidebar";
@@ -238,6 +238,9 @@ export default function App({ user, initialSave, onSignOut }) {
   };
 
   return (
+    /* "never" keeps every cinematic; "always" collapses framer-motion to
+       instant transitions. The CSS side is handled by [data-animations]. */
+    <MotionConfig reducedMotion={state.settings.animations ? "never" : "always"}>
     <div
       data-rank={rank.key}
       data-theme={state.settings.theme}
@@ -416,5 +419,6 @@ export default function App({ user, initialSave, onSignOut }) {
 
       <ToastStack toasts={state.fx.toasts} onDismiss={actions.dismissToast} />
     </div>
+    </MotionConfig>
   );
 }
