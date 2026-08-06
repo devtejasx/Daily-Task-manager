@@ -18,6 +18,7 @@ import {
 import { XPAnimation } from "./components/CinematicLayers";
 import { useAuthGate } from "./components/auth/AuthGate";
 import { PageSkeleton } from "./components/ui/Skeleton";
+import LiveAnnouncer from "./components/ui/LiveAnnouncer";
 import { pathForView } from "./routes";
 
 /* Route-level code splitting. Dashboard and the mission board are the two
@@ -508,6 +509,14 @@ export default function App({ user, initialSave, onSignOut }) {
           <NewDayBanner key="newday" onClose={() => actions.dismissFx("newDay")} />
         )}
       </AnimatePresence>
+
+      {/* Mirrors the silent cinematics for screen readers. */}
+      <LiveAnnouncer
+        totalXP={state.totalXP}
+        level={levelInfo.level}
+        rankTitle={rank.title}
+        streak={state.streak}
+      />
 
       <ToastStack toasts={state.fx.toasts} onDismiss={actions.dismissToast} />
     </div>

@@ -91,6 +91,8 @@ const MissionCard = forwardRef(function MissionCard(
           : { rotateX: rX, rotateY: rY, transformPerspective: 900 }
       }
       className="group relative"
+      role="article"
+      aria-label={`Mission: ${mission.title}`}
       initial={{ opacity: 0, y: 46, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{
@@ -175,9 +177,16 @@ const MissionCard = forwardRef(function MissionCard(
         <div className="flex items-start gap-3 sm:gap-4 relative">
           {/* rune checkbox */}
           <button
+            type="button"
             onClick={handleComplete}
-            aria-label={completed ? "Mission completed" : "Complete mission"}
+            aria-pressed={completed}
+            aria-label={
+              completed
+                ? `${mission.title} — cleared`
+                : `Complete mission: ${mission.title}, worth ${mission.xp} XP`
+            }
             className={`relative mt-0.5 shrink-0 w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70
               ${
                 completed
                   ? "border-emerald-400/60 bg-emerald-400/10 shadow-[0_0_16px_rgba(16,185,129,0.5)]"
@@ -185,7 +194,7 @@ const MissionCard = forwardRef(function MissionCard(
               }`}
           >
             {completed ? (
-              <Check size={17} className="text-emerald-300" />
+              <Check size={17} className="text-emerald-300" aria-hidden />
             ) : (
               <span className="text-violet-300/80 text-sm group-hover:text-cyan-200 transition-colors">
                 ◈

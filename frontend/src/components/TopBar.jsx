@@ -48,8 +48,17 @@ export default function TopBar({
 
         {/* search */}
         <div className="relative flex-1 max-w-md">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <label htmlFor="global-search" className="sr-only">
+            Search missions by title, briefing or category
+          </label>
+          <Search
+            size={15}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+            aria-hidden
+          />
           <input
+            id="global-search"
+            type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search missions..."
