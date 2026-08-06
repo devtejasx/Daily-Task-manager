@@ -337,6 +337,20 @@ body {
   text-shadow: 0 0 12px rgba(252, 211, 77, 0.8), 0 0 40px rgba(245, 158, 11, 0.45);
 }
 
+/* ---------- overdue missions ---------- */
+.is-overdue {
+  border-color: rgba(239, 68, 68, 0.42) !important;
+  background: linear-gradient(
+    160deg,
+    rgba(60, 20, 28, 0.72),
+    rgba(20, 12, 20, 0.55)
+  );
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.14);
+}
+.is-overdue:hover {
+  box-shadow: 0 18px 50px -12px rgba(239, 68, 68, 0.4), 0 0 30px rgba(239, 68, 68, 0.2);
+}
+
 /* reduced motion respect */
 @media (prefers-reduced-motion: reduce) {
   *,
