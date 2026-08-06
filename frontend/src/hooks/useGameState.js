@@ -455,6 +455,19 @@ function reducer(state, action) {
     case "DISMISS_FX":
       return { ...state, fx: { ...state.fx, [action.key]: action.key === "levelUp" || action.key === "promotion" ? null : false } };
 
+    case "PUSH_TOAST": {
+      // Errors are keyed so a failing retry loop replaces its own toast
+      // instead of stacking a new one every attempt.
+      const key = action.toast.key;
+      const existing = key
+        ? state.fx.toasts.filter((t) => t.key !== key)
+        : state.fx.toasts;
+      return {
+        ...state,
+        fx: { ...state.fx, toasts: [...existing, { id: ++toastId, ...action.toast }] },
+      };
+    }
+
     case "DISMISS_TOAST":
       return { ...state, fx: { ...state.fx, toasts: state.fx.toasts.filter((t) => t.id !== action.id) } };
 
@@ -611,6 +624,7 @@ export function useGameState(initialSave, onPersist) {
       toggleDaily: (id) => dispatch({ type: "TOGGLE_DAILY", id }),
       dismissFx: (key) => dispatch({ type: "DISMISS_FX", key }),
       dismissToast: (id) => dispatch({ type: "DISMISS_TOAST", id }),
+      pushToast: (toast) => dispatch({ type: "PUSH_TOAST", toast }),
       simNextDay: () => dispatch({ type: "SIM_NEXT_DAY" }),
       simAddStreak: (days) => dispatch({ type: "SIM_ADD_STREAK", days }),
       simAddXP: (xp) => dispatch({ type: "SIM_ADD_XP", xp }),
