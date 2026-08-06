@@ -1,9 +1,79 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: "prompt", // never swap the app out from under a hunter mid-mission
+      includeAssets: ["icons/apple-touch-icon.png"],
+      manifest: {
+        name: "ARISE — Hunter Command Center",
+        short_name: "ARISE",
+        description:
+          "Gamified daily task manager: missions, habits, streaks and XP, Solo-Leveling style.",
+        theme_color: "#05070f",
+        background_color: "#05070f",
+        display: "standalone",
+        orientation: "any",
+        start_url: "/dashboard",
+        scope: "/",
+        categories: ["productivity", "lifestyle"],
+        icons: [
+          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          {
+            src: "/icons/icon-192-maskable.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
+          },
+          {
+            src: "/icons/icon-512-maskable.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
+        shortcuts: [
+          { name: "Mission Board", url: "/tasks" },
+          { name: "Habits", url: "/habits" },
+          { name: "Analytics", url: "/analytics" },
+        ],
+      },
+      workbox: {
+        // The 3D background and Firebase SDK push the bundle past the default cap.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        globPatterns: ["**/*.{js,css,html,png,svg,woff2}"],
+        navigateFallback: "/index.html",
+        // Firestore must never be served from cache — it has its own offline
+        // persistence and a stale save would silently overwrite real progress.
+        navigateFallbackDenylist: [/^\/__/, /firestore/],
+        runtimeCaching: [
+          {
+            // Google Fonts stylesheets: fresh when online, instant when not.
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
+            handler: "StaleWhileRevalidate",
+            options: { cacheName: "google-fonts-styles" },
+          },
+          {
+            // The font files themselves are immutable — cache them for a year.
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\//,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "google-fonts-files",
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+      devOptions: { enabled: false },
+    }),
+  ],
   server: {
     // honor the PORT env var (set by the dev-server launcher), default 5173
     port: Number(process.env.PORT) || 5173,
