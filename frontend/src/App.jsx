@@ -20,6 +20,7 @@ import Dashboard from "./pages/Dashboard";
 import Missions from "./pages/Missions";
 import Calendar from "./pages/Calendar";
 import Achievements from "./pages/Achievements";
+import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import { pathForView } from "./routes";
 import { useGameState } from "./hooks/useGameState";
@@ -283,6 +284,18 @@ export default function App({ user, initialSave, onSignOut }) {
                   }
                 />
                 <Route path="/calendar" element={<Calendar missions={searchFiltered} />} />
+                <Route
+                  path="/analytics"
+                  element={
+                    <Analytics
+                      missions={state.missions}
+                      history={state.history}
+                      streak={state.streak}
+                      longestStreak={state.longestStreak}
+                      totalXP={state.totalXP}
+                    />
+                  }
+                />
                 <Route
                   path="/achievements"
                   element={<Achievements achievements={state.achievements} />}
