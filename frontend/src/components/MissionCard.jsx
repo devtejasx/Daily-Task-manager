@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, memo, useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import { Zap, Check, Swords, Flag, GripVertical } from "lucide-react";
 import { DIFFICULTIES } from "../data/missions";
@@ -272,4 +272,6 @@ const MissionCard = forwardRef(function MissionCard(
   );
 });
 
-export default MissionCard;
+// Memoised: the board re-renders on every countdown tick and toast, but a
+// card only changes when its own mission or handlers do.
+export default memo(MissionCard);

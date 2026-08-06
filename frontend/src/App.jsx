@@ -202,19 +202,57 @@ export default function App({ user, initialSave, onSignOut }) {
     [ordered, filters.search]
   );
 
-  const filterProps = { filters, activeCount, patch, toggle, reset };
+  const filterProps = useMemo(
+    () => ({ filters, activeCount, patch, toggle, reset }),
+    [filters, activeCount, patch, toggle, reset]
+  );
 
   // Protected actions: run for signed-in hunters, prompt login for guests.
   // "create-mission" intent lets a guest resume the New Mission form after login.
-  const openAdd = (seed = null) =>
-    requireAuth(() => {
-      setTemplateSeed(seed);
-      setModalOpen(true);
-    }, "create-mission");
-  const closeAdd = () => {
+  // Every handler below is stable so the memoised mission cards and lists
+  // don't re-render on unrelated state changes (a ticking countdown, a toast).
+  const openAdd = useCallback(
+    (seed = null) =>
+      requireAuth(() => {
+        setTemplateSeed(seed);
+        setModalOpen(true);
+      }, "create-mission"),
+    [requireAuth]
+  );
+  const closeAdd = useCallback(() => {
     setModalOpen(false);
     setTemplateSeed(null);
-  };
+  }, []);
+
+  const handleComplete = useCallback(
+    (id) => requireAuth(() => actions.completeMission(id)),
+    [requireAuth, actions]
+  );
+  const handleDelete = useCallback(
+    (id) => requireAuth(() => actions.deleteMission(id)),
+    [requireAuth, actions]
+  );
+  const handleToggleDaily = useCallback(
+    (id) => requireAuth(() => actions.toggleDaily(id)),
+    [requireAuth, actions]
+  );
+  const handleSkipOccurrence = useCallback(
+    (id) => requireAuth(() => actions.skipOccurrence(id)),
+    [requireAuth, actions]
+  );
+  const handleReorder = useCallback(
+    (orderedIds) => requireAuth(() => actions.reorderMissions(orderedIds)),
+    [requireAuth, actions]
+  );
+  const handleTogglePaused = useCallback(
+    (id, paused) => requireAuth(() => actions.setRecurrencePaused(id, paused)),
+    [requireAuth, actions]
+  );
+  const handleMoveMission = useCallback(
+    (id, dueDate) => requireAuth(() => actions.moveMission(id, dueDate)),
+    [requireAuth, actions]
+  );
+  const handleQuickAdd = useCallback((dueDate) => openAdd({ dueDate }), [openAdd]);
 
   // Resume a pending action carried across the guest -> authed remount.
   useEffect(() => {
@@ -224,34 +262,61 @@ export default function App({ user, initialSave, onSignOut }) {
     }
   }, [user, pendingIntent, consumeIntent]);
 
-  const viewProps = {
-    missions: searchFiltered,
-    history: state.history,
-    stats,
-    levelInfo,
-    rank,
-    rankIdx: rankIndex,
-    streak: state.streak,
-    longestStreak: state.longestStreak,
-    dailyMissions,
-    dailyDone,
-    dayComplete: state.dayComplete,
-    dailySelected: state.dailySelected,
-    totalXP: state.totalXP,
-    weeklySeries,
-    achievements: state.achievements,
-    isGuest: !user,
-    onComplete: (id) => requireAuth(() => actions.completeMission(id)),
-    onDelete: (id) => requireAuth(() => actions.deleteMission(id)),
-    onToggleDaily: (id) => requireAuth(() => actions.toggleDaily(id)),
-    onSkipOccurrence: (id) => requireAuth(() => actions.skipOccurrence(id)),
-    onReorder: (orderedIds) => requireAuth(() => actions.reorderMissions(orderedIds)),
-    onToggleRecurrencePaused: (id, paused) =>
-      requireAuth(() => actions.setRecurrencePaused(id, paused)),
-    onOpenAdd: () => openAdd(),
-    onUseTemplate: (preset) => openAdd(preset),
-    setView,
-  };
+  const viewProps = useMemo(
+    () => ({
+      missions: searchFiltered,
+      history: state.history,
+      stats,
+      levelInfo,
+      rank,
+      rankIdx: rankIndex,
+      streak: state.streak,
+      longestStreak: state.longestStreak,
+      dailyMissions,
+      dailyDone,
+      dayComplete: state.dayComplete,
+      dailySelected: state.dailySelected,
+      totalXP: state.totalXP,
+      weeklySeries,
+      achievements: state.achievements,
+      isGuest: !user,
+      onComplete: handleComplete,
+      onDelete: handleDelete,
+      onToggleDaily: handleToggleDaily,
+      onSkipOccurrence: handleSkipOccurrence,
+      onReorder: handleReorder,
+      onToggleRecurrencePaused: handleTogglePaused,
+      onOpenAdd: openAdd,
+      onUseTemplate: openAdd,
+      setView,
+    }),
+    [
+      searchFiltered,
+      state.history,
+      state.streak,
+      state.longestStreak,
+      state.dayComplete,
+      state.dailySelected,
+      state.totalXP,
+      state.achievements,
+      stats,
+      levelInfo,
+      rank,
+      rankIndex,
+      dailyMissions,
+      dailyDone,
+      weeklySeries,
+      user,
+      handleComplete,
+      handleDelete,
+      handleToggleDaily,
+      handleSkipOccurrence,
+      handleReorder,
+      handleTogglePaused,
+      openAdd,
+      setView,
+    ]
+  );
 
   return (
     /* "never" keeps every cinematic; "always" collapses framer-motion to
@@ -325,10 +390,8 @@ export default function App({ user, initialSave, onSignOut }) {
                   element={
                     <Calendar
                       missions={searchFiltered}
-                      onMoveMission={(id, dueDate) =>
-                        requireAuth(() => actions.moveMission(id, dueDate))
-                      }
-                      onQuickAdd={(dueDate) => openAdd({ dueDate })}
+                      onMoveMission={handleMoveMission}
+                      onQuickAdd={handleQuickAdd}
                     />
                   }
                 />
