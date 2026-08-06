@@ -459,6 +459,25 @@ function reducer(state, action) {
       return sweepAchievements({ ...state, totalXP, fx });
     }
 
+    case "IMPORT_SAVE": {
+      // The payload has already been validated + migrated by services/backup.
+      const base = { ...freshState(), ...action.save };
+      base.fx = {
+        ...state.fx,
+        toasts: [
+          ...state.fx.toasts,
+          {
+            id: ++toastId,
+            kind: "system",
+            title: "BACKUP RESTORED",
+            desc: `${base.missions.length} missions · ${base.history.length} cleared · ${base.habits.length} habits`,
+            color: "#10b981",
+          },
+        ],
+      };
+      return rollover(base);
+    }
+
     case "RESET_SAVE":
       return rollover(seedAchievements(freshState()));
 
@@ -563,6 +582,7 @@ export function useGameState(initialSave, onPersist) {
       simNextDay: () => dispatch({ type: "SIM_NEXT_DAY" }),
       simAddStreak: (days) => dispatch({ type: "SIM_ADD_STREAK", days }),
       simAddXP: (xp) => dispatch({ type: "SIM_ADD_XP", xp }),
+      importSave: (save) => dispatch({ type: "IMPORT_SAVE", save }),
       resetSave: () => dispatch({ type: "RESET_SAVE" }),
     }),
     []

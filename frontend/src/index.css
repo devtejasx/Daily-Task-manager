@@ -337,6 +337,77 @@ body {
   text-shadow: 0 0 12px rgba(252, 211, 77, 0.8), 0 0 40px rgba(245, 158, 11, 0.45);
 }
 
+/* ---------- interface themes ----------
+   Each theme re-tints the ambient aura, the animated neon border and the
+   arcane text glow. Panels, blur and layout are shared, so the Solo-Leveling
+   look is identical across all four. */
+[data-theme="shadow"] .rank-aura {
+  background: radial-gradient(ellipse at 50% -10%, rgba(76, 29, 149, 0.3), transparent 60%),
+    radial-gradient(ellipse at 15% 110%, rgba(167, 139, 250, 0.16), transparent 50%);
+}
+[data-theme="shadow"] .neon-border::before {
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    rgba(167, 139, 250, 0.9) 14%,
+    transparent 34%,
+    transparent 62%,
+    rgba(76, 29, 149, 0.9) 80%,
+    transparent 94%
+  );
+}
+[data-theme="shadow"] .text-glow-arcane {
+  text-shadow: 0 0 12px rgba(167, 139, 250, 0.75), 0 0 40px rgba(76, 29, 149, 0.5);
+}
+
+[data-theme="frost"] .rank-aura {
+  background: radial-gradient(ellipse at 50% -10%, rgba(14, 165, 233, 0.24), transparent 60%),
+    radial-gradient(ellipse at 85% 110%, rgba(103, 232, 249, 0.16), transparent 50%);
+}
+[data-theme="frost"] .neon-border::before {
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    rgba(103, 232, 249, 0.95) 14%,
+    transparent 34%,
+    transparent 62%,
+    rgba(14, 165, 233, 0.9) 80%,
+    transparent 94%
+  );
+}
+[data-theme="frost"] .text-glow-arcane {
+  text-shadow: 0 0 12px rgba(103, 232, 249, 0.8), 0 0 40px rgba(14, 165, 233, 0.45);
+}
+
+[data-theme="ember"] .rank-aura {
+  background: radial-gradient(ellipse at 50% -10%, rgba(245, 158, 11, 0.22), transparent 60%),
+    radial-gradient(ellipse at 15% 110%, rgba(239, 68, 68, 0.16), transparent 50%);
+}
+[data-theme="ember"] .neon-border::before {
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    rgba(252, 211, 77, 0.95) 14%,
+    transparent 34%,
+    transparent 62%,
+    rgba(239, 68, 68, 0.85) 80%,
+    transparent 94%
+  );
+}
+[data-theme="ember"] .text-glow-arcane {
+  text-shadow: 0 0 12px rgba(252, 211, 77, 0.8), 0 0 40px rgba(239, 68, 68, 0.4);
+}
+
+/* ---------- animations off ----------
+   Mirrors prefers-reduced-motion, but driven by the hunter's own setting. */
+[data-animations="off"] *,
+[data-animations="off"] *::before,
+[data-animations="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
 /* ---------- overdue missions ---------- */
 .is-overdue {
   border-color: rgba(239, 68, 68, 0.42) !important;
