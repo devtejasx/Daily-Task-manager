@@ -555,6 +555,25 @@ describe("day rollover", () => {
     expect(result.current.state.fx.recovered).toEqual({ streak: 13 });
   });
 
+  it("counts the comeback and unlocks its title", () => {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `m-${i}`, xp: 10 })
+    );
+    const { result } = mount(
+      makeSave({
+        missions,
+        dailySelected: missions.map((m) => m.id),
+        comebacks: 0,
+        recovery: { streak: 9, since: today },
+      })
+    );
+
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+
+    expect(result.current.state.comebacks).toBe(1);
+    expect(result.current.state.achievements["comeback-1"]).toBe(today);
+  });
+
   it("pays a comeback bonus on top of the mission XP", () => {
     const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
       makeMission({ id: `m-${i}`, xp: 10 })

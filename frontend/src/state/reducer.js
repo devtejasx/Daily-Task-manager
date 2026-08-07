@@ -301,6 +301,7 @@ export function reducer(state, action) {
           // for showing up on the day it mattered most.
           if (reclaiming) {
             next.totalXP += COMEBACK_XP;
+            next.comebacks = (state.comebacks ?? 0) + 1;
             fx.recovered = { streak };
             // The bonus can itself tip the hunter over a level boundary.
             const levelWithBonus = getLevelInfo(next.totalXP).level;

@@ -202,4 +202,11 @@ export const ACHIEVEMENTS = [
   { id: "rank-b", title: "B-Rank License", desc: "Get promoted to B-Rank.", icon: "Medal", color: "#3b82f6", test: (s) => s.bestRankIndex >= 2 },
   { id: "rank-s", title: "S-Rank License", desc: "Get promoted to S-Rank.", icon: "Trophy", color: "#a78bfa", test: (s) => s.bestRankIndex >= 3 },
   { id: "rank-national", title: "Monarch of Nations", desc: "Become a National-Level Hunter.", icon: "Skull", color: "#ef4444", test: (s) => s.bestRankIndex >= 4 },
+
+  /* The Resolve line. Consistency and returning are skills in their own
+   * right, so they get titles of their own — coming back from a missed day
+   * is celebrated here exactly as loudly as never missing one. */
+  { id: "resolve-full", title: "Fully Resolved", desc: `Bank all ${SHIELD_MAX} Streak Shields at once.`, icon: "ShieldCheck", color: "#38bdf8", test: (s) => (s.shields ?? 0) >= SHIELD_MAX },
+  { id: "comeback-1", title: "Nothing Kept Me Down", desc: "Reclaim a preserved streak for the first time.", icon: "Hourglass", color: "#a78bfa", test: (s) => (s.comebacks ?? 0) >= 1 },
+  { id: "comeback-5", title: "Always Returns", desc: "Reclaim a preserved streak five times.", icon: "Repeat", color: "#10b981", test: (s) => (s.comebacks ?? 0) >= 5 },
 ];

@@ -142,6 +142,7 @@ function toV3(save) {
     ...save,
     shields: Number.isFinite(save.shields) ? save.shields : streak > 0 ? SHIELD_MAX : 0,
     recovery: normalizeRecovery(save.recovery),
+    comebacks: Number(save.comebacks) || 0,
     version: 3,
   };
 }
@@ -190,5 +191,6 @@ export function migrateSave(save) {
     settings: mergeSettings(out.settings),
     shields: Number.isFinite(out.shields) ? out.shields : 0,
     recovery: normalizeRecovery(out.recovery),
+    comebacks: Number(out.comebacks) || 0,
   };
 }

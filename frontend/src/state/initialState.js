@@ -38,6 +38,7 @@ export function freshState() {
     bestRankIndex: 0,
     shields: 0, // banked Streak Shields (see game/constants — the Resolve system)
     recovery: null, // {streak,since} — a preserved streak awaiting its comeback
+    comebacks: 0, // lifetime preserved streaks reclaimed — a stat worth keeping
     dailySelected: [],
     dailyDate: localISO(),
     dayComplete: false,
