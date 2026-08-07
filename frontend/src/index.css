@@ -463,5 +463,21 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+}
+
+/* ---------- focus visibility ----------
+   The glass surfaces are low-contrast by design, so the browser default
+   focus ring disappears against several of them. A hunter navigating by
+   keyboard must always be able to see where they are. */
+:focus-visible {
+  outline: 2px solid var(--color-holo);
+  outline-offset: 2px;
+  border-radius: 0.4rem;
+}
+
+/* Anything the mouse already highlights doesn't need the ring twice. */
+:focus:not(:focus-visible) {
+  outline: none;
 }

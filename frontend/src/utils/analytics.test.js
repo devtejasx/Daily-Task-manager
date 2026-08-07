@@ -9,6 +9,7 @@ import {
   weeklySeries,
   heatmap,
   longestActiveRun,
+  weeklyReport,
 } from "./analytics";
 import { makeHistory, makeMission } from "../test/factories";
 import { localISO, addDaysISO } from "../game/constants";
@@ -176,3 +177,46 @@ describe("longestActiveRun", () => {
     expect(longestActiveRun([])).toBe(0);
   });
 });
+
+describe("weeklyReport", () => {
+  const today = "2026-08-08";
+  const row = (completedAt, xp = 100, category = "Training") => ({
+    id: `${completedAt}-${xp}-${category}`,
+    title: "m",
+    xp,
+    category,
+    difficulty: "C",
+    completedAt,
+  });
+
+  it("totals only the last seven days", () => {
+    const r = weeklyReport(
+      [row(today, 300), row("2026-08-02", 200), row("2026-07-30", 999)],
+      today
+    );
+    expect(r.missions).toBe(2);
+    expect(r.xp).toBe(500);
+    expect(r.activeDays).toBe(2);
+  });
+
+  it("compares against the seven days before that", () => {
+    const r = weeklyReport(
+      [row(today, 400), row("2026-08-01", 200)], // 2026-08-01 falls in the prior week
+      today
+    );
+    expect(r.xp).toBe(400);
+    expect(r.xpDelta).toBe(100); // 400 vs 200
+    expect(r.missionsDelta).toBe(0); // one each
+  });
+
+  it("stays quiet when there is no prior week to compare against", () => {
+    const r = weeklyReport([row(today, 400)], today);
+    expect(r.xpDelta).toBe(null);
+    expect(r.missionsDelta).toBe(null);
+  });
+
+  it("reports an empty week without inventing a trend", () => {
+    const r = weeklyReport([], today);
+    expect(r).toMatchObject({ missions: 0, xp: 0, activeDays: 0, xpDelta: null });
+  });
+})

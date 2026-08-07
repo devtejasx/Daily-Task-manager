@@ -5,6 +5,8 @@ import {
   Flame,
   CalendarCheck,
   ShieldCheck,
+  Hourglass,
+  Repeat,
   Sparkles,
   Crown,
   BadgeCheck,
@@ -21,6 +23,10 @@ import {
   Music,
   PenLine,
   Footprints,
+  BarChart3,
+  Target,
+  FilterX,
+  CalendarDays,
 } from "lucide-react";
 
 /** Icons referenced by name from achievement/toast definitions (keeps tree-shaking intact) */
@@ -31,6 +37,8 @@ export const ICON_MAP = {
   Flame,
   CalendarCheck,
   ShieldCheck,
+  Hourglass,
+  Repeat,
   Sparkles,
   Crown,
   BadgeCheck,
@@ -48,6 +56,11 @@ export const ICON_MAP = {
   Music,
   PenLine,
   Footprints,
+  // empty-state icons
+  BarChart3,
+  Target,
+  FilterX,
+  CalendarDays,
 };
 
 /** The subset offered when creating a habit. */

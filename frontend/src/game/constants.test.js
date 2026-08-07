@@ -9,6 +9,12 @@ import {
   nextRank,
   HUNTER_RANKS,
   ACHIEVEMENTS,
+  SHIELD_EVERY,
+  SHIELD_MAX,
+  RECOVERY_WINDOW_DAYS,
+  COMEBACK_XP,
+  shieldsEarnedAt,
+  daysToNextShield,
 } from "./constants";
 
 describe("local date helpers", () => {
@@ -133,5 +139,38 @@ describe("achievements", () => {
 
     expect(byId["streak-21"].test({ ...base, longestStreak: 20 })).toBe(false);
     expect(byId["streak-21"].test({ ...base, longestStreak: 21 })).toBe(true);
+  });
+});
+
+describe("Resolve system", () => {
+  it("forges a shield every SHIELD_EVERY consecutive days", () => {
+    expect(shieldsEarnedAt(SHIELD_EVERY)).toBe(1);
+    expect(shieldsEarnedAt(SHIELD_EVERY * 2)).toBe(1);
+    expect(shieldsEarnedAt(SHIELD_EVERY * 3)).toBe(1);
+  });
+
+  it("forges nothing on the days in between", () => {
+    expect(shieldsEarnedAt(1)).toBe(0);
+    expect(shieldsEarnedAt(SHIELD_EVERY - 1)).toBe(0);
+    expect(shieldsEarnedAt(SHIELD_EVERY + 1)).toBe(0);
+  });
+
+  it("never forges a shield from a zero or negative streak", () => {
+    expect(shieldsEarnedAt(0)).toBe(0);
+    expect(shieldsEarnedAt(-7)).toBe(0);
+  });
+
+  it("counts down the days remaining to the next shield", () => {
+    expect(daysToNextShield(0)).toBe(SHIELD_EVERY);
+    expect(daysToNextShield(1)).toBe(SHIELD_EVERY - 1);
+    expect(daysToNextShield(SHIELD_EVERY)).toBe(SHIELD_EVERY);
+    expect(daysToNextShield(SHIELD_EVERY + 2)).toBe(SHIELD_EVERY - 2);
+  });
+
+  it("keeps the forgiving buffer within a meaningful cap", () => {
+    expect(SHIELD_MAX).toBeGreaterThan(0);
+    expect(SHIELD_MAX).toBeLessThanOrEqual(5);
+    expect(RECOVERY_WINDOW_DAYS).toBeGreaterThanOrEqual(1);
+    expect(COMEBACK_XP).toBeGreaterThan(0);
   });
 });

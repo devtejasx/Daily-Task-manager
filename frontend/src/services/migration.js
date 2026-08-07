@@ -13,10 +13,10 @@
      - be idempotent: running it twice must be a no-op
    ========================================================= */
 
-import { localISO, POMODORO_DEFAULTS } from "../game/constants";
+import { localISO, POMODORO_DEFAULTS, SHIELD_MAX } from "../game/constants";
 
 /** Current payload version. Bump + add a step when the shape changes. */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** Preferences a brand-new hunter starts with. */
 export const DEFAULT_SETTINGS = {
@@ -129,8 +129,35 @@ function toV2(save) {
   };
 }
 
+/**
+ * v2 -> v3
+ * Introduces the Resolve system. A returning hunter is credited with a full
+ * shield buffer rather than none: they built their streak under the old
+ * rules, where a single missed day wiped it, so starting them empty would
+ * quietly make the game harsher than the one they left.
+ */
+function toV3(save) {
+  const streak = Number(save.streak) || 0;
+  return {
+    ...save,
+    shields: Number.isFinite(save.shields) ? save.shields : streak > 0 ? SHIELD_MAX : 0,
+    recovery: normalizeRecovery(save.recovery),
+    comebacks: Number(save.comebacks) || 0,
+    version: 3,
+  };
+}
+
+/** A recovery entry is {streak,since} or nothing at all. */
+export function normalizeRecovery(recovery) {
+  if (!recovery || typeof recovery !== "object") return null;
+  const streak = Number(recovery.streak) || 0;
+  if (streak <= 0 || typeof recovery.since !== "string") return null;
+  return { streak, since: recovery.since };
+}
+
 const STEPS = [
   { to: 2, run: toV2 },
+  { to: 3, run: toV3 },
 ];
 
 /**
@@ -162,5 +189,8 @@ export function migrateSave(save) {
     history: Array.isArray(out.history) ? out.history : [],
     habits: (out.habits || []).map(normalizeHabit),
     settings: mergeSettings(out.settings),
+    shields: Number.isFinite(out.shields) ? out.shields : 0,
+    recovery: normalizeRecovery(out.recovery),
+    comebacks: Number(out.comebacks) || 0,
   };
 }

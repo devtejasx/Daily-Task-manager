@@ -54,7 +54,7 @@ export function useCloudSave(uid, pushToast) {
           pushRef.current?.({
             kind: "error",
             key: "cloud-save",
-            title: "CLOUD SYNC FAILED",
+            title: "HUNTER RECORDS UNREACHABLE",
             desc: "Your progress is saved on this device but hasn't reached the cloud.",
             color: "#ef4444",
             icon: "ShieldCheck",

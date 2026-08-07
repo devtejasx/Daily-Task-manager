@@ -105,6 +105,42 @@ export function nextRank(rankIndex) {
 /* ---------- daily quest ---------- */
 export const DAILY_REQUIRED = 4;
 
+/* ---------- the Resolve system ----------
+ * Discipline is built by consistency, not by perfection. A hunter who shows
+ * up day after day banks Resolve; a hunter who misses one day spends it
+ * instead of losing the climb. Nothing here can ever take XP, levels,
+ * achievements or a personal best away — power once earned is permanent.
+ * The only thing at stake is the *current* streak, and even that gets a
+ * second chance before it goes. */
+
+/** Consecutive cleared days that forge one Streak Shield. */
+export const SHIELD_EVERY = 7;
+
+/** Shields a hunter may hold at once. Banking is capped so the streak still
+ *  means something, but three misses of headroom is a forgiving buffer. */
+export const SHIELD_MAX = 3;
+
+/** Days a preserved streak waits for its comeback before it finally settles. */
+export const RECOVERY_WINDOW_DAYS = 1;
+
+/** Bonus XP for clearing the daily quest that reclaims a preserved streak. */
+export const COMEBACK_XP = 250;
+
+/**
+ * Shields forged by reaching `streak`, capped at SHIELD_MAX.
+ * Day 7 forges the first, day 14 the second, and so on.
+ */
+export function shieldsEarnedAt(streak) {
+  if (streak <= 0 || streak % SHIELD_EVERY !== 0) return 0;
+  return 1;
+}
+
+/** Days remaining until the next shield is forged. */
+export function daysToNextShield(streak) {
+  const into = streak % SHIELD_EVERY;
+  return SHIELD_EVERY - into;
+}
+
 /* ---------- priorities ---------- */
 export const PRIORITIES = {
   LOW: { label: "Low", color: "#94a3b8" },
@@ -166,4 +202,11 @@ export const ACHIEVEMENTS = [
   { id: "rank-b", title: "B-Rank License", desc: "Get promoted to B-Rank.", icon: "Medal", color: "#3b82f6", test: (s) => s.bestRankIndex >= 2 },
   { id: "rank-s", title: "S-Rank License", desc: "Get promoted to S-Rank.", icon: "Trophy", color: "#a78bfa", test: (s) => s.bestRankIndex >= 3 },
   { id: "rank-national", title: "Monarch of Nations", desc: "Become a National-Level Hunter.", icon: "Skull", color: "#ef4444", test: (s) => s.bestRankIndex >= 4 },
+
+  /* The Resolve line. Consistency and returning are skills in their own
+   * right, so they get titles of their own — coming back from a missed day
+   * is celebrated here exactly as loudly as never missing one. */
+  { id: "resolve-full", title: "Fully Resolved", desc: `Bank all ${SHIELD_MAX} Streak Shields at once.`, icon: "ShieldCheck", color: "#38bdf8", test: (s) => (s.shields ?? 0) >= SHIELD_MAX },
+  { id: "comeback-1", title: "Nothing Kept Me Down", desc: "Reclaim a preserved streak for the first time.", icon: "Hourglass", color: "#a78bfa", test: (s) => (s.comebacks ?? 0) >= 1 },
+  { id: "comeback-5", title: "Always Returns", desc: "Reclaim a preserved streak five times.", icon: "Repeat", color: "#10b981", test: (s) => (s.comebacks ?? 0) >= 5 },
 ];

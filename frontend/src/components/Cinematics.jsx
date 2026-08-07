@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Award, ShieldAlert, Sunrise, X, RefreshCw } from "lucide-react";
+import { Award, ShieldCheck, Hourglass, Flame, Sunrise, X, RefreshCw } from "lucide-react";
 import { HUNTER_RANKS } from "../game/constants";
 import { iconByName } from "../game/icons";
 import ParticleBurst from "./ParticleBurst";
@@ -251,110 +251,173 @@ export function PromotionOverlay({ rankKey, onClose }) {
   );
 }
 
-/* ================= MISSION FAILED ================= */
+/* ================= THE RESOLVE SCREENS =================
+ *
+ * A missed day is a moment of maximum vulnerability for the hunter's
+ * motivation, so it is the moment the product must be warmest. None of
+ * these screens uses red, shake, breakage or the word "failed". Each one
+ * names what the hunter still has and what happens next.
+ * ====================================================== */
 
-export function MissionFailedOverlay({ onClose }) {
+/** Shared frame: calm colour, a steady rune, a fact and a next step. */
+function ResolveShell({ color, glyph, title, lead, detail, footer, onClose }) {
   return (
-    <CinematicShell onClose={onClose} autoCloseMs={6500}>
-      {/* red glow pulse */}
+    <CinematicShell onClose={onClose} autoCloseMs={6000}>
       <motion.div
         className="absolute inset-0"
-        style={{ background: "radial-gradient(ellipse at center, rgba(239,68,68,0.28), transparent 65%)" }}
-        animate={{ opacity: [0.4, 1, 0.4] }}
-        transition={{ duration: 1.2, repeat: Infinity }}
+        style={{ background: `radial-gradient(ellipse at center, ${color}33, transparent 65%)` }}
+        animate={{ opacity: [0.5, 0.85, 0.5] }}
+        transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
       />
-      <Lightning color="#ef4444" />
+      <FloatingRunes color={color} count={8} />
 
-      {/* fading ember particles */}
-      <div className="absolute inset-0 pointer-events-none">
-        {Array.from({ length: 18 }, (_, i) => (
-          <motion.span
-            key={i}
-            className="absolute w-1.5 h-1.5 rounded-full bg-red-500"
-            style={{ left: `${(i * 53) % 100}%`, top: `${20 + ((i * 31) % 60)}%`, boxShadow: "0 0 8px #ef4444" }}
-            animate={{ y: [0, 60], opacity: [0.9, 0] }}
-            transition={{ duration: 2 + (i % 3), repeat: Infinity, delay: i * 0.2 }}
-          />
-        ))}
-      </div>
-
-      {/* screen-shaken content */}
-      <motion.div
-        className="relative text-center px-6"
-        animate={{ x: [0, -10, 12, -8, 6, -3, 0], y: [0, 6, -5, 4, -2, 0] }}
-        transition={{ duration: 0.6, delay: 0.35 }}
-      >
-        {/* broken rune */}
+      <div className="relative text-center px-6">
         <motion.div
-          className="relative mx-auto w-28 h-28 mb-6"
-          initial={{ scale: 0.4, opacity: 0 }}
+          className="relative mx-auto w-28 h-28 mb-6 flex items-center justify-center"
+          initial={{ scale: 0.7, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
-          <motion.svg viewBox="0 0 100 100" className="w-full h-full" style={{ filter: "drop-shadow(0 0 14px rgba(239,68,68,0.8))" }}>
-            {/* left half of the rune drifts apart */}
-            <motion.g
-              initial={{ x: 0, rotate: 0 }}
-              animate={{ x: -8, rotate: -8 }}
-              transition={{ delay: 0.7, duration: 0.9, ease: "easeOut" }}
-            >
-              <path d="M50,8 L18,28 L18,72 L50,92 L50,74 L32,64 L32,36 L50,26 Z" fill="none" stroke="#ef4444" strokeWidth="2.5" />
-            </motion.g>
-            <motion.g
-              initial={{ x: 0, rotate: 0 }}
-              animate={{ x: 8, rotate: 8 }}
-              transition={{ delay: 0.7, duration: 0.9, ease: "easeOut" }}
-            >
-              <path d="M50,8 L82,28 L82,72 L50,92 L50,74 L68,64 L68,36 L50,26 Z" fill="none" stroke="#ef4444" strokeWidth="2.5" />
-            </motion.g>
-            {/* crack */}
-            <motion.path
-              d="M50,4 L46,30 L54,48 L45,68 L52,96"
-              fill="none"
-              stroke="#fca5a5"
-              strokeWidth="1.6"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ delay: 0.45, duration: 0.5 }}
-            />
+          {/* an intact rune, breathing rather than cracking */}
+          <motion.svg
+            viewBox="0 0 100 100"
+            className="absolute inset-0 w-full h-full"
+            style={{ filter: `drop-shadow(0 0 16px ${color})` }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
+          >
+            <circle cx="50" cy="50" r="42" fill="none" stroke={color} strokeWidth="1.5" strokeDasharray="6 10" opacity="0.7" />
           </motion.svg>
+          <motion.div
+            style={{ color }}
+            animate={{ scale: [1, 1.08, 1] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {glyph}
+          </motion.div>
         </motion.div>
 
         <motion.h1
-          className="font-display font-black text-4xl sm:text-6xl text-red-500"
-          style={{ textShadow: "0 0 40px rgba(239,68,68,0.9)" }}
-          initial={{ scale: 2.4, opacity: 0, filter: "blur(16px)" }}
-          animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
+          className="font-display font-black text-3xl sm:text-5xl"
+          style={{ color, textShadow: `0 0 36px ${color}` }}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
         >
-          MISSION FAILED
+          {title}
         </motion.h1>
+
         <motion.p
-          className="text-red-200/80 text-sm sm:text-base mt-4 tracking-wide"
+          className="text-slate-200 text-sm sm:text-base mt-4 tracking-wide"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
+          transition={{ delay: 0.5 }}
         >
-          Daily missions were not completed.
+          {lead}
         </motion.p>
-        <motion.p
-          className="text-slate-400 text-sm mt-1 tracking-wide"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-        >
-          Hunter progression has been reset. Rise again from Day 1.
-        </motion.p>
+
+        {detail && (
+          <motion.p
+            className="text-slate-400 text-sm mt-1.5 tracking-wide"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+          >
+            {detail}
+          </motion.p>
+        )}
+
         <motion.div
-          className="mt-6 inline-flex items-center gap-2 text-xs font-bold tracking-[0.25em] text-red-300 border border-red-500/40 bg-red-500/10 rounded-lg px-4 py-2"
+          className="mt-6 inline-flex items-center gap-2 text-xs font-bold tracking-[0.22em] rounded-lg px-4 py-2"
+          style={{ color, borderColor: `${color}66`, background: `${color}1a`, borderWidth: 1 }}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5 }}
+          transition={{ delay: 1.1 }}
         >
-          <ShieldAlert size={14} /> STREAK RESET TO 0
+          {footer}
         </motion.div>
-      </motion.div>
+      </div>
     </CinematicShell>
+  );
+}
+
+/** A banked shield absorbed the missed day. The climb never wavered. */
+export function ShieldHeldOverlay({ streak, remaining, onClose }) {
+  return (
+    <ResolveShell
+      color="#38bdf8"
+      glyph={<ShieldCheck size={46} />}
+      title="SHIELD HELD"
+      lead={`Your ${streak}-day climb is untouched.`}
+      detail="The Resolve you banked absorbed the missed day — exactly what you earned it for."
+      footer={
+        <>
+          <ShieldCheck size={14} />
+          {remaining} SHIELD{remaining === 1 ? "" : "S"} REMAINING
+        </>
+      }
+      onClose={onClose}
+    />
+  );
+}
+
+/** No shield left — the streak is held open for one day. */
+export function StreakPreservedOverlay({ streak, onClose }) {
+  return (
+    <ResolveShell
+      color="#a78bfa"
+      glyph={<Hourglass size={44} />}
+      title="STREAK PRESERVED"
+      lead={`Your ${streak} days are being held for you.`}
+      detail="Clear today's daily quest and the whole climb comes back, plus a bonus for returning."
+      footer={
+        <>
+          <Hourglass size={14} />
+          ONE DAY TO RECLAIM IT
+        </>
+      }
+      onClose={onClose}
+    />
+  );
+}
+
+/** The comeback landed. This is the loudest, warmest screen in the set. */
+export function StreakRecoveredOverlay({ streak, onClose }) {
+  return (
+    <ResolveShell
+      color="#10b981"
+      glyph={<Flame size={46} />}
+      title="STREAK RECOVERED"
+      lead={`All ${streak} days are yours again.`}
+      detail="You came back on the day it counted. That is the whole skill."
+      footer={
+        <>
+          <Flame size={14} />
+          THE CLIMB CONTINUES
+        </>
+      }
+      onClose={onClose}
+    />
+  );
+}
+
+/** The streak finally settled. Nothing was taken; a new climb opens. */
+export function NewClimbOverlay({ previous, onClose }) {
+  return (
+    <ResolveShell
+      color="#f59e0b"
+      glyph={<Sunrise size={46} />}
+      title="A NEW CLIMB BEGINS"
+      lead={`That run reached ${previous} days — it stays on your record.`}
+      detail="Every level, every point of XP and every title you earned is still yours. Only the counter starts again."
+      footer={
+        <>
+          <Sunrise size={14} />
+          DAY ONE, AGAIN
+        </>
+      }
+      onClose={onClose}
+    />
   );
 }
 

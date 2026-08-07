@@ -13,7 +13,16 @@ import { rollover, seedAchievements } from "./helpers";
 
 /** The transient FX queue — never persisted. */
 export function freshFx() {
-  return { levelUp: null, promotion: null, failed: false, newDay: false, toasts: [] };
+  return {
+    levelUp: null,
+    promotion: null,
+    shielded: null, // {streak,remaining} — a shield absorbed a missed day
+    preserved: null, // {streak} — held in recovery, one day to reclaim it
+    recovered: null, // {streak} — the comeback landed
+    reset: null, // {previous} — the climb settled; a new one begins
+    newDay: false,
+    toasts: [],
+  };
 }
 
 export function freshState() {
@@ -27,6 +36,9 @@ export function freshState() {
     streak: 0,
     longestStreak: 0,
     bestRankIndex: 0,
+    shields: 0, // banked Streak Shields (see game/constants — the Resolve system)
+    recovery: null, // {streak,since} — a preserved streak awaiting its comeback
+    comebacks: 0, // lifetime preserved streaks reclaimed — a stat worth keeping
     dailySelected: [],
     dailyDate: localISO(),
     dayComplete: false,

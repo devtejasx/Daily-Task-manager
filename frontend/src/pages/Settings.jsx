@@ -160,7 +160,8 @@ export default function Settings({
             </button>
           </div>
           <p className="text-[10px] text-slate-600 mt-3 tracking-wider">
-            TIP: SKIP TO NEXT DAY WITH AN UNFINISHED DAILY QUEST TO WITNESS "MISSION FAILED".
+            TIP: SKIP TO NEXT DAY WITH AN UNFINISHED DAILY QUEST TO SEE THE RESOLVE
+            SYSTEM — A BANKED SHIELD ABSORBS IT, OR YOUR STREAK IS HELD FOR A DAY.
           </p>
         </motion.section>
       )}

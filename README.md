@@ -2,20 +2,62 @@
 
 <img src="frontend/public/icons/icon-192.png" width="96" alt="ARISE" />
 
-# ARISE — Hunter Command Center
+# ARISE — Discipline Quest
 
-**A gamified daily task manager inspired by _Solo Leveling_.**
-Clear missions, earn XP, hold your streak, and climb from E-Rank to National-Level.
+### What if becoming disciplined felt like levelling up in an RPG?
+
+</div>
+
+You already know what you should be doing. That was never the hard part.
+
+Every to-do app on earth will help you write the list. None of them help you
+*feel like doing it* — so you keep the list, abandon the list, and start a new
+list somewhere else in three months. Organisation was never the bottleneck.
+Motivation is.
+
+**ARISE treats your real life as the dungeon.** Tasks become missions. Finishing
+them earns XP. Consistency becomes power, and power is permanent — you climb from
+E-Rank to National-Level Hunter not by doing more, but by *coming back*.
+
+### The part that matters most
+
+Every habit app punishes you for missing a day, and that punishment is precisely
+why people quit them. A missed day is the moment you are most likely to give up,
+so it is the moment this app is warmest.
+
+Miss a day and a **Streak Shield** — forged by your own consistency — absorbs it.
+Out of shields? Your streak is *held for one more day*, and clearing tomorrow's
+quest takes the whole thing back with a bonus. There is no failure screen. The
+word "failed" does not appear in the product, and nothing you have earned can
+ever be taken away.
+
+**This app rewards consistency, not perfection.** That is the whole design.
+
+> The philosophy every change is measured against lives in
+> **[PROJECT_VISION.md](PROJECT_VISION.md)**.
+
+<div align="center">
 
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth_+_Firestore-FFCA28?logo=firebase&logoColor=black)
-![Vitest](https://img.shields.io/badge/Vitest-258_tests-6E9F18?logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-283_tests-6E9F18?logo=vitest&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)
 
 </div>
+
+---
+
+## Try it without signing up
+
+The landing page has a **demo mode**: a veteran S-Rank hunter, 213 days deep,
+with four months of cleared missions, a filled heatmap and a wall of titles.
+Clear one of their missions and watch the XP land. Nothing is saved.
+
+It is the fastest honest answer to "what is this?" — an empty dashboard cannot
+explain a progression system, because there is nothing on screen to progress.
 
 ---
 
@@ -54,12 +96,31 @@ catch the XP burst and level-up overlay → land on `/analytics`.
   overdue, due today, due this week, recurring, and title search. All compose together
 
 ### Progression
-- **Daily quest** — pick 4 required missions; clear them all to extend your streak,
-  or lose it at midnight
+- **Daily quest** — pick 4 required missions; clear them all to extend your streak
+- **The Resolve system** — the game rewards consistency, not perfection. See below
 - **Hunter ranks** earned by unbroken streak: E → D (21d) → B (90d) → S (180d) →
   National (365d), each with its own aura, glow and promotion cinematic
 - **XP + levels** on a rising curve, with level-up overlays and floating XP bursts
 - **Achievements** swept automatically as you play
+
+### The Resolve system
+
+A missed day is the moment a hunter is most likely to quit, so it is the moment
+the app has to be warmest. Nothing here can take XP, levels, achievements or a
+personal best away — **power once earned is permanent**. Only the current streak
+is ever at stake, and it gets two chances before it goes:
+
+| Situation | What happens | What you see |
+| --- | --- | --- |
+| Cleared the daily quest | Streak +1. Every 7th day forges a **Streak Shield** (max 3) | `STREAK SHIELD FORGED` |
+| Missed a day, shield banked | A shield is spent; the streak is **untouched** | `SHIELD HELD` |
+| Missed a day, no shields | The streak is **held for one day**, not destroyed | `STREAK PRESERVED` |
+| Cleared the quest during that day | The whole climb returns, plus a comeback bonus | `STREAK RECOVERED` |
+| That day passed too | The streak settles; the old run stays on your record | `A NEW CLIMB BEGINS` |
+
+There is no failure screen. No red, no shake, no "you failed" — the word doesn't
+appear in the product. Coming back is treated as the skill it is, with its own
+achievement line (`Nothing Kept Me Down`, `Always Returns`, `Fully Resolved`).
 
 ### Beyond missions
 - **Habit tracker** — daily logging, weekly/monthly progress against a cadence, streaks,

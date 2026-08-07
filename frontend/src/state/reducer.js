@@ -14,12 +14,15 @@ import {
   rankIndexForStreak,
   HUNTER_RANKS,
   DAILY_REQUIRED,
+  SHIELD_MAX,
+  COMEBACK_XP,
+  shieldsEarnedAt,
 } from "../game/constants";
 import { nextId } from "../data/missions";
 import { buildNextOccurrence, nextOccurrenceISO } from "../utils/recurrence";
 import { toggleDay, currentStreak } from "../utils/habits";
 import { mergeSettings, normalizeMission, normalizeHabit } from "../services/migration";
-import { freshState } from "./initialState";
+import { freshState, freshFx } from "./initialState";
 import { nextToastId, rollover, seedAchievements, sweepAchievements } from "./helpers";
 
 /* ---------------- reducer ---------------- */
@@ -255,10 +258,28 @@ export function reducer(state, action) {
           (m) => state.dailySelected.includes(m.id) && m.status === "completed"
         ).length;
         if (doneCount >= DAILY_REQUIRED && !state.dayComplete) {
-          const streak = state.streak + 1;
+          // A preserved streak is reclaimed in full — the missed day costs the
+          // hunter a shield's worth of buffer, never the climb itself.
+          const reclaiming = state.recovery;
+          const streak = (reclaiming ? reclaiming.streak : state.streak) + 1;
           const longestStreak = Math.max(state.longestStreak, streak);
           const newRankIdx = rankIndexForStreak(streak);
-          next = { ...next, streak, longestStreak, dayComplete: true };
+
+          // Consistency banks Resolve: every SHIELD_EVERY cleared days forges
+          // a shield, up to the cap. Showing up is what earns the buffer.
+          const held = state.shields ?? 0;
+          const forged = shieldsEarnedAt(streak);
+          const shields = Math.min(SHIELD_MAX, held + forged);
+
+          next = {
+            ...next,
+            streak,
+            longestStreak,
+            dayComplete: true,
+            shields,
+            recovery: null,
+          };
+
           if (newRankIdx > rankIndexForStreak(state.streak) || newRankIdx > state.bestRankIndex) {
             if (newRankIdx > state.bestRankIndex) next.bestRankIndex = newRankIdx;
             fx.promotion = HUNTER_RANKS[newRankIdx].key;
@@ -269,10 +290,46 @@ export function reducer(state, action) {
               id: nextToastId(),
               kind: "daily",
               title: "DAILY QUEST COMPLETE",
-              desc: `All ${DAILY_REQUIRED} missions cleared · Streak +1 → ${streak} days`,
+              desc: reclaiming
+                ? `All ${DAILY_REQUIRED} missions cleared · you're back`
+                : `All ${DAILY_REQUIRED} missions cleared · Streak +1 → ${streak} days`,
               color: "#10b981",
             },
           ];
+
+          // The comeback pays: the whole preserved climb returns, plus a bonus
+          // for showing up on the day it mattered most.
+          if (reclaiming) {
+            next.totalXP += COMEBACK_XP;
+            next.comebacks = (state.comebacks ?? 0) + 1;
+            fx.recovered = { streak };
+            // The bonus can itself tip the hunter over a level boundary.
+            const levelWithBonus = getLevelInfo(next.totalXP).level;
+            if (levelWithBonus > levelBefore) fx.levelUp = levelWithBonus;
+            fx.toasts = [
+              ...fx.toasts,
+              {
+                id: nextToastId(),
+                kind: "recovery",
+                title: "STREAK RECOVERED",
+                desc: `${streak} days restored · +${COMEBACK_XP} XP for coming back`,
+                color: "#a78bfa",
+              },
+            ];
+          }
+
+          if (shields > held) {
+            fx.toasts = [
+              ...fx.toasts,
+              {
+                id: nextToastId(),
+                kind: "shield",
+                title: "STREAK SHIELD FORGED",
+                desc: `${streak} days of Resolve · ${shields}/${SHIELD_MAX} held — one missed day can't break you`,
+                color: "#38bdf8",
+              },
+            ];
+          }
         }
       }
 
@@ -359,7 +416,9 @@ export function reducer(state, action) {
     }
 
     case "DISMISS_FX":
-      return { ...state, fx: { ...state.fx, [action.key]: action.key === "levelUp" || action.key === "promotion" ? null : false } };
+      // Reset the slot to whatever "nothing to show" means for it (null for
+      // payload cinematics, false for flags) rather than hard-coding keys.
+      return { ...state, fx: { ...state.fx, [action.key]: freshFx()[action.key] ?? false } };
 
     case "PUSH_TOAST": {
       // Errors are keyed so a failing retry loop replaces its own toast

@@ -179,3 +179,40 @@ export function longestActiveRun(history) {
   }
   return best;
 }
+
+/**
+ * The last seven days versus the seven before them.
+ *
+ * The comparison is the whole point of a weekly report: a raw total tells a
+ * hunter nothing about whether they are improving, which is the one question
+ * the vision says they should never have to ask. Returns nulls for `delta`
+ * when there is no prior week to compare against, so the UI can stay quiet
+ * rather than inventing a trend from a single week of data.
+ */
+export function weeklyReport(history, today = localISO()) {
+  const thisFrom = addDaysISO(today, -6);
+  const prevFrom = addDaysISO(today, -13);
+  const prevTo = addDaysISO(today, -7);
+
+  const thisWeek = history.filter((h) => h.completedAt >= thisFrom && h.completedAt <= today);
+  const prevWeek = history.filter((h) => h.completedAt >= prevFrom && h.completedAt <= prevTo);
+
+  const sumXP = (rows) => rows.reduce((total, h) => total + (h.xp || 0), 0);
+  const days = (rows) => new Set(rows.map((h) => h.completedAt)).size;
+
+  const xp = sumXP(thisWeek);
+  const prevXP = sumXP(prevWeek);
+  const hadPrior = prevWeek.length > 0;
+
+  return {
+    from: thisFrom,
+    to: today,
+    missions: thisWeek.length,
+    xp,
+    activeDays: days(thisWeek),
+    bestCategory: topCategory(thisWeek),
+    // percentage change, or null when there is nothing honest to compare to
+    xpDelta: hadPrior && prevXP > 0 ? Math.round(((xp - prevXP) / prevXP) * 100) : null,
+    missionsDelta: hadPrior ? thisWeek.length - prevWeek.length : null,
+  };
+}
