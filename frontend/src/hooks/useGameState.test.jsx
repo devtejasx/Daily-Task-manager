@@ -480,12 +480,49 @@ describe("day rollover", () => {
     expect(result.current.state.streak).toBe(3); // survived — the quest was done
   });
 
-  it("breaks the streak when yesterday's quest went unfinished", () => {
+  it("spends a shield to keep the streak through a missed day", () => {
     const { result } = mount(
       makeSave({
         dailyDate: addDaysISO(today, -1),
         dayComplete: false,
         streak: 12,
+        shields: 2,
+        dailySelected: ["m-1"],
+        missions: [makeMission({ id: "m-1" })],
+      })
+    );
+
+    expect(result.current.state.streak).toBe(12); // the climb continues
+    expect(result.current.state.shields).toBe(1);
+    expect(result.current.state.fx.shielded).toEqual({ streak: 12, remaining: 1 });
+    expect(result.current.state.fx.failed).toBe(false);
+  });
+
+  it("never spends XP, levels or a personal best to cover a missed day", () => {
+    const { result } = mount(
+      makeSave({
+        dailyDate: addDaysISO(today, -1),
+        dayComplete: false,
+        streak: 12,
+        longestStreak: 30,
+        totalXP: 5000,
+        shields: 0,
+        dailySelected: ["m-1"],
+        missions: [makeMission({ id: "m-1" })],
+      })
+    );
+
+    expect(result.current.state.totalXP).toBe(5000);
+    expect(result.current.state.longestStreak).toBe(30);
+  });
+
+  it("breaks the streak only once the Resolve buffer is empty", () => {
+    const { result } = mount(
+      makeSave({
+        dailyDate: addDaysISO(today, -1),
+        dayComplete: false,
+        streak: 12,
+        shields: 0,
         dailySelected: ["m-1"],
         missions: [makeMission({ id: "m-1" })],
       })

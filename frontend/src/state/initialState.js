@@ -13,7 +13,14 @@ import { rollover, seedAchievements } from "./helpers";
 
 /** The transient FX queue — never persisted. */
 export function freshFx() {
-  return { levelUp: null, promotion: null, failed: false, newDay: false, toasts: [] };
+  return {
+    levelUp: null,
+    promotion: null,
+    shielded: null, // {streak,remaining} — a shield absorbed a missed day
+    failed: false,
+    newDay: false,
+    toasts: [],
+  };
 }
 
 export function freshState() {

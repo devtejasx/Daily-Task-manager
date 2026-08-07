@@ -21,7 +21,7 @@ import { nextId } from "../data/missions";
 import { buildNextOccurrence, nextOccurrenceISO } from "../utils/recurrence";
 import { toggleDay, currentStreak } from "../utils/habits";
 import { mergeSettings, normalizeMission, normalizeHabit } from "../services/migration";
-import { freshState } from "./initialState";
+import { freshState, freshFx } from "./initialState";
 import { nextToastId, rollover, seedAchievements, sweepAchievements } from "./helpers";
 
 /* ---------------- reducer ---------------- */
@@ -381,7 +381,9 @@ export function reducer(state, action) {
     }
 
     case "DISMISS_FX":
-      return { ...state, fx: { ...state.fx, [action.key]: action.key === "levelUp" || action.key === "promotion" ? null : false } };
+      // Reset the slot to whatever "nothing to show" means for it (null for
+      // payload cinematics, false for flags) rather than hard-coding keys.
+      return { ...state, fx: { ...state.fx, [action.key]: freshFx()[action.key] ?? false } };
 
     case "PUSH_TOAST": {
       // Errors are keyed so a failing retry loop replaces its own toast
