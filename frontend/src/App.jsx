@@ -22,6 +22,7 @@ import { XPAnimation } from "./components/CinematicLayers";
 import { useAuthGate } from "./components/auth/AuthGate";
 import LiveAnnouncer from "./components/ui/LiveAnnouncer";
 import DemoBanner from "./components/ui/DemoBanner";
+import DailyBriefing from "./components/cinematic/DailyBriefing";
 import AppRoutes from "./AppRoutes";
 import { pathForView, resolvePath, FALLBACK_PATH, KNOWN_PATHS } from "./routes";
 import { useGameState } from "./hooks/useGameState";
@@ -121,6 +122,21 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
   const { xpBurst, xpPulse, missionPulse, levelPulse, promotionPulse } = useGameFx(state);
 
   useToastAutoDismiss(state.fx.toasts, actions.dismissToast);
+
+  // The daily briefing: once per day, for a hunter who has been here before.
+  // A brand-new hunter has just seen the awakening and has nothing to be
+  // briefed on, and the demo isn't anyone's day — both are skipped.
+  const hasHistory = state.history.length > 0 || state.streak > 0;
+  const briefingKey = user ? `arise-briefed-${user.uid}` : null;
+  const [briefingSeen, setBriefingSeen] = useState(() => {
+    if (!briefingKey) return true;
+    return localStorage.getItem(briefingKey) === state.dailyDate;
+  });
+  const showBriefing = Boolean(user) && !demo && hasHistory && !briefingSeen;
+  const dismissBriefing = useCallback(() => {
+    if (briefingKey) localStorage.setItem(briefingKey, state.dailyDate);
+    setBriefingSeen(true);
+  }, [briefingKey, state.dailyDate]);
 
   // The Resolve screens, in the order a hunter needs to hear them. Only one
   // can be pending at a time, but resolving them here keeps the render tree
@@ -457,7 +473,23 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
       </AnimatePresence>
 
       <AnimatePresence>
-        {state.fx.newDay && !resolveFx && (
+        {showBriefing && !resolveFx && (
+          <DailyBriefing
+            key="briefing"
+            streak={state.streak}
+            recovery={state.recovery}
+            levelInfo={levelInfo}
+            rankIndex={rankIndex}
+            dailyDone={dailyDone}
+            weeklyXP={stats.weeklyXP}
+            today={state.dailyDate}
+            onClose={dismissBriefing}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {state.fx.newDay && !resolveFx && !showBriefing && (
           <NewDayBanner key="newday" onClose={() => actions.dismissFx("newDay")} />
         )}
       </AnimatePresence>
