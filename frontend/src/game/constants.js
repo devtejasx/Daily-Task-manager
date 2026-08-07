@@ -105,6 +105,42 @@ export function nextRank(rankIndex) {
 /* ---------- daily quest ---------- */
 export const DAILY_REQUIRED = 4;
 
+/* ---------- the Resolve system ----------
+ * Discipline is built by consistency, not by perfection. A hunter who shows
+ * up day after day banks Resolve; a hunter who misses one day spends it
+ * instead of losing the climb. Nothing here can ever take XP, levels,
+ * achievements or a personal best away — power once earned is permanent.
+ * The only thing at stake is the *current* streak, and even that gets a
+ * second chance before it goes. */
+
+/** Consecutive cleared days that forge one Streak Shield. */
+export const SHIELD_EVERY = 7;
+
+/** Shields a hunter may hold at once. Banking is capped so the streak still
+ *  means something, but three misses of headroom is a forgiving buffer. */
+export const SHIELD_MAX = 3;
+
+/** Days a preserved streak waits for its comeback before it finally settles. */
+export const RECOVERY_WINDOW_DAYS = 1;
+
+/** Bonus XP for clearing the daily quest that reclaims a preserved streak. */
+export const COMEBACK_XP = 250;
+
+/**
+ * Shields forged by reaching `streak`, capped at SHIELD_MAX.
+ * Day 7 forges the first, day 14 the second, and so on.
+ */
+export function shieldsEarnedAt(streak) {
+  if (streak <= 0 || streak % SHIELD_EVERY !== 0) return 0;
+  return 1;
+}
+
+/** Days remaining until the next shield is forged. */
+export function daysToNextShield(streak) {
+  const into = streak % SHIELD_EVERY;
+  return SHIELD_EVERY - into;
+}
+
 /* ---------- priorities ---------- */
 export const PRIORITIES = {
   LOW: { label: "Low", color: "#94a3b8" },
