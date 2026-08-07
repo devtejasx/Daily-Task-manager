@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
 import { DIFFICULTIES } from "../data/missions";
 import { localISO, addDaysISO } from "../game/constants";
+import EmptyState from "./ui/EmptyState";
+import { EMPTY } from "../game/copy";
 
 function dateLabel(iso) {
   const today = localISO();
@@ -13,7 +15,15 @@ function dateLabel(iso) {
 export default function HistoryTimeline({ history, limit = 12 }) {
   const items = history.slice(0, limit);
   if (items.length === 0) {
-    return <p className="text-sm text-slate-500 py-6 text-center">No missions cleared yet. Your legend awaits.</p>;
+    return (
+      <EmptyState
+        icon="Sparkles"
+        title={EMPTY.history.title}
+        body={EMPTY.history.body}
+        color="#06b6d4"
+        compact
+      />
+    );
   }
 
   let lastDate = null;

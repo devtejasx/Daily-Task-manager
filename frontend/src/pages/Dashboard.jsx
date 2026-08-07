@@ -17,6 +17,7 @@ import WeeklyXPChart from "../components/WeeklyXPChart";
 import HistoryTimeline from "../components/HistoryTimeline";
 import { useCountUp } from "../hooks/useCountUp";
 import { ACHIEVEMENTS, DAILY_REQUIRED, nextRank, localISO } from "../game/constants";
+import { EMPTY, greetingForDay, streakLine } from "../game/copy";
 
 function Widget({ title, icon: Icon, children, delay = 0, className = "" }) {
   return (
@@ -118,10 +119,12 @@ export default function Dashboard({
           </h1>
           <p className="text-slate-400 text-sm mt-1">
             {isFresh
-              ? "No missions assigned yet. Create your first task to begin."
+              ? EMPTY.missions.body
               : dayComplete
-              ? "Daily quest complete. The system is pleased... for today."
-              : `${4 - dailyDone} required ${4 - dailyDone === 1 ? "mission" : "missions"} left before midnight. Do not fail.`}
+              ? "Daily quest complete. Today counted — the record will remember it."
+              : `${DAILY_REQUIRED - dailyDone} ${
+                  DAILY_REQUIRED - dailyDone === 1 ? "mission" : "missions"
+                } left in today's quest. You're closer than when you opened this.`}
           </p>
         </div>
         <RankBadge rank={rank} size={56} showTitle />

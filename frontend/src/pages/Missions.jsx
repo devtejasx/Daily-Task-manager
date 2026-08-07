@@ -3,6 +3,7 @@ import { Plus, Target, GripVertical, FilterX } from "lucide-react";
 import MissionList from "../components/MissionList";
 import FilterBar from "../components/filters/FilterBar";
 import { DAILY_REQUIRED } from "../game/constants";
+import { EMPTY } from "../game/copy";
 
 /**
  * The mission board. Filtering is owned by App (so the top-bar search and
@@ -88,12 +89,10 @@ export default function Missions({
             )}
           </div>
           <h3 className="font-display font-bold text-slate-200 tracking-wide">
-            {filtersActive && !boardEmpty ? "NO MISSIONS MATCH THESE FILTERS" : "NO MISSIONS ASSIGNED"}
+            {filtersActive && !boardEmpty ? EMPTY.missionsFiltered.title : EMPTY.missions.title}
           </h3>
           <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
-            {filtersActive && !boardEmpty
-              ? "Loosen a filter or clear them all to see the rest of the board."
-              : "Create your first mission to begin your ascent."}
+            {filtersActive && !boardEmpty ? EMPTY.missionsFiltered.body : EMPTY.missions.body}
           </p>
           {filtersActive && !boardEmpty ? (
             <button

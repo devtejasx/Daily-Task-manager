@@ -1,3 +1,5 @@
+import SharedEmptyState from "../components/ui/EmptyState";
+import { EMPTY } from "../game/copy";
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
@@ -39,18 +41,16 @@ import {
 
 const CATEGORY_COLORS = ["#7c3aed", "#06b6d4", "#10b981", "#f59e0b", "#a78bfa", "#3b82f6", "#ef4444"];
 
-/** Nothing cleared yet — explain what will appear here instead of empty axes. */
+/** Nothing cleared yet — say what will appear here instead of showing empty axes. */
 function EmptyState() {
   return (
-    <div className="glass rounded-2xl p-10 text-center flex flex-col items-center">
-      <div className="p-3 rounded-xl border border-cyan-400/25 bg-cyan-400/10 mb-4">
-        <BarChart3 size={22} className="text-cyan-300" aria-hidden />
-      </div>
-      <h3 className="font-display font-bold text-slate-200 tracking-wide">NO DATA TO ANALYSE YET</h3>
-      <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
-        Clear your first mission and the system will start charting your completion rate, XP curve
-        and streaks here.
-      </p>
+    <div className="glass rounded-2xl">
+      <SharedEmptyState
+        icon="BarChart3"
+        title={EMPTY.analytics.title}
+        body={EMPTY.analytics.body}
+        color="#06b6d4"
+      />
     </div>
   );
 }
