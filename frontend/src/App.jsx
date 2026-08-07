@@ -23,6 +23,7 @@ import { useAuthGate } from "./components/auth/AuthGate";
 import LiveAnnouncer from "./components/ui/LiveAnnouncer";
 import DemoBanner from "./components/ui/DemoBanner";
 import DailyBriefing from "./components/cinematic/DailyBriefing";
+import WeeklyReport from "./components/cinematic/WeeklyReport";
 import AppRoutes from "./AppRoutes";
 import { pathForView, resolvePath, FALLBACK_PATH, KNOWN_PATHS } from "./routes";
 import { useGameState } from "./hooks/useGameState";
@@ -30,6 +31,8 @@ import { useGameFx } from "./hooks/useGameFx";
 import { useReminders } from "./hooks/useReminders";
 import { useMissionFilters } from "./hooks/useMissionFilters";
 import { applyFilters } from "./utils/filters";
+import { weeklyReport } from "./utils/analytics";
+import { addDaysISO } from "./game/constants";
 import { useCloudSave } from "./hooks/useCloudSave";
 import { useProtectedActions } from "./hooks/useProtectedActions";
 
@@ -133,6 +136,26 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
     return localStorage.getItem(briefingKey) === state.dailyDate;
   });
   const showBriefing = Boolean(user) && !demo && hasHistory && !briefingSeen;
+
+  // The weekly report arrives on its own, once every seven days. It waits for
+  // the briefing to clear so a returning hunter is never handed two modals.
+  const reportKey = user ? `arise-report-${user.uid}` : null;
+  const [reportShownOn, setReportShownOn] = useState(() =>
+    reportKey ? localStorage.getItem(reportKey) : null
+  );
+  const reportDue = useMemo(() => {
+    if (!user || demo || !hasHistory) return false;
+    if (!reportShownOn) return true; // first eligible week
+    return state.dailyDate >= addDaysISO(reportShownOn, 7);
+  }, [user, demo, hasHistory, reportShownOn, state.dailyDate]);
+  const report = useMemo(
+    () => (reportDue ? weeklyReport(state.history, state.dailyDate) : null),
+    [reportDue, state.history, state.dailyDate]
+  );
+  const dismissReport = useCallback(() => {
+    if (reportKey) localStorage.setItem(reportKey, state.dailyDate);
+    setReportShownOn(state.dailyDate);
+  }, [reportKey, state.dailyDate]);
   const dismissBriefing = useCallback(() => {
     if (briefingKey) localStorage.setItem(briefingKey, state.dailyDate);
     setBriefingSeen(true);
@@ -469,6 +492,17 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
           state.fx.levelUp && (
             <LevelUpOverlay key="lvl" level={state.fx.levelUp} onClose={() => actions.dismissFx("levelUp")} />
           )
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {report && !resolveFx && !showBriefing && (
+          <WeeklyReport
+            key="weekly"
+            report={report}
+            streak={state.streak}
+            onClose={dismissReport}
+          />
         )}
       </AnimatePresence>
 
