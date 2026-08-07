@@ -43,6 +43,7 @@ Thumbs.db
 
 # Testing
 .coverage
+coverage/
 *.lcov
 .nyc_output
 
