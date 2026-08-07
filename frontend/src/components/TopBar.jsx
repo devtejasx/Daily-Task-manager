@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Search, Bell, Moon, Sun, UserCircle2, Flame, LogIn, Timer } from "lucide-react";
 import XPBar from "./XPBar";
-import AscentMeter from "./AscentMeter";
+import AscentMeter, { AscentStrip } from "./AscentMeter";
 import RankBadge from "./RankBadge";
 import { useCountUp } from "../hooks/useCountUp";
 import { useAuthGate } from "./auth/AuthGate";
@@ -28,12 +28,12 @@ export default function TopBar({
 
   return (
     <motion.header
-      className="sticky top-0 z-30 glass border-b border-violet-500/15 px-4 sm:px-6 py-3"
+      className="sticky top-0 z-30 glass border-b border-violet-500/15"
       initial={{ opacity: 0, y: -30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="flex items-center gap-3 sm:gap-5">
+      <div className="flex items-center gap-3 sm:gap-5 px-4 sm:px-6 py-3">
         {/* hunter profile */}
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="relative shrink-0">
@@ -160,6 +160,15 @@ export default function TopBar({
           </div>
         </div>
       </div>
+
+      {/* Below lg the full meter has nowhere to live, so the two facts that
+          drive a day get their own row rather than disappearing. */}
+      <AscentStrip
+        rankIndex={rankIndex}
+        streak={streak}
+        dailyDone={dailyDone}
+        recovery={recovery}
+      />
     </motion.header>
   );
 }

@@ -9,7 +9,8 @@ export default function Sidebar() {
   return (
     <motion.aside
       className="fixed z-40 bottom-0 inset-x-0 lg:inset-x-auto lg:top-0 lg:left-0 lg:h-full lg:w-[92px] xl:w-60
-        glass border-t lg:border-t-0 lg:border-r border-violet-500/15 flex lg:flex-col"
+        glass border-t lg:border-t-0 lg:border-r border-violet-500/15 flex lg:flex-col
+        pb-[env(safe-area-inset-bottom)] lg:pb-0"
       initial={{ opacity: 0, x: -40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}

@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { Target } from "lucide-react";
+import { Flame, Target } from "lucide-react";
 import { DAILY_REQUIRED, HUNTER_RANKS, nextRank } from "../game/constants";
 
 /**
@@ -98,6 +98,56 @@ export default function AscentMeter({ rankIndex, streak, dailyDone, recovery }) 
           Today&apos;s quest: {dailyDone} of {DAILY_REQUIRED} missions cleared
         </span>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The phone-sized answer to the same question.
+ *
+ * The full meter needs horizontal room the top bar simply doesn't have on a
+ * handset, and the desktop version hides below `lg` — which left the primary
+ * device with no persistent sense of progress at all. This keeps the two
+ * facts that actually drive a day: the streak, and how much of today is done.
+ */
+export function AscentStrip({ rankIndex, streak, dailyDone, recovery }) {
+  const upcoming = nextRank(rankIndex);
+  const daysLeft = upcoming ? Math.max(0, upcoming.streak - streak) : 0;
+
+  return (
+    <div className="lg:hidden flex items-center gap-3 px-4 py-2 border-t border-white/5 bg-white/[0.02]">
+      <span className="flex items-center gap-1.5 shrink-0">
+        <Flame
+          size={13}
+          className={streak > 0 ? "text-amber-400" : "text-slate-600"}
+          aria-hidden
+        />
+        <span className="font-display font-bold text-xs text-amber-300">{streak}</span>
+      </span>
+
+      <span className="text-[10px] tracking-wider text-slate-500 truncate min-w-0">
+        {recovery
+          ? `${recovery.streak} days held — today takes them back`
+          : upcoming
+          ? `${daysLeft} days to ${upcoming.title.replace(" HUNTER", "")}`
+          : "National-Level"}
+      </span>
+
+      <span className="flex gap-1 ml-auto shrink-0" aria-hidden>
+        {Array.from({ length: DAILY_REQUIRED }, (_, i) => (
+          <span
+            key={i}
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              background: i < dailyDone ? "#10b981" : "rgba(255,255,255,0.16)",
+              boxShadow: i < dailyDone ? "0 0 6px rgba(16,185,129,0.9)" : "none",
+            }}
+          />
+        ))}
+      </span>
+      <span className="sr-only">
+        Today&apos;s quest: {dailyDone} of {DAILY_REQUIRED} missions cleared
+      </span>
     </div>
   );
 }
