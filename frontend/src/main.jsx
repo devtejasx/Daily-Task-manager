@@ -115,7 +115,12 @@ function Root() {
 
   return (
     <AuthGateProvider user={user}>
-      {!introDone && <WelcomeIntro onEnter={finishIntro} />}
+      {/* The title card belongs to a hunter entering their own world, not to
+          arriving on the site. A visitor gets the landing page immediately,
+          and a visitor who clicked "enter the demo" gets the demo — making
+          either click through a splash first is exactly the friction that
+          stops them understanding the product in thirty seconds. */}
+      {!introDone && user && <WelcomeIntro onEnter={finishIntro} />}
 
       {user ? (
         // key by uid so switching accounts fully remounts the game state

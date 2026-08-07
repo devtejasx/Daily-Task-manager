@@ -153,7 +153,7 @@ export default function WelcomeIntro({ onEnter }) {
               animate={{ opacity: 1 }}
               transition={{ delay: d(2.5), duration: 0.7, ease: "easeOut" }}
             >
-              Organize your missions. Level up your life.
+              Real discipline. Real progression.
             </motion.p>
 
             {/* ENTER button */}

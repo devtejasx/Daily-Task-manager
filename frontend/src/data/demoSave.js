@@ -13,7 +13,7 @@
    mode mounts with `persist` disabled, so exploring changes nothing.
    ========================================================= */
 
-import { localISO, addDaysISO, SHIELD_MAX } from "../game/constants";
+import { localISO, addDaysISO, ACHIEVEMENTS, SHIELD_MAX } from "../game/constants";
 import { SCHEMA_VERSION, DEFAULT_SETTINGS } from "../services/migration";
 
 const today = localISO();
@@ -180,12 +180,32 @@ const HABITS = [
 ];
 
 /**
+ * Titles this hunter would already hold.
+ *
+ * loadState() only seeds achievements for a *new* hunter — an existing save
+ * is trusted as-is — so a demo save that shipped an empty map left an S-Rank
+ * veteran with an empty Hall of Records, which is the opposite of what the
+ * showcase is for. Unlock dates are spread back through the run so the wall
+ * reads like a history rather than a single bulk award.
+ */
+function buildAchievements(state) {
+  const unlocked = {};
+  const earned = ACHIEVEMENTS.filter((a) => a.test(state));
+  earned.forEach((a, i) => {
+    // oldest titles furthest back, most recent nearest today
+    const daysAgo = Math.round(((earned.length - i) / earned.length) * 110);
+    unlocked[a.id] = iso(-daysAgo);
+  });
+  return unlocked;
+}
+
+/**
  * Build the demo save fresh on each entry so every date is relative to
  * *today* — a showcase with a stale heatmap undersells the product.
  */
 export function buildDemoSave() {
   const history = buildHistory();
-  return {
+  const save = {
     version: SCHEMA_VERSION,
     missions: BOARD,
     history,
@@ -205,6 +225,8 @@ export function buildDemoSave() {
     dayComplete: false,
     achievements: {},
   };
+
+  return { ...save, achievements: buildAchievements(save) };
 }
 
 export default buildDemoSave;
