@@ -21,6 +21,7 @@ import {
 import { XPAnimation } from "./components/CinematicLayers";
 import { useAuthGate } from "./components/auth/AuthGate";
 import LiveAnnouncer from "./components/ui/LiveAnnouncer";
+import DemoBanner from "./components/ui/DemoBanner";
 import AppRoutes from "./AppRoutes";
 import { pathForView, resolvePath, FALLBACK_PATH, KNOWN_PATHS } from "./routes";
 import { useGameState } from "./hooks/useGameState";
@@ -37,8 +38,17 @@ const pageVariants = {
   exit: { opacity: 0, y: -18, filter: "blur(6px)", transition: { duration: 0.25, ease: "easeIn" } },
 };
 
-export default function App({ user, initialSave, onSignOut }) {
-  const { requireAuth, pendingIntent, consumeIntent } = useAuthGate();
+export default function App({ user, initialSave, onSignOut, demo = false, onExitDemo }) {
+  const { requireAuth, openLogin, pendingIntent, consumeIntent } = useAuthGate();
+
+  // Demo mode hands the visitor a veteran hunter's save and lets every action
+  // actually run — the point of the showcase is to feel the XP land, not to
+  // hit a login wall. Nothing persists: `persist` below no-ops without a user.
+  const runUngated = useCallback((action) => {
+    action?.();
+    return true;
+  }, []);
+  const gate = demo ? runUngated : requireAuth;
 
   // Cloud save owns its own retry/backoff and reports failures as a toast.
   // The toast dispatcher lives in the reducer below, so it is reached through
@@ -199,7 +209,7 @@ export default function App({ user, initialSave, onSignOut }) {
   }, []);
 
   /** Every state-changing action, wrapped in the guest login gate. */
-  const guarded = useProtectedActions(actions, requireAuth);
+  const guarded = useProtectedActions(actions, gate);
   const handleQuickAdd = useCallback((dueDate) => openAdd({ dueDate }), [openAdd]);
 
   // Resume a pending action carried across the guest -> authed remount.
@@ -334,6 +344,8 @@ export default function App({ user, initialSave, onSignOut }) {
       className="min-h-full transition-[filter] duration-700"
       style={{ filter: dimmed ? "brightness(0.72) saturate(0.85)" : "none" }}
     >
+      {demo && <DemoBanner onExit={onExitDemo} onSignUp={openLogin} />}
+
       <Background
         rank={rank}
         missionPulse={missionPulse}
