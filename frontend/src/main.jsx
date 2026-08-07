@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import WelcomeIntro from "./components/cinematic/WelcomeIntro.jsx";
 import Landing from "./pages/Landing.jsx";
+import Awakening from "./components/cinematic/Awakening.jsx";
 import { AuthGateProvider } from "./components/auth/AuthGate.jsx";
 import BootScreen from "./components/ui/BootScreen.jsx";
 import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
@@ -15,6 +16,8 @@ import "./index.css";
 
 const INTRO_KEY = "arise-intro-seen";
 const DEMO_KEY = "arise-demo";
+/** Per-hunter, in localStorage: the awakening is a rite, not a loading screen. */
+const awakenedKey = (uid) => `arise-awakened-${uid}`;
 
 /** Loads the signed-in hunter's cloud save before mounting the game. */
 function SaveGate({ user, onSignOut }) {
@@ -38,6 +41,17 @@ function SaveGate({ user, onSignOut }) {
     };
   }, [user.uid, attempt]);
 
+  // A brand-new hunter (no cloud save) is welcomed by the awakening cinematic
+  // before the dashboard — once, ever. Existing hunters never see it.
+  const [awakened, setAwakened] = useState(
+    () => localStorage.getItem(awakenedKey(user.uid)) === "1"
+  );
+
+  const finishAwakening = () => {
+    localStorage.setItem(awakenedKey(user.uid), "1");
+    setAwakened(true);
+  };
+
   if (error)
     return (
       <BootScreen
@@ -51,7 +65,11 @@ function SaveGate({ user, onSignOut }) {
         onRetry={() => setAttempt((n) => n + 1)}
       />
     );
-  if (save === undefined) return <BootScreen label="SYNCING HUNTER DATA" />;
+  if (save === undefined) return <BootScreen label="PREPARING YOUR NEXT QUEST" />;
+
+  if (save === null && !awakened)
+    return <Awakening onDone={finishAwakening} />;
+
   return <App user={user} initialSave={save} onSignOut={onSignOut} />;
 }
 
