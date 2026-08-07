@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Circle, Hourglass, ShieldCheck, Target } from "lucide-react";
+import { CheckCircle2, Circle, Hourglass, ShieldCheck, Swords, Target } from "lucide-react";
 import { DAILY_REQUIRED, SHIELD_MAX, daysToNextShield } from "../game/constants";
 
 /**
@@ -163,35 +163,37 @@ export default function DailyQuestPanel({
         </AnimatePresence>
       </div>
 
-      {/* animated warning when under-assigned */}
+      {/* An empty slot is an opportunity, not an alarm. Same call to action,
+          but it invites the hunter to choose today's climb rather than
+          scolding them in red for a quest they haven't started yet. */}
       <AnimatePresence>
         {underAssigned && (
           <motion.button
             onClick={onGoPick}
-            className="mt-4 w-full flex items-center gap-2.5 text-left rounded-xl border border-red-500/40 bg-red-500/10 px-3.5 py-2.5"
+            className="mt-4 w-full flex items-center gap-2.5 text-left rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-3.5 py-2.5"
             initial={{ opacity: 0, y: 10 }}
             animate={{
               opacity: 1,
               y: 0,
               boxShadow: [
-                "0 0 0px rgba(239,68,68,0.0)",
-                "0 0 22px rgba(239,68,68,0.45)",
-                "0 0 0px rgba(239,68,68,0.0)",
+                "0 0 0px rgba(6,182,212,0.0)",
+                "0 0 22px rgba(6,182,212,0.4)",
+                "0 0 0px rgba(6,182,212,0.0)",
               ],
             }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ boxShadow: { duration: 1.6, repeat: Infinity }, default: { duration: 0.4 } }}
+            transition={{ boxShadow: { duration: 2.6, repeat: Infinity }, default: { duration: 0.4 } }}
           >
             <motion.span
-              animate={{ rotate: [0, -12, 12, -8, 8, 0] }}
-              transition={{ duration: 0.9, repeat: Infinity, repeatDelay: 1.4 }}
+              animate={{ scale: [1, 1.14, 1] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
             >
-              <AlertTriangle size={17} className="text-red-400" />
+              <Swords size={17} className="text-cyan-300" />
             </motion.span>
-            <span className="text-xs font-bold tracking-wide text-red-300">
-              ONLY {assigned}/{DAILY_REQUIRED} DAILY MISSIONS ASSIGNED — the system demands {DAILY_REQUIRED}.
-              <span className="block text-[10px] font-semibold text-red-200/70 mt-0.5 tracking-[0.15em]">
-                TAP TO ASSIGN MISSIONS FROM THE BOARD
+            <span className="text-xs font-bold tracking-wide text-cyan-200">
+              {DAILY_REQUIRED - assigned} SLOT{DAILY_REQUIRED - assigned === 1 ? "" : "S"} OPEN — CHOOSE TODAY&apos;S CLIMB
+              <span className="block text-[10px] font-semibold text-cyan-200/70 mt-0.5 tracking-[0.15em]">
+                TAP TO PICK MISSIONS FROM THE BOARD
               </span>
             </span>
           </motion.button>
