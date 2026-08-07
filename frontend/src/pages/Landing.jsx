@@ -17,6 +17,7 @@
    into a veteran hunter's live record.
    ========================================================= */
 
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowRight, BarChart3, CalendarDays, ChevronDown, Eye, Flame, Hourglass,
@@ -411,6 +412,9 @@ const SHOTS = [
 ];
 
 function Screenshots({ onEnterDemo }) {
+  // Captures that 404 are swapped for a label instead of a blank frame.
+  const [missing, setMissing] = useState(() => new Set());
+
   return (
     <Section
       id="screens"
@@ -428,22 +432,22 @@ function Screenshots({ onEnterDemo }) {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.55, delay: i * 0.07 }}
           >
-            {/* The images are optional: until they're captured the frame still
-                reads as a labelled placeholder rather than a broken icon. */}
+            {/* The captures are optional. Until they exist the frame states
+                so plainly, rather than showing a blank box or a broken icon. */}
             <div className="aspect-[16/10] bg-gradient-to-br from-slate-900 to-slate-950 flex items-center justify-center">
-              <img
-                src={s.src}
-                alt={s.label}
-                loading="lazy"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                  e.currentTarget.parentElement.dataset.placeholder = "1";
-                }}
-              />
-              <span className="hidden [figure_[data-placeholder]_&]:block font-display text-[10px] tracking-[0.3em] text-slate-600">
-                CAPTURE PENDING
-              </span>
+              {missing.has(s.src) ? (
+                <span className="font-display text-[10px] tracking-[0.3em] text-slate-600">
+                  CAPTURE PENDING
+                </span>
+              ) : (
+                <img
+                  src={s.src}
+                  alt={s.label}
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                  onError={() => setMissing((prev) => new Set(prev).add(s.src))}
+                />
+              )}
             </div>
             <figcaption className="px-4 py-3 text-[11px] tracking-wider text-slate-400 font-semibold">
               {s.label}
