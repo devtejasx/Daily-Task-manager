@@ -368,7 +368,10 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
           user={user}
           levelInfo={levelInfo}
           rank={rank}
+          rankIndex={rankIndex}
           streak={state.streak}
+          dailyDone={dailyDone}
+          recovery={state.recovery}
           search={filters.search}
           setSearch={(value) => patch({ search: value })}
           dimmed={dimmed}

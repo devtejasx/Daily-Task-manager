@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Search, Bell, Moon, Sun, UserCircle2, Flame, LogIn, Timer } from "lucide-react";
 import XPBar from "./XPBar";
+import AscentMeter from "./AscentMeter";
 import RankBadge from "./RankBadge";
 import { useCountUp } from "../hooks/useCountUp";
 import { useAuthGate } from "./auth/AuthGate";
@@ -8,7 +9,10 @@ import { useAuthGate } from "./auth/AuthGate";
 export default function TopBar({
   levelInfo,
   rank,
+  rankIndex = 0,
   streak,
+  dailyDone = 0,
+  recovery = null,
   search,
   setSearch,
   dimmed,
@@ -80,6 +84,13 @@ export default function TopBar({
               <LogIn size={14} /> SIGN IN
             </motion.button>
           )}
+
+          <AscentMeter
+            rankIndex={rankIndex}
+            streak={streak}
+            dailyDone={dailyDone}
+            recovery={recovery}
+          />
 
           {/* streak */}
           {!isGuest && (
