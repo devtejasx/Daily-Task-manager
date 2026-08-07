@@ -26,6 +26,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Runs before the build: a failing test should stop the pipeline
+      # without waiting on a three-minute bundle.
+      - name: Run test suite
+        run: npm test --workspace=frontend
+
       - name: Build frontend
         run: npm run build --workspace=frontend
 
