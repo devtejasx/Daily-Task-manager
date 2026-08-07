@@ -534,6 +534,8 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
         level={levelInfo.level}
         rankTitle={rank.title}
         streak={state.streak}
+        shields={state.shields}
+        recovery={state.recovery}
       />
 
       <ToastStack toasts={state.fx.toasts} onDismiss={actions.dismissToast} />
