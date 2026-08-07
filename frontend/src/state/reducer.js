@@ -14,6 +14,8 @@ import {
   rankIndexForStreak,
   HUNTER_RANKS,
   DAILY_REQUIRED,
+  SHIELD_MAX,
+  shieldsEarnedAt,
 } from "../game/constants";
 import { nextId } from "../data/missions";
 import { buildNextOccurrence, nextOccurrenceISO } from "../utils/recurrence";
@@ -258,7 +260,14 @@ export function reducer(state, action) {
           const streak = state.streak + 1;
           const longestStreak = Math.max(state.longestStreak, streak);
           const newRankIdx = rankIndexForStreak(streak);
-          next = { ...next, streak, longestStreak, dayComplete: true };
+
+          // Consistency banks Resolve: every SHIELD_EVERY cleared days forges
+          // a shield, up to the cap. Showing up is what earns the buffer.
+          const held = state.shields ?? 0;
+          const forged = shieldsEarnedAt(streak);
+          const shields = Math.min(SHIELD_MAX, held + forged);
+
+          next = { ...next, streak, longestStreak, dayComplete: true, shields };
           if (newRankIdx > rankIndexForStreak(state.streak) || newRankIdx > state.bestRankIndex) {
             if (newRankIdx > state.bestRankIndex) next.bestRankIndex = newRankIdx;
             fx.promotion = HUNTER_RANKS[newRankIdx].key;
@@ -273,6 +282,19 @@ export function reducer(state, action) {
               color: "#10b981",
             },
           ];
+
+          if (shields > held) {
+            fx.toasts = [
+              ...fx.toasts,
+              {
+                id: nextToastId(),
+                kind: "shield",
+                title: "STREAK SHIELD FORGED",
+                desc: `${streak} days of Resolve · ${shields}/${SHIELD_MAX} held — one missed day can't break you`,
+                color: "#38bdf8",
+              },
+            ];
+          }
         }
       }
 

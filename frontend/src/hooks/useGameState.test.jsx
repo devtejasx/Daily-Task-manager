@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useGameState } from "./useGameState";
 import { makeSave, makeMission, makeHabit } from "../test/factories";
-import { localISO, addDaysISO, DAILY_REQUIRED } from "../game/constants";
+import {
+  localISO,
+  addDaysISO,
+  DAILY_REQUIRED,
+  SHIELD_EVERY,
+  SHIELD_MAX,
+} from "../game/constants";
 import { makeRecurrence } from "../utils/recurrence";
 
 const today = localISO();
@@ -176,6 +182,56 @@ describe("completing a mission", () => {
     expect(result.current.state.dayComplete).toBe(true);
     expect(result.current.state.streak).toBe(5);
     expect(result.current.state.longestStreak).toBe(5);
+  });
+
+  it("forges a streak shield every seventh consecutive day", () => {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `m-${i}`, xp: 10 })
+    );
+    const { result } = mount(
+      makeSave({
+        missions,
+        dailySelected: missions.map((m) => m.id),
+        streak: SHIELD_EVERY - 1,
+        shields: 0,
+      })
+    );
+
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+
+    expect(result.current.state.streak).toBe(SHIELD_EVERY);
+    expect(result.current.state.shields).toBe(1);
+  });
+
+  it("does not forge a shield on an ordinary day", () => {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `m-${i}`, xp: 10 })
+    );
+    const { result } = mount(
+      makeSave({ missions, dailySelected: missions.map((m) => m.id), streak: 2, shields: 1 })
+    );
+
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+
+    expect(result.current.state.shields).toBe(1);
+  });
+
+  it("caps banked shields so the streak still means something", () => {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `m-${i}`, xp: 10 })
+    );
+    const { result } = mount(
+      makeSave({
+        missions,
+        dailySelected: missions.map((m) => m.id),
+        streak: SHIELD_EVERY - 1,
+        shields: SHIELD_MAX,
+      })
+    );
+
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+
+    expect(result.current.state.shields).toBe(SHIELD_MAX);
   });
 
   it("promotes the hunter when the streak crosses a rank threshold", () => {
