@@ -47,6 +47,8 @@ export default function Dashboard({
   dailyMissions,
   dailyDone,
   dayComplete,
+  shields,
+  recovery,
   totalXP,
   weeklySeries,
   achievements,
@@ -188,6 +190,9 @@ export default function Dashboard({
           dailyMissions={dailyMissions}
           dailyDone={dailyDone}
           dayComplete={dayComplete}
+          shields={shields}
+          streak={streak}
+          recovery={recovery}
           onGoPick={() => setView("missions")}
         />
 

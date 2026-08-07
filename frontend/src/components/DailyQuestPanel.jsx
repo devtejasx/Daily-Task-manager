@@ -1,8 +1,83 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, CheckCircle2, Circle, Target } from "lucide-react";
-import { DAILY_REQUIRED } from "../game/constants";
+import { AlertTriangle, CheckCircle2, Circle, Hourglass, ShieldCheck, Target } from "lucide-react";
+import { DAILY_REQUIRED, SHIELD_MAX, daysToNextShield } from "../game/constants";
 
-export default function DailyQuestPanel({ dailyMissions, dailyDone, dayComplete, onGoPick }) {
+/**
+ * The Resolve meter. A hunter should never have to wonder how protected they
+ * are, so the shields they hold are always on screen next to the quest that
+ * earns them — filled pips for banked shields, hollow for the ones ahead.
+ */
+function ResolveMeter({ shields, streak }) {
+  const toNext = daysToNextShield(streak);
+  const full = shields >= SHIELD_MAX;
+
+  return (
+    <div className="mt-3 flex items-center gap-2.5 flex-wrap">
+      <div className="flex items-center gap-1.5" title={`${shields} of ${SHIELD_MAX} Streak Shields banked`}>
+        {Array.from({ length: SHIELD_MAX }, (_, i) => {
+          const held = i < shields;
+          return (
+            <motion.span
+              key={i}
+              initial={false}
+              animate={{ scale: held ? 1 : 0.85, opacity: held ? 1 : 0.35 }}
+              transition={{ type: "spring", stiffness: 240, damping: 18 }}
+              style={held ? { filter: "drop-shadow(0 0 6px rgba(56,189,248,0.9))" } : undefined}
+            >
+              <ShieldCheck size={15} className={held ? "text-sky-300" : "text-slate-600"} />
+            </motion.span>
+          );
+        })}
+      </div>
+      <span className="text-[10px] font-semibold tracking-[0.14em] text-slate-400">
+        {shields > 0 ? (
+          <>RESOLVE BANKED — a missed day can&apos;t break you</>
+        ) : (
+          <>NO RESOLVE YET</>
+        )}
+        {!full && <span className="text-slate-500"> · next shield in {toNext}d</span>}
+      </span>
+    </div>
+  );
+}
+
+/** A preserved streak waiting to be reclaimed — the most motivating state. */
+function RecoveryBanner({ recovery }) {
+  return (
+    <motion.div
+      className="mt-4 flex items-center gap-2.5 rounded-xl border border-violet-400/40 bg-violet-500/10 px-3.5 py-2.5"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        boxShadow: [
+          "0 0 0px rgba(167,139,250,0)",
+          "0 0 22px rgba(167,139,250,0.35)",
+          "0 0 0px rgba(167,139,250,0)",
+        ],
+      }}
+      transition={{ boxShadow: { duration: 2.4, repeat: Infinity }, default: { duration: 0.4 } }}
+    >
+      <Hourglass size={17} className="text-violet-300 shrink-0" />
+      <span className="text-xs font-bold tracking-wide text-violet-200">
+        {recovery.streak} DAYS HELD FOR YOU
+        <span className="block text-[10px] font-semibold text-violet-200/70 mt-0.5 tracking-[0.15em]">
+          CLEAR TODAY&apos;S QUEST TO TAKE THE WHOLE CLIMB BACK
+        </span>
+      </span>
+    </motion.div>
+  );
+}
+
+export default function DailyQuestPanel({
+  dailyMissions,
+  dailyDone,
+  dayComplete,
+  shields = 0,
+  streak = 0,
+  recovery = null,
+  onGoPick,
+}) {
   const assigned = dailyMissions.length;
   const underAssigned = assigned < DAILY_REQUIRED;
 
@@ -52,6 +127,10 @@ export default function DailyQuestPanel({ dailyMissions, dailyDone, dayComplete,
           </motion.div>
         ))}
       </div>
+
+      <ResolveMeter shields={shields} streak={streak} />
+
+      <AnimatePresence>{recovery && <RecoveryBanner recovery={recovery} />}</AnimatePresence>
 
       {/* mission checklist */}
       <div className="mt-4 space-y-2">
