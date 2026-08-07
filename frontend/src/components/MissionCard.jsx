@@ -1,39 +1,34 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, memo, useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { CalendarDays, Clock, Trash2, Zap, Check, Swords, Target, Flag } from "lucide-react";
+import { Zap, Check, Swords, Flag, GripVertical } from "lucide-react";
 import { DIFFICULTIES } from "../data/missions";
-import { PRIORITIES, localISO } from "../game/constants";
+import { PRIORITIES } from "../game/constants";
+import { isOverdue } from "../utils/date";
 import ParticleBurst from "./ParticleBurst";
-
-function DueLabel({ dueDate }) {
-  const today = localISO();
-  const overdue = dueDate < today;
-  const isToday = dueDate === today;
-  const text = isToday
-    ? "Today"
-    : new Date(dueDate + "T00:00:00").toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      });
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
-        overdue ? "text-red-400" : isToday ? "text-cyan-300" : "text-slate-400"
-      }`}
-    >
-      <CalendarDays size={13} />
-      {overdue ? `Overdue · ${text}` : text}
-    </span>
-  );
-}
+import MissionActions from "./mission/MissionActions";
+import RecurrenceBadge from "./mission/RecurrenceBadge";
+import DeadlineMeta from "./mission/DeadlineMeta";
 
 const MissionCard = forwardRef(function MissionCard(
-  { mission, onComplete, onDelete, isDaily = false, dailyFull = false, onToggleDaily, enterDelay = 0 },
+  {
+    mission,
+    onComplete,
+    onDelete,
+    isDaily = false,
+    dailyFull = false,
+    onToggleDaily,
+    onSkipOccurrence,
+    onToggleRecurrencePaused,
+    enterDelay = 0,
+    dragHandleProps = null,
+    isDragging = false,
+  },
   ref
 ) {
   const diff = DIFFICULTIES[mission.difficulty];
   const priority = PRIORITIES[mission.priority] ?? null;
   const completed = mission.status === "completed";
+  const overdue = isOverdue(mission);
   const [bursting, setBursting] = useState(false);
   const [sweeping, setSweeping] = useState(false);
   const [xpFloat, setXpFloat] = useState(false);
@@ -81,16 +76,23 @@ const MissionCard = forwardRef(function MissionCard(
 
   return (
     <motion.div
-      layout
+      /* layout animations would fight dnd-kit's transform mid-drag */
+      layout={!isDragging}
       ref={(node) => {
         cardRef.current = node;
         if (typeof ref === "function") ref(node);
         else if (ref) ref.current = node;
       }}
-      onMouseMove={handleMove}
+      onMouseMove={isDragging ? undefined : handleMove}
       onMouseLeave={handleLeave}
-      style={{ rotateX: rX, rotateY: rY, transformPerspective: 900 }}
+      style={
+        isDragging
+          ? { transformPerspective: 900 }
+          : { rotateX: rX, rotateY: rY, transformPerspective: 900 }
+      }
       className="group relative"
+      role="article"
+      aria-label={`Mission: ${mission.title}`}
       initial={{ opacity: 0, y: 46, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{
@@ -105,8 +107,16 @@ const MissionCard = forwardRef(function MissionCard(
       <div
         className={`glass holo-scan neon-border rounded-2xl p-4 sm:p-5 relative overflow-hidden transition-shadow duration-300
           group-hover:shadow-[0_18px_50px_-12px_rgba(124,58,237,0.45),0_0_30px_rgba(6,182,212,0.15)]
-          ${completed ? "opacity-75" : ""}`}
+          ${completed ? "opacity-75" : ""}
+          ${overdue ? "is-overdue" : ""}`}
       >
+        {/* overdue rail — a red pulse down the leading edge */}
+        {overdue && (
+          <span
+            className="absolute left-0 inset-y-0 w-[3px] bg-gradient-to-b from-red-500 via-rose-400 to-red-500 animate-pulse"
+            aria-hidden
+          />
+        )}
         {/* energy sweep when completing */}
         <AnimatePresence>
           {sweeping && (
@@ -148,12 +158,35 @@ const MissionCard = forwardRef(function MissionCard(
           </span>
         )}
 
+        {/* drag handle — only rendered inside a sortable list */}
+        {dragHandleProps && (
+          <button
+            type="button"
+            {...dragHandleProps}
+            aria-label={`Reorder mission: ${mission.title}. Press space, then use the arrow keys.`}
+            title="Drag to reorder · Space + arrows with a keyboard"
+            className="absolute top-1.5 right-1.5 z-20 p-1.5 rounded-lg text-slate-600 hover:text-cyan-300 hover:bg-cyan-400/10
+              cursor-grab active:cursor-grabbing touch-none transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70
+              opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+          >
+            <GripVertical size={14} aria-hidden />
+          </button>
+        )}
+
         <div className="flex items-start gap-3 sm:gap-4 relative">
           {/* rune checkbox */}
           <button
+            type="button"
             onClick={handleComplete}
-            aria-label={completed ? "Mission completed" : "Complete mission"}
+            aria-pressed={completed}
+            aria-label={
+              completed
+                ? `${mission.title} — cleared`
+                : `Complete mission: ${mission.title}, worth ${mission.xp} XP`
+            }
             className={`relative mt-0.5 shrink-0 w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-300
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70
               ${
                 completed
                   ? "border-emerald-400/60 bg-emerald-400/10 shadow-[0_0_16px_rgba(16,185,129,0.5)]"
@@ -161,7 +194,7 @@ const MissionCard = forwardRef(function MissionCard(
               }`}
           >
             {completed ? (
-              <Check size={17} className="text-emerald-300" />
+              <Check size={17} className="text-emerald-300" aria-hidden />
             ) : (
               <span className="text-violet-300/80 text-sm group-hover:text-cyan-200 transition-colors">
                 ◈
@@ -199,13 +232,7 @@ const MissionCard = forwardRef(function MissionCard(
             </p>
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3">
-              <DueLabel dueDate={mission.dueDate} />
-              {mission.dueTime && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
-                  <Clock size={12} />
-                  {mission.dueTime}
-                </span>
-              )}
+              <DeadlineMeta mission={mission} />
               <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-300/90">
                 <Zap size={13} className="fill-amber-300/40" />+{mission.xp} XP
               </span>
@@ -222,6 +249,7 @@ const MissionCard = forwardRef(function MissionCard(
                   {priority.label}
                 </span>
               )}
+              <RecurrenceBadge recurrence={mission.recurrence} />
               <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-violet-300/70 border border-violet-400/25 bg-violet-500/10 px-2 py-0.5 rounded-full">
                 {mission.category}
               </span>
@@ -237,46 +265,22 @@ const MissionCard = forwardRef(function MissionCard(
             </div>
           </div>
 
-          <div className="flex flex-col gap-1 shrink-0">
-          {/* daily quest toggle */}
-          {onToggleDaily && !completed && (
-            <motion.button
-              onClick={() => onToggleDaily(mission.id)}
-              aria-label={isDaily ? "Remove from daily missions" : "Set as daily mission"}
-              title={
-                isDaily
-                  ? "Remove from today's required missions"
-                  : dailyFull
-                  ? "Daily slots full (4/4)"
-                  : "Set as today's required mission"
-              }
-              disabled={!isDaily && dailyFull}
-              className={`p-2 rounded-lg transition-all ${
-                isDaily
-                  ? "text-violet-300 bg-violet-500/15 shadow-[0_0_14px_rgba(124,58,237,0.45)]"
-                  : dailyFull
-                  ? "text-slate-700 cursor-not-allowed"
-                  : "text-slate-500 hover:text-violet-300 hover:bg-violet-500/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-              }`}
-              whileTap={{ scale: 0.85 }}
-            >
-              <Target size={16} />
-            </motion.button>
-          )}
-          {/* delete */}
-          <motion.button
-            onClick={() => onDelete(mission.id)}
-            aria-label="Delete mission"
-            className="shrink-0 p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 hover:shadow-[0_0_14px_rgba(239,68,68,0.35)] transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-            whileTap={{ scale: 0.85 }}
-          >
-            <Trash2 size={16} />
-          </motion.button>
-          </div>
+          <MissionActions
+            mission={mission}
+            completed={completed}
+            isDaily={isDaily}
+            dailyFull={dailyFull}
+            onToggleDaily={onToggleDaily}
+            onSkipOccurrence={onSkipOccurrence}
+            onToggleRecurrencePaused={onToggleRecurrencePaused}
+            onDelete={onDelete}
+          />
         </div>
       </div>
     </motion.div>
   );
 });
 
-export default MissionCard;
+// Memoised: the board re-renders on every countdown tick and toast, but a
+// card only changes when its own mission or handlers do.
+export default memo(MissionCard);

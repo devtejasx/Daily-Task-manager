@@ -113,6 +113,45 @@ export const PRIORITIES = {
   CRITICAL: { label: "Critical", color: "#ef4444" },
 };
 
+/* ---------- interface themes ----------
+ * Themes re-tint the ambient aura, neon borders and glows via the
+ * [data-theme] selectors in index.css. The Solo-Leveling glass/hologram
+ * language is identical across all four — only the mana colour changes. */
+export const THEMES = {
+  arcane: { label: "Arcane", desc: "Violet & cyan — the system default.", swatch: ["#7c3aed", "#06b6d4"] },
+  shadow: { label: "Shadow", desc: "Deep monarch violet, low light.", swatch: ["#4c1d95", "#a78bfa"] },
+  frost: { label: "Frost", desc: "Ice blue, high clarity.", swatch: ["#0ea5e9", "#67e8f9"] },
+  ember: { label: "Ember", desc: "Molten amber for late raids.", swatch: ["#f59e0b", "#ef4444"] },
+};
+
+/* ---------- recurrence ---------- */
+export const RECURRENCE_TYPES = {
+  daily: { label: "Daily", desc: "Repeats every day" },
+  weekly: { label: "Weekly", desc: "Repeats every week" },
+  monthly: { label: "Monthly", desc: "Repeats every month" },
+  custom: { label: "Custom", desc: "Repeats every N days" },
+};
+
+/* ---------- reminders (minutes before the due moment) ---------- */
+export const REMINDER_OPTIONS = [
+  { value: 5, label: "5 min before" },
+  { value: 15, label: "15 min before" },
+  { value: 30, label: "30 min before" },
+  { value: 60, label: "1 hour before" },
+  { value: 1440, label: "1 day before" },
+];
+
+/* ---------- pomodoro defaults ---------- */
+export const POMODORO_DEFAULTS = { work: 25, shortBreak: 5, longBreak: 15, rounds: 4 };
+
+/* ---------- habits ---------- */
+export const HABIT_CADENCES = {
+  daily: { label: "Every day", targetPerWeek: 7 },
+  weekdays: { label: "Weekdays", targetPerWeek: 5 },
+  weekly3: { label: "3× a week", targetPerWeek: 3 },
+  weekly1: { label: "Once a week", targetPerWeek: 1 },
+};
+
 /* ---------- achievements ---------- */
 export const ACHIEVEMENTS = [
   { id: "first-mission", title: "First Awakening", desc: "Complete your first mission.", icon: "Sunrise", color: "#06b6d4", test: (s) => s.history.length >= 1 },

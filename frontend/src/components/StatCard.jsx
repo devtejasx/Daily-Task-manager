@@ -1,8 +1,17 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { useCountUp } from "../hooks/useCountUp";
 
-export default function StatCard({ icon: Icon, label, value, suffix = "", accent = "#7c3aed", delay = 0 }) {
-  const count = useCountUp(value);
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  suffix = "",
+  accent = "#7c3aed",
+  delay = 0,
+  decimals = 0,
+}) {
+  const count = useCountUp(value, 1200, decimals);
   return (
     <motion.div
       className="glass holo-scan rounded-2xl p-4 sm:p-5 relative overflow-hidden group"
@@ -25,7 +34,10 @@ export default function StatCard({ icon: Icon, label, value, suffix = "", accent
             className="font-display text-2xl sm:text-3xl font-bold mt-2"
             style={{ color: accent, textShadow: `0 0 16px ${accent}66` }}
           >
-            {count.toLocaleString()}
+            {count.toLocaleString(undefined, {
+              minimumFractionDigits: decimals,
+              maximumFractionDigits: decimals,
+            })}
             {suffix}
           </p>
         </div>
@@ -43,3 +55,6 @@ export default function StatCard({ icon: Icon, label, value, suffix = "", accent
     </motion.div>
   );
 }
+
+// Stat values change rarely; the parent re-renders constantly.
+export default memo(StatCard);

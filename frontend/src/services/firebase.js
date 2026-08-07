@@ -1,6 +1,10 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { initializeFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentSingleTabManager,
+} from "firebase/firestore";
 
 /**
  * Firebase initialization — single instance shared across the app.
@@ -24,8 +28,13 @@ export const auth = getAuth(app);
 // Force long-polling: Firestore's default WebChannel transport is blocked by
 // some proxies/firewalls/embedded browsers, which makes writes hang forever.
 // Long-polling works everywhere; the perf difference is negligible at this scale.
+// IndexedDB persistence makes the app work offline: reads are served from the
+// local cache and writes are queued and replayed automatically once the
+// connection returns. Single-tab manager is deliberate — the whole game is one
+// document, so two tabs syncing concurrently would fight over it.
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() }),
 });
 export const googleProvider = new GoogleAuthProvider();
 

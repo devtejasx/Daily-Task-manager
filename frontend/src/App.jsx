@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useLocation, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { Plus } from "lucide-react";
 import Background from "./components/Background";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import AddMissionModal from "./components/AddMissionModal";
+import PomodoroTimer from "./components/PomodoroTimer";
 import {
   LevelUpOverlay,
   PromotionOverlay,
@@ -15,13 +17,16 @@ import {
 } from "./components/Cinematics";
 import { XPAnimation } from "./components/CinematicLayers";
 import { useAuthGate } from "./components/auth/AuthGate";
-import Dashboard from "./views/Dashboard";
-import Missions from "./views/Missions";
-import Calendar from "./views/Calendar";
-import Achievements from "./views/Achievements";
-import Settings from "./views/Settings";
+import LiveAnnouncer from "./components/ui/LiveAnnouncer";
+import AppRoutes from "./AppRoutes";
+import { pathForView, resolvePath, FALLBACK_PATH, KNOWN_PATHS } from "./routes";
 import { useGameState } from "./hooks/useGameState";
-import { writeSave } from "./lib/saveService";
+import { useGameFx } from "./hooks/useGameFx";
+import { useReminders } from "./hooks/useReminders";
+import { useMissionFilters } from "./hooks/useMissionFilters";
+import { applyFilters } from "./utils/filters";
+import { useCloudSave } from "./hooks/useCloudSave";
+import { useProtectedActions } from "./hooks/useProtectedActions";
 
 const pageVariants = {
   initial: { opacity: 0, y: 26, filter: "blur(6px)" },
@@ -32,14 +37,21 @@ const pageVariants = {
 export default function App({ user, initialSave, onSignOut }) {
   const { requireAuth, pendingIntent, consumeIntent } = useAuthGate();
 
+  // Cloud save owns its own retry/backoff and reports failures as a toast.
+  // The toast dispatcher lives in the reducer below, so it is reached through
+  // a ref to break the circular dependency (save needs toasts, toasts live in
+  // the state the save persists).
+  const pushToastRef = useRef(null);
+  const { persist: writeToCloud } = useCloudSave(user?.uid ?? null, (toast) =>
+    pushToastRef.current?.(toast)
+  );
+
   const persist = useCallback(
-    (state) => {
+    (nextState) => {
       if (!user) return; // guests explore in-memory only; nothing is written
-      writeSave(user.uid, state).catch((err) =>
-        console.error("Cloud save failed:", err)
-      );
+      writeToCloud(nextState);
     },
-    [user]
+    [user, writeToCloud]
   );
 
   const {
@@ -55,114 +67,96 @@ export default function App({ user, initialSave, onSignOut }) {
     defaultMissionXP,
   } = useGameState(initialSave, persist);
 
-  const [view, setView] = useState("dashboard");
-  const [search, setSearch] = useState("");
+  pushToastRef.current = actions.pushToast;
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  /** Legacy call sites still say setView("achievements"); route them. */
+  const setView = useCallback((view) => navigate(pathForView(view)), [navigate]);
+
+  // An unknown URL (or "/") renders the dashboard straight away, and the
+  // address bar is corrected separately. Doing it this way — rather than
+  // leaving it to a redirecting <Route> — keeps the page-transition key
+  // stable through the redirect; otherwise AnimatePresence mode="wait" is
+  // left holding an exiting child and the screen stays blank.
+  const routedPath = resolvePath(location.pathname);
+  const routedLocation = useMemo(
+    () => (routedPath === location.pathname ? location : { ...location, pathname: routedPath }),
+    [location, routedPath]
+  );
+
+  useEffect(() => {
+    if (!KNOWN_PATHS.has(location.pathname)) navigate(FALLBACK_PATH, { replace: true });
+  }, [location.pathname, navigate]);
+
   const [modalOpen, setModalOpen] = useState(false);
+  const [pomodoroOpen, setPomodoroOpen] = useState(false);
   const [templateSeed, setTemplateSeed] = useState(null);
-  const [dimmed, setDimmed] = useState(false);
-  const [introDone, setIntroDone] = useState(false);
-  const [xpBurst, setXpBurst] = useState(null);
-  const [xpPulse, setXpPulse] = useState(0);
-  const [missionPulse, setMissionPulse] = useState(0);
-  const [levelPulse, setLevelPulse] = useState(0);
-  const [promotionPulse, setPromotionPulse] = useState(0);
-  const previousXP = useRef(state.totalXP);
-  const previousHistoryId = useRef(state.history[0]?.id ?? null);
-  const previousLevelUp = useRef(state.fx.levelUp);
-  const previousPromotion = useRef(state.fx.promotion);
+  // Dimmed ambience is a persisted preference now, so it survives a reload
+  // and follows the hunter across devices. Supports the updater form the
+  // top-bar toggle uses.
+  const dimmed = state.settings.dimmed;
+  const setDimmed = useCallback(
+    (next) =>
+      actions.updateSettings({
+        dimmed: typeof next === "function" ? next(state.settings.dimmed) : next,
+      }),
+    [actions, state.settings.dimmed]
+  );
+  // One-shot cinematics derived from state transitions (XP bursts, level-up
+  // and promotion pulses through the background scene).
+  const { xpBurst, xpPulse, missionPulse, levelPulse, promotionPulse } = useGameFx(state);
 
   useToastAutoDismiss(state.fx.toasts, actions.dismissToast);
 
-  // The cinematic intro now lives at the app root (WelcomeIntro, once per
-  // session). Settle FX baselines shortly after mount so loading a save
-  // doesn't fire an XP burst / level-up on the first render.
-  useEffect(() => {
-    const t = window.setTimeout(() => setIntroDone(true), 400);
-    return () => window.clearTimeout(t);
-  }, []);
+  // Deadline reminders. Guests get none — nothing they do is persisted, so a
+  // notification would outlive the state that produced it.
+  useReminders(user ? state.missions : [], state.settings, actions.updateMission);
 
-  useEffect(() => {
-    if (!introDone) {
-      previousXP.current = state.totalXP;
-      return undefined;
-    }
-    const before = previousXP.current;
-    if (state.totalXP > before) {
-      setXpBurst({ id: `${before}-${state.totalXP}-${Date.now()}`, amount: state.totalXP - before });
-      setXpPulse((value) => value + 1);
-    }
-    previousXP.current = state.totalXP;
-    return undefined;
-  }, [introDone, state.totalXP]);
+  // The board is always presented in the hunter's manual order; search only
+  // narrows it, never re-sorts it.
+  const ordered = useMemo(
+    () => [...state.missions].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [state.missions]
+  );
 
-  useEffect(() => {
-    if (!xpBurst) return undefined;
-    const timer = window.setTimeout(() => setXpBurst(null), 1600);
-    return () => window.clearTimeout(timer);
-  }, [xpBurst]);
+  // One filter store, two consumers: the mission board applies every facet,
+  // while the dashboard and calendar only honour the shared search term so a
+  // "completed only" filter can't hollow out today's gates.
+  const { filters, filtered, activeCount, patch, toggle, reset } = useMissionFilters(ordered, {
+    dailySelected: state.dailySelected,
+  });
 
-  useEffect(() => {
-    if (!introDone) {
-      previousHistoryId.current = state.history[0]?.id ?? null;
-      return undefined;
-    }
+  const searchFiltered = useMemo(
+    () => applyFilters(ordered, { search: filters.search }),
+    [ordered, filters.search]
+  );
 
-    const latestHistoryId = state.history[0]?.id ?? null;
-    if (latestHistoryId && latestHistoryId !== previousHistoryId.current) {
-      setMissionPulse((value) => value + 1);
-    }
-    previousHistoryId.current = latestHistoryId;
-    return undefined;
-  }, [introDone, state.history]);
-
-  useEffect(() => {
-    if (!introDone) {
-      previousLevelUp.current = state.fx.levelUp;
-      return undefined;
-    }
-    if (state.fx.levelUp && state.fx.levelUp !== previousLevelUp.current) {
-      setLevelPulse((value) => value + 1);
-    }
-    if (!state.fx.levelUp) previousLevelUp.current = null;
-    else previousLevelUp.current = state.fx.levelUp;
-    return undefined;
-  }, [introDone, state.fx.levelUp]);
-
-  useEffect(() => {
-    if (!introDone) {
-      previousPromotion.current = state.fx.promotion;
-      return undefined;
-    }
-    if (state.fx.promotion && state.fx.promotion !== previousPromotion.current) {
-      setPromotionPulse((value) => value + 1);
-    }
-    if (!state.fx.promotion) previousPromotion.current = null;
-    else previousPromotion.current = state.fx.promotion;
-    return undefined;
-  }, [introDone, state.fx.promotion]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return state.missions;
-    return state.missions.filter(
-      (m) =>
-        m.title.toLowerCase().includes(q) ||
-        m.description.toLowerCase().includes(q) ||
-        m.category.toLowerCase().includes(q)
-    );
-  }, [state.missions, search]);
+  const filterProps = useMemo(
+    () => ({ filters, activeCount, patch, toggle, reset }),
+    [filters, activeCount, patch, toggle, reset]
+  );
 
   // Protected actions: run for signed-in hunters, prompt login for guests.
   // "create-mission" intent lets a guest resume the New Mission form after login.
-  const openAdd = (seed = null) =>
-    requireAuth(() => {
-      setTemplateSeed(seed);
-      setModalOpen(true);
-    }, "create-mission");
-  const closeAdd = () => {
+  // Every handler below is stable so the memoised mission cards and lists
+  // don't re-render on unrelated state changes (a ticking countdown, a toast).
+  const openAdd = useCallback(
+    (seed = null) =>
+      requireAuth(() => {
+        setTemplateSeed(seed);
+        setModalOpen(true);
+      }, "create-mission"),
+    [requireAuth]
+  );
+  const closeAdd = useCallback(() => {
     setModalOpen(false);
     setTemplateSeed(null);
-  };
+  }, []);
+
+  /** Every state-changing action, wrapped in the guest login gate. */
+  const guarded = useProtectedActions(actions, requireAuth);
+  const handleQuickAdd = useCallback((dueDate) => openAdd({ dueDate }), [openAdd]);
 
   // Resume a pending action carried across the guest -> authed remount.
   useEffect(() => {
@@ -172,34 +166,123 @@ export default function App({ user, initialSave, onSignOut }) {
     }
   }, [user, pendingIntent, consumeIntent]);
 
-  const viewProps = {
-    missions: filtered,
-    history: state.history,
-    stats,
-    levelInfo,
-    rank,
-    rankIdx: rankIndex,
-    streak: state.streak,
-    longestStreak: state.longestStreak,
-    dailyMissions,
-    dailyDone,
-    dayComplete: state.dayComplete,
-    dailySelected: state.dailySelected,
-    totalXP: state.totalXP,
-    weeklySeries,
-    achievements: state.achievements,
-    isGuest: !user,
-    onComplete: (id) => requireAuth(() => actions.completeMission(id)),
-    onDelete: (id) => requireAuth(() => actions.deleteMission(id)),
-    onToggleDaily: (id) => requireAuth(() => actions.toggleDaily(id)),
-    onOpenAdd: () => openAdd(),
-    onUseTemplate: (preset) => openAdd(preset),
-    setView,
-  };
+  const viewProps = useMemo(
+    () => ({
+      missions: searchFiltered,
+      history: state.history,
+      stats,
+      levelInfo,
+      rank,
+      rankIdx: rankIndex,
+      streak: state.streak,
+      longestStreak: state.longestStreak,
+      dailyMissions,
+      dailyDone,
+      dayComplete: state.dayComplete,
+      dailySelected: state.dailySelected,
+      totalXP: state.totalXP,
+      weeklySeries,
+      achievements: state.achievements,
+      isGuest: !user,
+      onComplete: guarded.complete,
+      onDelete: guarded.remove,
+      onToggleDaily: guarded.toggleDaily,
+      onSkipOccurrence: guarded.skipOccurrence,
+      onReorder: guarded.reorder,
+      onToggleRecurrencePaused: guarded.setRecurrencePaused,
+      onOpenAdd: openAdd,
+      onUseTemplate: openAdd,
+      setView,
+    }),
+    [
+      searchFiltered,
+      state.history,
+      state.streak,
+      state.longestStreak,
+      state.dayComplete,
+      state.dailySelected,
+      state.totalXP,
+      state.achievements,
+      stats,
+      levelInfo,
+      rank,
+      rankIndex,
+      dailyMissions,
+      dailyDone,
+      weeklySeries,
+      user,
+      guarded,
+      openAdd,
+      setView,
+    ]
+  );
+
+  /** Extra props only the mission board needs (its own filtered slice). */
+  const boardProps = useMemo(
+    () => ({
+      missions: filtered,
+      totalMissions: state.missions.length,
+      filterProps,
+    }),
+    [filtered, state.missions.length, filterProps]
+  );
+
+  /** Per-route props for the pages that don't take the shared viewProps. */
+  const pageProps = useMemo(
+    () => ({
+      calendar: {
+        missions: searchFiltered,
+        onMoveMission: guarded.moveMission,
+        onQuickAdd: handleQuickAdd,
+      },
+      habits: {
+        habits: state.habits,
+        onAdd: guarded.addHabit,
+        onDelete: guarded.deleteHabit,
+        onToggleDay: guarded.toggleHabitDay,
+      },
+      analytics: {
+        missions: state.missions,
+        history: state.history,
+        streak: state.streak,
+        longestStreak: state.longestStreak,
+        totalXP: state.totalXP,
+      },
+      achievements: { achievements: state.achievements },
+      settings: {
+        settings: state.settings,
+        onUpdateSettings: guarded.updateSettings,
+        state,
+        onImport: guarded.importSave,
+        levelXP: defaultMissionXP,
+        dimmed,
+        setDimmed,
+        user,
+        onSignOut,
+        sim: guarded.sim,
+      },
+    }),
+    [
+      state,
+      searchFiltered,
+      defaultMissionXP,
+      dimmed,
+      setDimmed,
+      user,
+      onSignOut,
+      guarded,
+      handleQuickAdd,
+    ]
+  );
 
   return (
+    /* "never" keeps every cinematic; "always" collapses framer-motion to
+       instant transitions. The CSS side is handled by [data-animations]. */
+    <MotionConfig reducedMotion={state.settings.animations ? "never" : "always"}>
     <div
       data-rank={rank.key}
+      data-theme={state.settings.theme}
+      data-animations={state.settings.animations ? "on" : "off"}
       className="min-h-full transition-[filter] duration-700"
       style={{ filter: dimmed ? "brightness(0.72) saturate(0.85)" : "none" }}
     >
@@ -211,7 +294,14 @@ export default function App({ user, initialSave, onSignOut }) {
         promotionPulse={promotionPulse}
       />
       <div className="rank-aura" aria-hidden />
-      <Sidebar view={view} setView={setView} />
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:px-4 focus:py-2
+          focus:rounded-xl focus:bg-violet-600 focus:text-white focus:text-xs focus:font-bold focus:tracking-widest"
+      >
+        SKIP TO CONTENT
+      </a>
+      <Sidebar />
 
       <div className="lg:pl-[92px] xl:pl-60 pb-24 lg:pb-8 min-h-screen flex flex-col">
         <TopBar
@@ -219,32 +309,30 @@ export default function App({ user, initialSave, onSignOut }) {
           levelInfo={levelInfo}
           rank={rank}
           streak={state.streak}
-          search={search}
-          setSearch={setSearch}
+          search={filters.search}
+          setSearch={(value) => patch({ search: value })}
           dimmed={dimmed}
           setDimmed={setDimmed}
+          onTogglePomodoro={() => setPomodoroOpen((v) => !v)}
+          pomodoroOpen={pomodoroOpen}
         />
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-6xl w-full mx-auto">
+        <main id="main-content" className="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-6xl w-full mx-auto">
+          {/* Keyed on pathname so the page transition still plays on navigation,
+              including browser back/forward. */}
           <AnimatePresence mode="wait">
-            <motion.div key={view} variants={pageVariants} initial="initial" animate="animate" exit="exit">
-              {view === "dashboard" && <Dashboard {...viewProps} />}
-              {view === "missions" && <Missions {...viewProps} />}
-              {view === "calendar" && <Calendar missions={filtered} />}
-              {view === "achievements" && <Achievements achievements={state.achievements} />}
-              {view === "settings" && (
-                <Settings
-                  dimmed={dimmed}
-                  setDimmed={setDimmed}
-                  user={user}
-                  onSignOut={onSignOut}
-                  sim={{
-                    nextDay: () => requireAuth(actions.simNextDay),
-                    addStreak: (days) => requireAuth(() => actions.simAddStreak(days)),
-                    addXP: (xp) => requireAuth(() => actions.simAddXP(xp)),
-                    reset: () => requireAuth(actions.resetSave),
-                  }}
-                />
-              )}
+            <motion.div
+              key={routedPath}
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <AppRoutes
+                location={routedLocation}
+                viewProps={viewProps}
+                boardProps={boardProps}
+                pageProps={pageProps}
+              />
             </motion.div>
           </AnimatePresence>
         </main>
@@ -272,6 +360,15 @@ export default function App({ user, initialSave, onSignOut }) {
         initial={templateSeed}
         onAdd={actions.addMission}
         defaultXP={defaultMissionXP}
+        defaults={state.settings.defaults}
+      />
+
+      {/* Mounted at the root so the countdown survives route changes. */}
+      <PomodoroTimer
+        open={pomodoroOpen}
+        onClose={() => setPomodoroOpen(false)}
+        settings={state.settings}
+        onUpdateDurations={(pomodoro) => actions.updateSettings({ pomodoro })}
       />
 
       <XPAnimation amount={xpBurst?.amount ?? 0} active={Boolean(xpBurst)} />
@@ -297,7 +394,16 @@ export default function App({ user, initialSave, onSignOut }) {
         )}
       </AnimatePresence>
 
+      {/* Mirrors the silent cinematics for screen readers. */}
+      <LiveAnnouncer
+        totalXP={state.totalXP}
+        level={levelInfo.level}
+        rankTitle={rank.title}
+        streak={state.streak}
+      />
+
       <ToastStack toasts={state.fx.toasts} onDismiss={actions.dismissToast} />
     </div>
+    </MotionConfig>
   );
 }

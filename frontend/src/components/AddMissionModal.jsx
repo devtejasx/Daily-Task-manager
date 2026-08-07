@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, ChevronDown } from "lucide-react";
 import { DIFFICULTIES, CATEGORIES } from "../data/missions";
 import { PRIORITIES, localISO } from "../game/constants";
+import RecurrencePicker from "./mission/RecurrencePicker";
+import ReminderPicker from "./mission/ReminderPicker";
 
 const BLANK = {
   title: "",
@@ -13,10 +15,33 @@ const BLANK = {
   dueTime: "18:00",
   category: "Training",
   xp: null, // null -> use defaultXP
+  recurrence: null, // null -> one-off mission
+  reminder: null, // minutes before due
+  endDate: null, // multi-day span end
 };
 
-export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300, initial = null }) {
-  const [form, setForm] = useState(BLANK);
+/** Seed values from the hunter's saved defaults, then the template, then BLANK. */
+function seedForm(defaults, initial) {
+  return {
+    ...BLANK,
+    priority: defaults?.priority ?? BLANK.priority,
+    difficulty: defaults?.difficulty ?? BLANK.difficulty,
+    category: defaults?.category ?? BLANK.category,
+    reminder: defaults?.reminder ?? BLANK.reminder,
+    xp: defaults?.xp ?? BLANK.xp,
+    ...(initial || {}),
+  };
+}
+
+export default function AddMissionModal({
+  open,
+  onClose,
+  onAdd,
+  defaultXP = 300,
+  initial = null,
+  defaults = null,
+}) {
+  const [form, setForm] = useState(() => seedForm(defaults, null));
   const [pulsing, setPulsing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -24,11 +49,11 @@ export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300,
   const wasOpen = useRef(false);
   useEffect(() => {
     if (open && !wasOpen.current) {
-      setForm({ ...BLANK, ...(initial || {}) });
+      setForm(seedForm(defaults, initial));
       setShowAdvanced(false);
     }
     wasOpen.current = open;
-  }, [open, initial]);
+  }, [open, initial, defaults]);
 
   // Esc to close (Enter-to-create is native form submit)
   useEffect(() => {
@@ -55,7 +80,7 @@ export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300,
         status: "active",
       });
       setPulsing(false);
-      setForm((f) => ({ ...f, title: "", description: "", xp: null }));
+      setForm((f) => ({ ...f, title: "", description: "", xp: null, recurrence: null }));
       onClose();
     }, 350);
   };
@@ -210,6 +235,11 @@ export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300,
                       />
                     </div>
 
+                    <RecurrencePicker
+                      value={form.recurrence}
+                      onChange={(recurrence) => setForm((f) => ({ ...f, recurrence }))}
+                    />
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-violet-300/80">
@@ -261,6 +291,28 @@ export default function AddMissionModal({ open, onClose, onAdd, defaultXP = 300,
                             className="holo-input mt-1.5 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-100 [color-scheme:dark]"
                           />
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <ReminderPicker
+                        value={form.reminder}
+                        onChange={(reminder) => setForm((f) => ({ ...f, reminder }))}
+                      />
+                      <div>
+                        <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-violet-300/80">
+                          Ends (multi-day)
+                        </label>
+                        <input
+                          type="date"
+                          aria-label="Mission end date for multi-day missions"
+                          min={form.dueDate}
+                          value={form.endDate ?? ""}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, endDate: e.target.value || null }))
+                          }
+                          className="holo-input mt-1.5 w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-100 [color-scheme:dark]"
+                        />
                       </div>
                     </div>
                   </motion.div>

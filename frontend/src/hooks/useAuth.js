@@ -7,7 +7,7 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { auth, googleProvider, authErrorMessage } from "../lib/firebase";
+import { auth, googleProvider, authErrorMessage } from "../services/firebase";
 
 /**
  * Firebase Auth state + actions.
