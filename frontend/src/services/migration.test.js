@@ -6,7 +6,9 @@ import {
   mergeSettings,
   DEFAULT_SETTINGS,
   SCHEMA_VERSION,
+  normalizeRecovery,
 } from "./migration";
+import { SHIELD_MAX } from "../game/constants";
 
 /** A v1 save exactly as an existing hunter's document would look. */
 function legacySave() {
@@ -201,5 +203,50 @@ describe("mergeSettings", () => {
   it("returns the defaults for null or nonsense input", () => {
     expect(mergeSettings(null)).toEqual(DEFAULT_SETTINGS);
     expect(mergeSettings("nope")).toEqual(DEFAULT_SETTINGS);
+  });
+});
+
+describe("v2 -> v3 (the Resolve system)", () => {
+  it("credits a returning hunter with a full shield buffer", () => {
+    // They earned that streak under the old rules, where one missed day wiped
+    // it. Arriving with an empty buffer would be a harsher game than they left.
+    const out = migrateSave({ version: 2, streak: 40, missions: [], history: [] });
+    expect(out.shields).toBe(SHIELD_MAX);
+  });
+
+  it("leaves a hunter with no streak at zero shields", () => {
+    const out = migrateSave({ version: 2, streak: 0, missions: [], history: [] });
+    expect(out.shields).toBe(0);
+  });
+
+  it("never overwrites a shield count the hunter already has", () => {
+    const out = migrateSave({ version: 2, streak: 40, shields: 1, missions: [], history: [] });
+    expect(out.shields).toBe(1);
+  });
+
+  it("defaults a save with no recovery entry to none pending", () => {
+    expect(migrateSave(legacySave()).recovery).toBe(null);
+  });
+
+  it("keeps a well-formed recovery entry intact", () => {
+    const out = migrateSave({
+      version: 3,
+      recovery: { streak: 12, since: "2026-08-01" },
+      missions: [],
+      history: [],
+    });
+    expect(out.recovery).toEqual({ streak: 12, since: "2026-08-01" });
+  });
+
+  it("discards a malformed recovery entry rather than trusting it", () => {
+    expect(normalizeRecovery({ streak: 0, since: "2026-08-01" })).toBe(null);
+    expect(normalizeRecovery({ streak: 5 })).toBe(null);
+    expect(normalizeRecovery("nonsense")).toBe(null);
+    expect(normalizeRecovery(null)).toBe(null);
+  });
+
+  it("is idempotent — migrating twice changes nothing", () => {
+    const once = migrateSave({ version: 2, streak: 40, missions: [], history: [] });
+    expect(migrateSave(once)).toEqual(once);
   });
 });
