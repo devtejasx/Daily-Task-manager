@@ -1,17 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import WelcomeIntro from "./components/cinematic/WelcomeIntro.jsx";
+import Landing from "./pages/Landing.jsx";
 import { AuthGateProvider } from "./components/auth/AuthGate.jsx";
 import BootScreen from "./components/ui/BootScreen.jsx";
 import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
 import PWAPrompt from "./components/ui/PWAPrompt.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { loadSave } from "./services/saveService";
+import { buildDemoSave } from "./data/demoSave";
 import "./index.css";
 
 const INTRO_KEY = "arise-intro-seen";
+const DEMO_KEY = "arise-demo";
 
 /** Loads the signed-in hunter's cloud save before mounting the game. */
 function SaveGate({ user, onSignOut }) {
@@ -60,23 +63,55 @@ function Root() {
     () => sessionStorage.getItem(INTRO_KEY) === "1"
   );
 
+  // Demo mode survives in-app navigation (it is a mode, not a route) but not
+  // a new session — a visitor should never come back tomorrow into someone
+  // else's save.
+  const [demo, setDemo] = useState(() => sessionStorage.getItem(DEMO_KEY) === "1");
+
+  // Built once per entry so every date in the showcase is relative to today.
+  const demoSave = useMemo(() => (demo ? buildDemoSave() : null), [demo]);
+
   const finishIntro = () => {
     sessionStorage.setItem(INTRO_KEY, "1");
     setIntroDone(true);
   };
 
+  const enterDemo = () => {
+    sessionStorage.setItem(DEMO_KEY, "1");
+    setDemo(true);
+  };
+
+  const exitDemo = () => {
+    sessionStorage.removeItem(DEMO_KEY);
+    setDemo(false);
+  };
+
+  // Signing in always wins over the demo: the hunter's own record is the
+  // point, and leaving the ribbon up over real data would be a lie.
+  useEffect(() => {
+    if (user && demo) exitDemo();
+  }, [user, demo]);
+
+  if (loading) return <BootScreen label="CONNECTING TO THE SYSTEM" />;
+
   return (
     <AuthGateProvider user={user}>
       {!introDone && <WelcomeIntro onEnter={finishIntro} />}
 
-      {loading ? (
-        <BootScreen label="CONNECTING TO THE SYSTEM" />
-      ) : user ? (
+      {user ? (
         // key by uid so switching accounts fully remounts the game state
         <SaveGate key={user.uid} user={user} onSignOut={logout} />
+      ) : demo ? (
+        <App
+          key="demo"
+          user={null}
+          initialSave={demoSave}
+          onSignOut={null}
+          demo
+          onExitDemo={exitDemo}
+        />
       ) : (
-        // Guest mode: explore the empty UI; protected actions open the login modal
-        <App user={null} initialSave={null} onSignOut={null} />
+        <Landing onEnterDemo={enterDemo} />
       )}
     </AuthGateProvider>
   );
