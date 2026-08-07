@@ -10,7 +10,10 @@ import PomodoroTimer from "./components/PomodoroTimer";
 import {
   LevelUpOverlay,
   PromotionOverlay,
-  MissionFailedOverlay,
+  ShieldHeldOverlay,
+  StreakPreservedOverlay,
+  StreakRecoveredOverlay,
+  NewClimbOverlay,
   NewDayBanner,
   ToastStack,
   useToastAutoDismiss,
@@ -108,6 +111,47 @@ export default function App({ user, initialSave, onSignOut }) {
   const { xpBurst, xpPulse, missionPulse, levelPulse, promotionPulse } = useGameFx(state);
 
   useToastAutoDismiss(state.fx.toasts, actions.dismissToast);
+
+  // The Resolve screens, in the order a hunter needs to hear them. Only one
+  // can be pending at a time, but resolving them here keeps the render tree
+  // flat and makes the precedence explicit rather than emergent.
+  const { shielded, preserved, recovered, reset: climbReset } = state.fx;
+  const resolveFx = useMemo(() => {
+    if (recovered)
+      return (
+        <StreakRecoveredOverlay
+          key="recovered"
+          streak={recovered.streak}
+          onClose={() => actions.dismissFx("recovered")}
+        />
+      );
+    if (shielded)
+      return (
+        <ShieldHeldOverlay
+          key="shielded"
+          streak={shielded.streak}
+          remaining={shielded.remaining}
+          onClose={() => actions.dismissFx("shielded")}
+        />
+      );
+    if (preserved)
+      return (
+        <StreakPreservedOverlay
+          key="preserved"
+          streak={preserved.streak}
+          onClose={() => actions.dismissFx("preserved")}
+        />
+      );
+    if (climbReset)
+      return (
+        <NewClimbOverlay
+          key="reset"
+          previous={climbReset.previous}
+          onClose={() => actions.dismissFx("reset")}
+        />
+      );
+    return null;
+  }, [recovered, shielded, preserved, climbReset, actions]);
 
   // Deadline reminders. Guests get none — nothing they do is persisted, so a
   // notification would outlive the state that produced it.
@@ -373,23 +417,28 @@ export default function App({ user, initialSave, onSignOut }) {
 
       <XPAnimation amount={xpBurst?.amount ?? 0} active={Boolean(xpBurst)} />
 
-      {/* ---------- cinematics & notifications ---------- */}
+      {/* ---------- cinematics & notifications ----------
+       * One screen at a time, most consequential first. A Resolve screen
+       * outranks a level-up: when a hunter comes back from a missed day,
+       * the thing they need to see is that their climb survived. */}
       <AnimatePresence>
-        {state.fx.failed && <MissionFailedOverlay key="failed" onClose={() => actions.dismissFx("failed")} />}
-        {!state.fx.failed && state.fx.promotion && (
+        {resolveFx ? (
+          resolveFx
+        ) : state.fx.promotion ? (
           <PromotionOverlay
             key="promo"
             rankKey={state.fx.promotion}
             onClose={() => actions.dismissFx("promotion")}
           />
-        )}
-        {!state.fx.failed && !state.fx.promotion && state.fx.levelUp && (
-          <LevelUpOverlay key="lvl" level={state.fx.levelUp} onClose={() => actions.dismissFx("levelUp")} />
+        ) : (
+          state.fx.levelUp && (
+            <LevelUpOverlay key="lvl" level={state.fx.levelUp} onClose={() => actions.dismissFx("levelUp")} />
+          )
         )}
       </AnimatePresence>
 
       <AnimatePresence>
-        {state.fx.newDay && !state.fx.failed && (
+        {state.fx.newDay && !resolveFx && (
           <NewDayBanner key="newday" onClose={() => actions.dismissFx("newDay")} />
         )}
       </AnimatePresence>
