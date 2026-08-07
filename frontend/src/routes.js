@@ -42,3 +42,21 @@ export const NAV_ITEMS = [
 export function pathForView(view) {
   return VIEW_PATHS[view] ?? "/dashboard";
 }
+
+/** Where an unrecognised URL lands. */
+export const FALLBACK_PATH = "/dashboard";
+
+/** Every path that renders a real screen. */
+export const KNOWN_PATHS = new Set(Object.values(VIEW_PATHS));
+
+/**
+ * Resolve a URL to the path that should actually be rendered.
+ *
+ * The page transition is keyed on this rather than on the raw pathname:
+ * keying on a pathname that redirects mid-flight leaves AnimatePresence's
+ * `mode="wait"` holding an exiting child forever, and the page comes up
+ * blank. Normalising first means the key never changes during a redirect.
+ */
+export function resolvePath(pathname) {
+  return KNOWN_PATHS.has(pathname) ? pathname : FALLBACK_PATH;
+}

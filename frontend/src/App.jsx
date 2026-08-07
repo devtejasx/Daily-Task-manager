@@ -19,7 +19,7 @@ import { XPAnimation } from "./components/CinematicLayers";
 import { useAuthGate } from "./components/auth/AuthGate";
 import LiveAnnouncer from "./components/ui/LiveAnnouncer";
 import AppRoutes from "./AppRoutes";
-import { pathForView } from "./routes";
+import { pathForView, resolvePath, FALLBACK_PATH, KNOWN_PATHS } from "./routes";
 import { useGameState } from "./hooks/useGameState";
 import { useGameFx } from "./hooks/useGameFx";
 import { useReminders } from "./hooks/useReminders";
@@ -73,6 +73,21 @@ export default function App({ user, initialSave, onSignOut }) {
   const navigate = useNavigate();
   /** Legacy call sites still say setView("achievements"); route them. */
   const setView = useCallback((view) => navigate(pathForView(view)), [navigate]);
+
+  // An unknown URL (or "/") renders the dashboard straight away, and the
+  // address bar is corrected separately. Doing it this way — rather than
+  // leaving it to a redirecting <Route> — keeps the page-transition key
+  // stable through the redirect; otherwise AnimatePresence mode="wait" is
+  // left holding an exiting child and the screen stays blank.
+  const routedPath = resolvePath(location.pathname);
+  const routedLocation = useMemo(
+    () => (routedPath === location.pathname ? location : { ...location, pathname: routedPath }),
+    [location, routedPath]
+  );
+
+  useEffect(() => {
+    if (!KNOWN_PATHS.has(location.pathname)) navigate(FALLBACK_PATH, { replace: true });
+  }, [location.pathname, navigate]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [pomodoroOpen, setPomodoroOpen] = useState(false);
@@ -306,14 +321,14 @@ export default function App({ user, initialSave, onSignOut }) {
               including browser back/forward. */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={location.pathname}
+              key={routedPath}
               variants={pageVariants}
               initial="initial"
               animate="animate"
               exit="exit"
             >
               <AppRoutes
-                location={location}
+                location={routedLocation}
                 viewProps={viewProps}
                 boardProps={boardProps}
                 pageProps={pageProps}
