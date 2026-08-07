@@ -17,7 +17,9 @@ export function freshFx() {
     levelUp: null,
     promotion: null,
     shielded: null, // {streak,remaining} — a shield absorbed a missed day
-    failed: false,
+    preserved: null, // {streak} — held in recovery, one day to reclaim it
+    recovered: null, // {streak} — the comeback landed
+    reset: null, // {previous} — the climb settled; a new one begins
     newDay: false,
     toasts: [],
   };

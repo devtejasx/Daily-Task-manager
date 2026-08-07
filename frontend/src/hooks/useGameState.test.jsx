@@ -8,6 +8,7 @@ import {
   DAILY_REQUIRED,
   SHIELD_EVERY,
   SHIELD_MAX,
+  COMEBACK_XP,
 } from "../game/constants";
 import { makeRecurrence } from "../utils/recurrence";
 
@@ -495,7 +496,8 @@ describe("day rollover", () => {
     expect(result.current.state.streak).toBe(12); // the climb continues
     expect(result.current.state.shields).toBe(1);
     expect(result.current.state.fx.shielded).toEqual({ streak: 12, remaining: 1 });
-    expect(result.current.state.fx.failed).toBe(false);
+    expect(result.current.state.fx.preserved).toBe(null);
+    expect(result.current.state.fx.reset).toBe(null);
   });
 
   it("never spends XP, levels or a personal best to cover a missed day", () => {
@@ -516,7 +518,7 @@ describe("day rollover", () => {
     expect(result.current.state.longestStreak).toBe(30);
   });
 
-  it("breaks the streak only once the Resolve buffer is empty", () => {
+  it("holds the streak in recovery once the Resolve buffer is empty", () => {
     const { result } = mount(
       makeSave({
         dailyDate: addDaysISO(today, -1),
@@ -528,15 +530,73 @@ describe("day rollover", () => {
       })
     );
 
+    expect(result.current.state.recovery).toEqual({ streak: 12, since: today });
+    expect(result.current.state.fx.preserved).toEqual({ streak: 12 });
+    expect(result.current.state.fx.reset).toBe(null);
+  });
+
+  it("reclaims the whole preserved streak on a comeback", () => {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `m-${i}`, xp: 10 })
+    );
+    const { result } = mount(
+      makeSave({
+        missions,
+        dailySelected: missions.map((m) => m.id),
+        streak: 0,
+        recovery: { streak: 12, since: today },
+      })
+    );
+
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+
+    expect(result.current.state.streak).toBe(13); // 12 restored, +1 for today
+    expect(result.current.state.recovery).toBe(null);
+    expect(result.current.state.fx.recovered).toEqual({ streak: 13 });
+  });
+
+  it("pays a comeback bonus on top of the mission XP", () => {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `m-${i}`, xp: 10 })
+    );
+    const { result } = mount(
+      makeSave({
+        missions,
+        dailySelected: missions.map((m) => m.id),
+        totalXP: 0,
+        recovery: { streak: 5, since: today },
+      })
+    );
+
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+
+    expect(result.current.state.totalXP).toBe(DAILY_REQUIRED * 10 + COMEBACK_XP);
+  });
+
+  it("settles the climb only after the recovery day also passes", () => {
+    const { result } = mount(
+      makeSave({
+        dailyDate: addDaysISO(today, -1),
+        dayComplete: false,
+        streak: 0,
+        shields: 0,
+        recovery: { streak: 12, since: addDaysISO(today, -1) },
+        dailySelected: ["m-1"],
+        missions: [makeMission({ id: "m-1" })],
+      })
+    );
+
     expect(result.current.state.streak).toBe(0);
-    expect(result.current.state.fx.failed).toBe(true);
+    expect(result.current.state.recovery).toBe(null);
+    expect(result.current.state.fx.reset).toEqual({ previous: 12 });
   });
 
   it("does not punish a hunter who had nothing at stake", () => {
     const { result } = mount(
       makeSave({ dailyDate: addDaysISO(today, -1), streak: 0, dailySelected: [], missions: [] })
     );
-    expect(result.current.state.fx.failed).toBe(false);
+    expect(result.current.state.fx.preserved).toBe(null);
+    expect(result.current.state.fx.reset).toBe(null);
     expect(result.current.state.fx.newDay).toBe(true);
   });
 });

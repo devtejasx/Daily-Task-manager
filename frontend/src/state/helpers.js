@@ -93,5 +93,22 @@ export function rollover(state) {
     };
   }
 
-  return { ...base, streak: 0, fx: { ...state.fx, failed: true } };
+  // No shield left. A streak still isn't destroyed on the spot — it is held
+  // in recovery for one day. Clear today's quest and the whole climb comes
+  // back. A recovery already pending here means that day came and went.
+  if (state.recovery) {
+    return {
+      ...base,
+      streak: 0,
+      recovery: null,
+      fx: { ...state.fx, reset: { previous: state.recovery.streak } },
+    };
+  }
+
+  return {
+    ...base,
+    streak: 0,
+    recovery: { streak: state.streak, since: today },
+    fx: { ...state.fx, preserved: { streak: state.streak } },
+  };
 }
