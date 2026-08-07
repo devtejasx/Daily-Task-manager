@@ -42,7 +42,7 @@ export function MissionCardSkeleton() {
 /** Full-page placeholder used while a lazily-loaded route is fetched. */
 export function PageSkeleton({ cards = 4 }) {
   return (
-    <div className="space-y-5" role="status" aria-label="Loading">
+    <div className="space-y-5" role="status" aria-label="Preparing your next quest">
       <div>
         <Skeleton className="h-7 w-56" />
         <Skeleton className="h-3 w-72 mt-2" />
@@ -57,7 +57,7 @@ export function PageSkeleton({ cards = 4 }) {
           <MissionCardSkeleton key={i} />
         ))}
       </div>
-      <span className="sr-only">Loading the command center…</span>
+      <span className="sr-only">Preparing your next quest…</span>
     </div>
   );
 }

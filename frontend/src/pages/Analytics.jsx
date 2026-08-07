@@ -76,7 +76,7 @@ export default function Analytics({ missions = [], history = [], streak = 0, lon
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       >
         <h1 className="font-display font-black text-2xl text-slate-100 text-glow-arcane">
-          SYSTEM ANALYTICS
+          HUNTER PROFILE
         </h1>
         <p className="text-slate-400 text-sm mt-0.5">
           Everything the system has recorded about your ascent.

@@ -12,6 +12,7 @@ import PWAPrompt from "./components/ui/PWAPrompt.jsx";
 import { useAuth } from "./hooks/useAuth";
 import { loadSave } from "./services/saveService";
 import { buildDemoSave } from "./data/demoSave";
+import { SYSTEM } from "./game/copy";
 import "./index.css";
 
 const INTRO_KEY = "arise-intro-seen";
@@ -55,17 +56,17 @@ function SaveGate({ user, onSignOut }) {
   if (error)
     return (
       <BootScreen
-        label="CLOUD SYNC FAILED"
+        label={SYSTEM.syncFailed}
         detail={
           navigator.onLine === false
-            ? "You appear to be offline. Reconnect and try again — nothing has been lost."
-            : "The system couldn't reach your hunter record. Your data is safe in the cloud."
+            ? SYSTEM.offlineDetail
+            : SYSTEM.syncFailedDetail
         }
         error
         onRetry={() => setAttempt((n) => n + 1)}
       />
     );
-  if (save === undefined) return <BootScreen label="PREPARING YOUR NEXT QUEST" />;
+  if (save === undefined) return <BootScreen label={SYSTEM.syncing} />;
 
   if (save === null && !awakened)
     return <Awakening onDone={finishAwakening} />;
@@ -110,7 +111,7 @@ function Root() {
     if (user && demo) exitDemo();
   }, [user, demo]);
 
-  if (loading) return <BootScreen label="CONNECTING TO THE SYSTEM" />;
+  if (loading) return <BootScreen label={SYSTEM.connecting} />;
 
   return (
     <AuthGateProvider user={user}>
