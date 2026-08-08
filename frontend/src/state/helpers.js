@@ -7,6 +7,7 @@
    ========================================================= */
 
 import { localISO, addDaysISO, ACHIEVEMENTS } from "../game/constants";
+import { currentRank, rankIndexOf, higherRank, evaluationFor } from "../game/rank";
 
 let toastId = 0;
 
@@ -47,6 +48,55 @@ export function sweepAchievements(state) {
     }
   }
   return { ...state, achievements, fx: { ...state.fx, toasts } };
+}
+
+/* ---------------- rank ----------------
+ *
+ * Rank is stored, not derived, for one reason: it must never go down.
+ * Both functions below take the higher of what the hunter holds and what
+ * they have just earned, so every path through the reducer is incapable
+ * of demoting anyone even by accident.
+ */
+
+/**
+ * Bring a loaded save's rank up to what its record already justifies,
+ * silently. A returning hunter should not be handed a promotion
+ * cinematic for something they earned months ago on another device.
+ */
+export function seedRank(state) {
+  const today = localISO();
+  const key = higherRank(state.bestRank ?? "E", currentRank(state, today).key);
+  const rankLog = { ...state.rankLog };
+  // The ledger is what the progression timeline reads. Backfill the rank
+  // the hunter arrived holding so their history isn't a blank page, but
+  // date it honestly — today is when we first observed it.
+  if (!rankLog[key]) rankLog[key] = state.rankLog?.[key] ?? today;
+
+  return { ...state, bestRank: key, bestRankIndex: rankIndexOf(key), rankLog };
+}
+
+/**
+ * Promote if the hunter's record now justifies it, with the cinematic.
+ *
+ * A promotion is the loudest moment in the game, so it fires only on a
+ * genuine increase — never on a re-evaluation that lands where it was.
+ */
+export function promoteRank(state) {
+  const today = localISO();
+  const held = state.bestRank ?? "E";
+  const earned = higherRank(held, currentRank(state, today).key);
+  if (rankIndexOf(earned) <= rankIndexOf(held)) return state;
+
+  return {
+    ...state,
+    bestRank: earned,
+    bestRankIndex: rankIndexOf(earned),
+    rankLog: { ...state.rankLog, [earned]: today },
+    fx: {
+      ...state.fx,
+      promotion: { rankKey: earned, from: held, evaluation: evaluationFor(state, today) },
+    },
+  };
 }
 
 /**

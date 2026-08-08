@@ -485,12 +485,19 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
         ) : state.fx.promotion ? (
           <PromotionOverlay
             key="promo"
-            rankKey={state.fx.promotion}
+            rankKey={state.fx.promotion.rankKey}
+            from={state.fx.promotion.from}
+            evaluation={state.fx.promotion.evaluation}
             onClose={() => actions.dismissFx("promotion")}
           />
         ) : (
           state.fx.levelUp && (
-            <LevelUpOverlay key="lvl" level={state.fx.levelUp} onClose={() => actions.dismissFx("levelUp")} />
+            <LevelUpOverlay
+              key="lvl"
+              level={state.fx.levelUp.to}
+              from={state.fx.levelUp.from}
+              onClose={() => actions.dismissFx("levelUp")}
+            />
           )
         )}
       </AnimatePresence>

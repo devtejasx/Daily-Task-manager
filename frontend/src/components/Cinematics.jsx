@@ -93,9 +93,9 @@ function CinematicShell({ children, onClose, autoCloseMs = 5200 }) {
 
 /* ================= LEVEL UP ================= */
 
-export function LevelUpOverlay({ level, onClose }) {
+export function LevelUpOverlay({ level, from = null, onClose }) {
   return (
-    <CinematicShell onClose={onClose}>
+    <CinematicShell onClose={onClose} autoCloseMs={4200}>
       {/* expanding energy waves */}
       {[0, 0.25, 0.5].map((d, i) => (
         <motion.div
@@ -138,13 +138,23 @@ export function LevelUpOverlay({ level, onClose }) {
         >
           LEVEL UP
         </motion.h1>
-        {/* animated badge */}
+
+        {/* The climb, not just the destination. Seeing 14 → 15 is the part
+            that reads as progress; a bare "LV. 15" is just a label. */}
         <motion.div
-          className="mt-6 inline-flex items-center justify-center relative"
+          className="mt-6 inline-flex items-center justify-center gap-3 relative"
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 160, damping: 14, delay: 0.8 }}
+          transition={{ type: "spring", stiffness: 160, damping: 14, delay: 0.7 }}
         >
+          {from != null && from < level && (
+            <span className="font-display font-bold text-xl text-slate-500">LV. {from}</span>
+          )}
+          {from != null && from < level && (
+            <span className="text-violet-300 text-xl" aria-hidden>
+              →
+            </span>
+          )}
           <span
             className="font-display font-black text-3xl px-8 py-4 rounded-2xl border-2 border-violet-400/60 bg-violet-500/10 text-violet-200"
             style={{ boxShadow: "0 0 40px rgba(124,58,237,0.7), inset 0 0 30px rgba(124,58,237,0.2)" }}
@@ -167,8 +177,21 @@ export function LevelUpOverlay({ level, onClose }) {
 
 /* ================= RANK PROMOTION ================= */
 
-export function PromotionOverlay({ rankKey, onClose }) {
+export function PromotionOverlay({ rankKey, from = null, evaluation = null, onClose }) {
   const rank = HUNTER_RANKS.find((r) => r.key === rankKey) ?? HUNTER_RANKS[0];
+  const previous = HUNTER_RANKS.find((r) => r.key === from) ?? null;
+
+  /* A promotion should read as a verdict on the hunter's record, not as a
+     number going up. These are the four figures worth reading out. */
+  const readout = evaluation
+    ? [
+        { label: "DISCIPLINE", value: `${evaluation.discipline}%` },
+        { label: "CONSISTENCY", value: `${evaluation.consistency}%` },
+        { label: "MISSIONS CLEARED", value: evaluation.missions.toLocaleString() },
+        { label: "HUNTER LEVEL", value: evaluation.level },
+      ]
+    : [];
+
   return (
     <CinematicShell onClose={onClose} autoCloseMs={6000}>
       <PortalEffect className="left-1/2 top-1/2 h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/2 opacity-95" color={rank.color} accent={rank.color} intensity={1.1} />
@@ -201,10 +224,24 @@ export function PromotionOverlay({ rankKey, onClose }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          RANK PROMOTION AUTHORIZED
+          HUNTER EVALUATION COMPLETE
         </motion.p>
+
+        {/* The transition itself, so the hunter sees where they came from. */}
+        {previous && (
+          <motion.p
+            className="font-display font-bold text-sm sm:text-base tracking-[0.3em] mt-4 text-slate-400"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.75 }}
+          >
+            {previous.key}-RANK <span style={{ color: rank.color }}>→</span>{" "}
+            <span style={{ color: rank.color }}>{rank.key === "NATIONAL" ? "NATIONAL" : `${rank.key}-RANK`}</span>
+          </motion.p>
+        )}
+
         <motion.h1
-          className="font-display font-black text-4xl sm:text-6xl mt-4"
+          className="font-display font-black text-4xl sm:text-6xl mt-3"
           style={{ color: rank.color, textShadow: `0 0 40px ${rank.aura}, 0 0 90px ${rank.aura}` }}
           initial={{ scale: 2.6, opacity: 0, filter: "blur(18px)" }}
           animate={{ scale: 1, opacity: 1, filter: "blur(0px)" }}
@@ -215,7 +252,7 @@ export function PromotionOverlay({ rankKey, onClose }) {
 
         {/* badge unlock */}
         <motion.div
-          className="mt-8 inline-flex"
+          className="mt-7 inline-flex"
           initial={{ scale: 0, y: 60, rotate: -30 }}
           animate={{ scale: 1, y: 0, rotate: 0 }}
           transition={{ type: "spring", stiffness: 150, damping: 13, delay: 1.1 }}
@@ -238,11 +275,31 @@ export function PromotionOverlay({ rankKey, onClose }) {
           </div>
         </motion.div>
 
+        {/* The evaluation. Four numbers, stated plainly — this is the
+            moment the hunter finds out the System was keeping score. */}
+        {readout.length > 0 && (
+          <motion.dl
+            className="mt-7 grid grid-cols-2 gap-x-8 gap-y-3 max-w-xs mx-auto text-left"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.5, duration: 0.5 }}
+          >
+            {readout.map((row) => (
+              <div key={row.label}>
+                <dt className="text-[9px] font-bold tracking-[0.2em] text-slate-500">{row.label}</dt>
+                <dd className="font-display font-black text-lg" style={{ color: rank.color }}>
+                  {row.value}
+                </dd>
+              </div>
+            ))}
+          </motion.dl>
+        )}
+
         <motion.p
           className="text-slate-400 text-sm mt-6 max-w-sm mx-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.7 }}
+          transition={{ delay: 1.9 }}
         >
           {rank.blurb}
         </motion.p>

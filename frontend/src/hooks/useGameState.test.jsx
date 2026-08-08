@@ -160,7 +160,8 @@ describe("completing a mission", () => {
     act(() => result.current.actions.completeMission("m-1"));
 
     expect(result.current.state.totalXP).toBe(1200);
-    expect(result.current.state.fx.levelUp).toBe(2);
+    // The cinematic carries both ends of the climb so it can show 1 -> 2.
+    expect(result.current.state.fx.levelUp).toEqual({ from: 1, to: 2 });
   });
 
   it("unlocks achievements as a side effect of progress", () => {
@@ -246,8 +247,9 @@ describe("completing a mission", () => {
     act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
 
     expect(result.current.state.streak).toBe(21);
-    expect(result.current.state.fx.promotion).toBe("D");
-    expect(result.current.state.bestRankIndex).toBe(1);
+    expect(result.current.state.fx.promotion).toMatchObject({ rankKey: "D", from: "E" });
+    expect(result.current.state.fx.promotion.evaluation).toBeTruthy();
+    expect(result.current.state.bestRank).toBe("D");
   });
 
   it("ignores a mission that isn't on the board", () => {
@@ -408,7 +410,7 @@ describe("habits through the reducer", () => {
       makeSave({ totalXP: 980, habits: [makeHabit({ id: "h-1", xp: 50 })] })
     );
     act(() => result.current.actions.toggleHabitDay("h-1", today));
-    expect(result.current.state.fx.levelUp).toBe(2);
+    expect(result.current.state.fx.levelUp).toEqual({ from: 1, to: 2 });
   });
 
   it("deletes a habit", () => {
@@ -617,5 +619,96 @@ describe("day rollover", () => {
     expect(result.current.state.fx.preserved).toBe(null);
     expect(result.current.state.fx.reset).toBe(null);
     expect(result.current.state.fx.newDay).toBe(true);
+  });
+});
+
+/* =========================================================
+   Rank — the permanence guarantee, exercised through the reducer
+   ========================================================= */
+
+describe("hunter rank", () => {
+  it("seeds a loaded save's rank silently, with no cinematic", () => {
+    const { result } = mount(makeSave({ streak: 95, longestStreak: 95 }));
+    expect(result.current.state.bestRank).toBe("B");
+    expect(result.current.state.fx.promotion).toBe(null);
+  });
+
+  it("shows the rank the hunter holds, not one derived from today's streak", () => {
+    // A hunter who reached S-Rank and has since lost the streak entirely.
+    const { result } = mount(makeSave({ bestRank: "S", streak: 0, longestStreak: 0 }));
+    expect(result.current.rank.key).toBe("S");
+    expect(result.current.state.bestRank).toBe("S");
+  });
+
+  it("never demotes across a missed day", () => {
+    const { result } = mount(
+      makeSave({
+        bestRank: "B",
+        streak: 40,
+        longestStreak: 40,
+        dailyDate: addDaysISO(today, -3),
+        shields: 0,
+        dailySelected: ["m-1"],
+        missions: [makeMission({ id: "m-1" })],
+      })
+    );
+    // The rollover has run and taken the streak with it; the rank stands.
+    expect(result.current.state.streak).toBe(0);
+    expect(result.current.state.bestRank).toBe("B");
+    expect(result.current.rank.key).toBe("B");
+  });
+
+  it("keeps bestRankIndex in step so an older client still reads it", () => {
+    const { result } = mount(makeSave({ streak: 200, longestStreak: 200 }));
+    expect(result.current.state.bestRank).toBe("S");
+    expect(result.current.state.bestRankIndex).toBe(result.current.rankIndex);
+  });
+
+  it("records the day a rank was reached, for the timeline", () => {
+    const { result } = mount(makeSave({ streak: 25, longestStreak: 25 }));
+    expect(result.current.state.rankLog.D).toBe(today);
+  });
+
+  it("promotes with an evaluation when a clear earns it", () => {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `r-${i}`, xp: 10 })
+    );
+    const { result } = mount(
+      makeSave({
+        missions,
+        dailySelected: missions.map((m) => m.id),
+        streak: 44,
+        longestStreak: 44,
+      })
+    );
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+
+    expect(result.current.state.streak).toBe(45);
+    expect(result.current.state.bestRank).toBe("C");
+    expect(result.current.state.fx.promotion.rankKey).toBe("C");
+    expect(result.current.state.fx.promotion.evaluation.missions).toBeGreaterThan(0);
+  });
+
+  it("does not re-fire a promotion the hunter already holds", () => {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `q-${i}`, xp: 10 })
+    );
+    const { result } = mount(
+      makeSave({ missions, dailySelected: missions.map((m) => m.id), streak: 5, bestRank: "D" })
+    );
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+    expect(result.current.state.fx.promotion).toBe(null);
+  });
+
+  it("reports progress toward the next rank", () => {
+    const { result } = mount(makeSave({ streak: 19, longestStreak: 19 }));
+    expect(result.current.ascent.next.key).toBe("D");
+    expect(result.current.ascent.progress).toBeGreaterThan(0.8);
+  });
+
+  it("exposes a discipline score alongside the rank", () => {
+    const { result } = mount(makeSave());
+    expect(result.current.discipline.score).toBe(0);
+    expect(result.current.discipline.ready).toBe(false);
   });
 });

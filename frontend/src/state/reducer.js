@@ -11,8 +11,6 @@ import {
   localISO,
   addDaysISO,
   getLevelInfo,
-  rankIndexForStreak,
-  HUNTER_RANKS,
   DAILY_REQUIRED,
   SHIELD_MAX,
   COMEBACK_XP,
@@ -23,7 +21,14 @@ import { buildNextOccurrence, nextOccurrenceISO } from "../utils/recurrence";
 import { toggleDay, currentStreak } from "../utils/habits";
 import { mergeSettings, normalizeMission, normalizeHabit } from "../services/migration";
 import { freshState, freshFx } from "./initialState";
-import { nextToastId, rollover, seedAchievements, sweepAchievements } from "./helpers";
+import {
+  nextToastId,
+  rollover,
+  seedAchievements,
+  sweepAchievements,
+  seedRank,
+  promoteRank,
+} from "./helpers";
 
 /* ---------------- reducer ---------------- */
 export function reducer(state, action) {
@@ -249,8 +254,8 @@ export function reducer(state, action) {
       ];
       let fx = { ...state.fx, toasts };
 
-      /* level up? */
-      if (levelAfter > levelBefore) fx.levelUp = levelAfter;
+      /* level up? The cinematic reads both ends so it can show the climb. */
+      if (levelAfter > levelBefore) fx.levelUp = { from: levelBefore, to: levelAfter };
 
       /* daily quest progress */
       if (state.dailySelected.includes(mission.id)) {
@@ -263,7 +268,6 @@ export function reducer(state, action) {
           const reclaiming = state.recovery;
           const streak = (reclaiming ? reclaiming.streak : state.streak) + 1;
           const longestStreak = Math.max(state.longestStreak, streak);
-          const newRankIdx = rankIndexForStreak(streak);
 
           // Consistency banks Resolve: every SHIELD_EVERY cleared days forges
           // a shield, up to the cap. Showing up is what earns the buffer.
@@ -280,10 +284,6 @@ export function reducer(state, action) {
             recovery: null,
           };
 
-          if (newRankIdx > rankIndexForStreak(state.streak) || newRankIdx > state.bestRankIndex) {
-            if (newRankIdx > state.bestRankIndex) next.bestRankIndex = newRankIdx;
-            fx.promotion = HUNTER_RANKS[newRankIdx].key;
-          }
           fx.toasts = [
             ...fx.toasts,
             {
@@ -305,7 +305,7 @@ export function reducer(state, action) {
             fx.recovered = { streak };
             // The bonus can itself tip the hunter over a level boundary.
             const levelWithBonus = getLevelInfo(next.totalXP).level;
-            if (levelWithBonus > levelBefore) fx.levelUp = levelWithBonus;
+            if (levelWithBonus > levelBefore) fx.levelUp = { from: levelBefore, to: levelWithBonus };
             fx.toasts = [
               ...fx.toasts,
               {
@@ -333,7 +333,10 @@ export function reducer(state, action) {
         }
       }
 
-      return sweepAchievements({ ...next, fx });
+      // Rank is evaluated last, against the state this clear produced, so a
+      // promotion reflects the mission that earned it rather than the one
+      // before it.
+      return promoteRank(sweepAchievements({ ...next, fx }));
     }
 
     /* ---------- habits ---------- */
@@ -377,7 +380,7 @@ export function reducer(state, action) {
       const levelAfter = getLevelInfo(totalXP).level;
 
       const fx = { ...state.fx };
-      if (levelAfter > levelBefore) fx.levelUp = levelAfter;
+      if (levelAfter > levelBefore) fx.levelUp = { from: levelBefore, to: levelAfter };
       if (!wasDone) {
         const streak = currentStreak(next, day);
         fx.toasts = [
@@ -392,12 +395,14 @@ export function reducer(state, action) {
         ];
       }
 
-      return sweepAchievements({
-        ...state,
-        totalXP,
-        habits: state.habits.map((h) => (h.id === action.id ? next : h)),
-        fx,
-      });
+      return promoteRank(
+        sweepAchievements({
+          ...state,
+          totalXP,
+          habits: state.habits.map((h) => (h.id === action.id ? next : h)),
+          fx,
+        })
+      );
     }
 
     case "REORDER_HABITS": {
@@ -449,14 +454,7 @@ export function reducer(state, action) {
     case "SIM_ADD_STREAK": {
       const streak = state.streak + action.days;
       const longestStreak = Math.max(state.longestStreak, streak);
-      const newRankIdx = rankIndexForStreak(streak);
-      let fx = { ...state.fx };
-      let bestRankIndex = state.bestRankIndex;
-      if (newRankIdx > rankIndexForStreak(state.streak)) {
-        bestRankIndex = Math.max(bestRankIndex, newRankIdx);
-        fx.promotion = HUNTER_RANKS[newRankIdx].key;
-      }
-      return sweepAchievements({ ...state, streak, longestStreak, bestRankIndex, fx });
+      return promoteRank(sweepAchievements({ ...state, streak, longestStreak }));
     }
 
     case "SIM_ADD_XP": {
@@ -464,8 +462,8 @@ export function reducer(state, action) {
       const totalXP = state.totalXP + action.xp;
       const levelAfter = getLevelInfo(totalXP).level;
       const fx = { ...state.fx };
-      if (levelAfter > levelBefore) fx.levelUp = levelAfter;
-      return sweepAchievements({ ...state, totalXP, fx });
+      if (levelAfter > levelBefore) fx.levelUp = { from: levelBefore, to: levelAfter };
+      return promoteRank(sweepAchievements({ ...state, totalXP, fx }));
     }
 
     case "IMPORT_SAVE": {
@@ -484,11 +482,11 @@ export function reducer(state, action) {
           },
         ],
       };
-      return rollover(base);
+      return rollover(seedRank(base));
     }
 
     case "RESET_SAVE":
-      return rollover(seedAchievements(freshState()));
+      return rollover(seedRank(seedAchievements(freshState())));
 
     default:
       return state;

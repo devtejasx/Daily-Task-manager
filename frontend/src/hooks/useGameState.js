@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef } from "react";
-import {
-  getLevelInfo,
-  missionXPForLevel,
-  rankIndexForStreak,
-  HUNTER_RANKS,
-} from "../game/constants";
+import { getLevelInfo, missionXPForLevel } from "../game/constants";
+import { rankByKey, rankIndexOf, rankProgress } from "../game/rank";
+import { disciplineScore } from "../game/discipline";
 import { reducer } from "../state/reducer";
 import { loadState } from "../state/initialState";
 import { createActions } from "../state/actions";
@@ -47,8 +44,22 @@ export function useGameState(initialSave, onPersist) {
 
   /* ---------- derived ---------- */
   const levelInfo = useMemo(() => getLevelInfo(state.totalXP), [state.totalXP]);
-  const rankIndex = rankIndexForStreak(state.streak);
-  const rank = HUNTER_RANKS[rankIndex];
+
+  // The rank shown is the one the hunter HOLDS, read from the save rather
+  // than recomputed from the current streak. That is the whole point of
+  // the change: a missed day can no longer take a badge off a profile.
+  const rankIndex = rankIndexOf(state.bestRank);
+  const rank = rankByKey(state.bestRank);
+
+  const discipline = useMemo(
+    () => disciplineScore(state),
+    [state.history, state.habits, state.streak, state.recovery, state.comebacks] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  const ascent = useMemo(
+    () => rankProgress(state),
+    [state.bestRank, state.totalXP, state.history, state.habits, state.streak, state.longestStreak, state.recovery] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const dailyMissions = useMemo(
     () => selectDailyMissions(state),
@@ -76,6 +87,8 @@ export function useGameState(initialSave, onPersist) {
     levelInfo,
     rank,
     rankIndex,
+    discipline,
+    ascent,
     dailyMissions,
     dailyDone,
     stats,

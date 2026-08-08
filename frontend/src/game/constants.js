@@ -46,12 +46,30 @@ export function missionXPForLevel(level) {
   return Math.min(1000, 500 + (level - 4) * 100);
 }
 
-/* ---------- hunter ranks (earned by CONTINUOUS streak) ---------- */
+/* ---------- hunter ranks ----------
+ *
+ * Rank answers "what have I become", so it is deliberately harder to move
+ * than a level and impossible to move backwards. Two things changed here:
+ *
+ *   1. C-Rank and A-Rank fill what used to be a 69-day walk from D to B
+ *      with nothing in it — the stretch where a hunter is most likely to
+ *      stop believing the climb is going anywhere.
+ *
+ *   2. A rank can be earned two ways. `streak` is the original route and
+ *      is preserved exactly: 21 days is still D, 90 still B, 180 still S,
+ *      365 still National, so no existing hunter is worse off. `requires`
+ *      is the second route, for the hunter who is genuinely disciplined
+ *      but has taken a rest day — level, missions cleared and Discipline
+ *      Score together, which a streak alone cannot express.
+ *
+ * Meeting EITHER route promotes. See game/rank.js for the evaluation.
+ */
 export const HUNTER_RANKS = [
   {
     key: "E",
     title: "E-RANK HUNTER",
     streak: 0,
+    requires: { level: 1, missions: 0, discipline: 0 },
     color: "#94a3b8",
     aura: "rgba(148,163,184,0.35)",
     blurb: "An awakened one. The weakest gate is still a gate.",
@@ -60,30 +78,52 @@ export const HUNTER_RANKS = [
     key: "D",
     title: "D-RANK HUNTER",
     streak: 21,
+    requires: { level: 5, missions: 25, discipline: 40 },
     color: "#10b981",
     aura: "rgba(16,185,129,0.45)",
-    blurb: "21 days unbroken. The system acknowledges you.",
+    blurb: "The system acknowledges you. Showing up is no longer novel.",
+  },
+  {
+    key: "C",
+    title: "C-RANK HUNTER",
+    streak: 45,
+    requires: { level: 12, missions: 75, discipline: 55 },
+    color: "#22d3ee",
+    aura: "rgba(34,211,238,0.5)",
+    blurb: "The rhythm holds without you thinking about it. Gates open easier now.",
   },
   {
     key: "B",
     title: "B-RANK HUNTER",
     streak: 90,
+    requires: { level: 20, missions: 150, discipline: 65 },
     color: "#3b82f6",
     aura: "rgba(59,130,246,0.5)",
     blurb: "Three months of iron will. Guilds are watching.",
   },
   {
+    key: "A",
+    title: "A-RANK HUNTER",
+    streak: 135,
+    requires: { level: 30, missions: 300, discipline: 75 },
+    color: "#ec4899",
+    aura: "rgba(236,72,153,0.55)",
+    blurb: "Consistency at this depth is rare enough to be a weapon.",
+  },
+  {
     key: "S",
     title: "S-RANK HUNTER",
     streak: 180,
+    requires: { level: 45, missions: 500, discipline: 85 },
     color: "#a78bfa",
     aura: "rgba(167,139,250,0.55)",
-    blurb: "Half a year without a single failure. A living calamity.",
+    blurb: "Half a year of sustained discipline. A living calamity.",
   },
   {
     key: "NATIONAL",
     title: "NATIONAL-LEVEL HUNTER",
     streak: 365,
+    requires: { level: 70, missions: 1000, discipline: 90 },
     color: "#f59e0b",
     aura: "rgba(245,158,11,0.6)",
     blurb: "One full year. Nations negotiate with power like yours.",

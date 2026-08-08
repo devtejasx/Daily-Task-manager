@@ -94,15 +94,30 @@ describe("default mission XP", () => {
 });
 
 describe("hunter ranks", () => {
+  /** The rank a streak alone earns, by key — indices shift as ranks are added. */
+  const keyForStreak = (streak) => HUNTER_RANKS[rankIndexForStreak(streak)].key;
+
   it("maps a streak to the highest rank it has earned", () => {
-    expect(rankIndexForStreak(0)).toBe(0);
-    expect(rankIndexForStreak(20)).toBe(0);
-    expect(rankIndexForStreak(21)).toBe(1);
-    expect(rankIndexForStreak(89)).toBe(1);
-    expect(rankIndexForStreak(90)).toBe(2);
-    expect(rankIndexForStreak(180)).toBe(3);
-    expect(rankIndexForStreak(365)).toBe(4);
+    expect(keyForStreak(0)).toBe("E");
+    expect(keyForStreak(20)).toBe("E");
+    expect(keyForStreak(21)).toBe("D");
+    expect(keyForStreak(44)).toBe("D");
+    expect(keyForStreak(45)).toBe("C");
+    expect(keyForStreak(90)).toBe("B");
+    expect(keyForStreak(135)).toBe("A");
+    expect(keyForStreak(180)).toBe("S");
+    expect(keyForStreak(365)).toBe("NATIONAL");
     expect(rankIndexForStreak(10_000)).toBe(HUNTER_RANKS.length - 1);
+  });
+
+  it("honours every threshold the old five-rank table promised", () => {
+    // C-Rank and A-Rank were inserted between D and B. Nobody may be worse
+    // off for it: the four original thresholds still earn what they always
+    // earned, and 45 and 135 days now earn something instead of nothing.
+    expect(keyForStreak(21)).toBe("D");
+    expect(keyForStreak(90)).toBe("B");
+    expect(keyForStreak(180)).toBe("S");
+    expect(keyForStreak(365)).toBe("NATIONAL");
   });
 
   it("reports the next rank, and null at the peak", () => {
@@ -113,6 +128,25 @@ describe("hunter ranks", () => {
   it("keeps the rank table ordered by streak requirement", () => {
     const streaks = HUNTER_RANKS.map((r) => r.streak);
     expect([...streaks].sort((a, b) => a - b)).toEqual(streaks);
+  });
+
+  it("keeps every discipline-route requirement ordered too", () => {
+    for (const field of ["level", "missions", "discipline"]) {
+      const values = HUNTER_RANKS.map((r) => r.requires[field]);
+      expect([...values].sort((a, b) => a - b)).toEqual(values);
+    }
+  });
+
+  it("gives every rank a key, a title, an aura and a blurb", () => {
+    for (const rank of HUNTER_RANKS) {
+      expect(rank.key).toBeTruthy();
+      expect(rank.title).toBeTruthy();
+      expect(rank.aura).toBeTruthy();
+      expect(rank.blurb).toBeTruthy();
+      expect(rank.requires).toBeTruthy();
+    }
+    const keys = HUNTER_RANKS.map((r) => r.key);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });
 
