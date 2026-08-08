@@ -13,6 +13,7 @@ import {
   Flame,
   BarChart3,
   Trophy,
+  UserCircle2,
   Settings as SettingsIcon,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ export const VIEW_PATHS = {
   habits: "/habits",
   analytics: "/analytics",
   achievements: "/achievements",
+  profile: "/profile",
   settings: "/settings",
 };
 
@@ -36,6 +38,7 @@ export const NAV_ITEMS = [
   { id: "habits", path: "/habits", label: "Habits", icon: Flame },
   { id: "analytics", path: "/analytics", label: "Analytics", icon: BarChart3 },
   { id: "achievements", path: "/achievements", label: "Achievements", icon: Trophy },
+  { id: "profile", path: "/profile", label: "Profile", icon: UserCircle2 },
   { id: "settings", path: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 

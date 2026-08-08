@@ -14,17 +14,20 @@ import { DAILY_REQUIRED, HUNTER_RANKS, nextRank } from "../game/constants";
  * Compact by design: this sits beside existing chrome, so it stays quiet
  * until there is genuinely something to show.
  */
-export default function AscentMeter({ rankIndex, streak, dailyDone, recovery }) {
+export default function AscentMeter({ rankIndex, streak, dailyDone, recovery, ascent = null }) {
   const reduced = useReducedMotion();
-  const upcoming = nextRank(rankIndex);
+  const upcoming = ascent?.next ?? nextRank(rankIndex);
   const current = HUNTER_RANKS[rankIndex];
 
-  // Progress across the *current* band, so the bar always reads as motion
-  // rather than as a distant, discouraging fraction of the final rank.
-  const from = current?.streak ?? 0;
-  const to = upcoming?.streak ?? from;
-  const span = Math.max(1, to - from);
-  const progress = upcoming ? Math.min(1, Math.max(0, (streak - from) / span)) : 1;
+  // Progress toward the next rank now comes from the full evaluation —
+  // whichever of the two routes the hunter is closer on. Falling back to
+  // the streak band keeps this component usable on its own.
+  const to = upcoming?.streak ?? 0;
+  const progress = ascent
+    ? ascent.progress
+    : upcoming
+    ? Math.min(1, Math.max(0, (streak - (current?.streak ?? 0)) / Math.max(1, to - (current?.streak ?? 0))))
+    : 1;
   const daysLeft = upcoming ? Math.max(0, to - streak) : 0;
 
   const questDone = dailyDone >= DAILY_REQUIRED;
@@ -63,9 +66,9 @@ export default function AscentMeter({ rankIndex, streak, dailyDone, recovery }) 
         <p className="text-[9px] tracking-wider text-slate-500 mt-1">
           {recovery
             ? `${recovery.streak} days held — today takes them back`
-            : upcoming
-            ? `${daysLeft} more consistent ${daysLeft === 1 ? "day" : "days"}`
-            : "nothing left to climb"}
+            : !upcoming
+            ? "nothing left to climb"
+            : `${Math.round(progress * 100)}% of the way there`}
         </p>
       </div>
 
@@ -110,9 +113,9 @@ export default function AscentMeter({ rankIndex, streak, dailyDone, recovery }) 
  * device with no persistent sense of progress at all. This keeps the two
  * facts that actually drive a day: the streak, and how much of today is done.
  */
-export function AscentStrip({ rankIndex, streak, dailyDone, recovery }) {
-  const upcoming = nextRank(rankIndex);
-  const daysLeft = upcoming ? Math.max(0, upcoming.streak - streak) : 0;
+export function AscentStrip({ rankIndex, streak, dailyDone, recovery, ascent = null }) {
+  const upcoming = ascent?.next ?? nextRank(rankIndex);
+  const percent = ascent ? Math.round(ascent.progress * 100) : null;
 
   return (
     <div className="lg:hidden flex items-center gap-3 px-4 py-2 border-t border-white/5 bg-white/[0.02]">
@@ -128,9 +131,11 @@ export function AscentStrip({ rankIndex, streak, dailyDone, recovery }) {
       <span className="text-[10px] tracking-wider text-slate-500 truncate min-w-0">
         {recovery
           ? `${recovery.streak} days held — today takes them back`
-          : upcoming
-          ? `${daysLeft} days to ${upcoming.title.replace(" HUNTER", "")}`
-          : "National-Level"}
+          : !upcoming
+          ? "National-Level"
+          : percent != null
+          ? `${percent}% to ${upcoming.title.replace(" HUNTER", "")}`
+          : `${Math.max(0, upcoming.streak - streak)} days to ${upcoming.title.replace(" HUNTER", "")}`}
       </span>
 
       <span className="flex gap-1 ml-auto shrink-0" aria-hidden>

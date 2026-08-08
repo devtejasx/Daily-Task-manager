@@ -10,11 +10,23 @@ import { useEffect, useRef, useState } from "react";
  *
  * Resolve events matter most here: a hunter who cannot see the shield
  * cinematic would otherwise have no idea their streak survived, which is
- * the single most reassuring fact the app has to offer.
+ * the single most reassuring fact the app has to offer. Titles and cleared
+ * challenges are announced for the same reason — every one of them is
+ * delivered visually and would otherwise simply not happen.
  */
-export default function LiveAnnouncer({ totalXP, level, rankTitle, streak, shields, recovery }) {
+export default function LiveAnnouncer({
+  totalXP,
+  level,
+  rankTitle,
+  streak,
+  shields,
+  recovery,
+  title = null,
+  titleCount = 0,
+  challengeCleared = null,
+}) {
   const [message, setMessage] = useState("");
-  const prev = useRef({ totalXP, level, rankTitle, streak, shields, recovery });
+  const prev = useRef({ totalXP, level, rankTitle, streak, shields, recovery, title, titleCount, challengeCleared });
 
   useEffect(() => {
     const before = prev.current;
@@ -22,6 +34,21 @@ export default function LiveAnnouncer({ totalXP, level, rankTitle, streak, shiel
 
     if (level > before.level) parts.push(`Level up. You are now level ${level}.`);
     if (rankTitle !== before.rankTitle) parts.push(`Promoted to ${rankTitle}.`);
+
+    // Progression the cinematics show and say nothing about.
+    if (titleCount > before.titleCount) {
+      parts.push(title ? `Title earned. You are now ${title}.` : "New title earned.");
+    } else if (title && title !== before.title) {
+      parts.push(`Now wearing the title ${title}.`);
+    }
+
+    if (challengeCleared && challengeCleared !== before.challengeCleared) {
+      parts.push(
+        challengeCleared.kind === "boss"
+          ? `Boss cleared. ${challengeCleared.label}. ${challengeCleared.xp} XP.`
+          : `Weekly challenge cleared. ${challengeCleared.xp} XP.`
+      );
+    }
 
     // Resolve transitions, phrased the way the cinematics phrase them.
     if (shields < before.shields) {
@@ -45,9 +72,9 @@ export default function LiveAnnouncer({ totalXP, level, rankTitle, streak, shiel
       parts.push(`Gained ${totalXP - before.totalXP} XP. Total ${totalXP}.`);
     }
 
-    prev.current = { totalXP, level, rankTitle, streak, shields, recovery };
+    prev.current = { totalXP, level, rankTitle, streak, shields, recovery, title, titleCount, challengeCleared };
     if (parts.length > 0) setMessage(parts.join(" "));
-  }, [totalXP, level, rankTitle, streak, shields, recovery]);
+  }, [totalXP, level, rankTitle, streak, shields, recovery, title, titleCount, challengeCleared]);
 
   return (
     <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">

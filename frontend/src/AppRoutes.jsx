@@ -13,6 +13,7 @@ const Calendar = lazy(() => import("./pages/Calendar"));
 const Achievements = lazy(() => import("./pages/Achievements"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Habits = lazy(() => import("./pages/Habits"));
+const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 
 /**
@@ -30,6 +31,7 @@ export default function AppRoutes({ location, viewProps, boardProps, pageProps }
         <Route path="/habits" element={<Habits {...pageProps.habits} />} />
         <Route path="/analytics" element={<Analytics {...pageProps.analytics} />} />
         <Route path="/achievements" element={<Achievements {...pageProps.achievements} />} />
+        <Route path="/profile" element={<Profile {...pageProps.profile} />} />
         <Route path="/settings" element={<Settings {...pageProps.settings} />} />
         {/* Unknown URL -> the command center, never a blank screen. */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -42,7 +42,7 @@ ever be taken away.
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-Auth_+_Firestore-FFCA28?logo=firebase&logoColor=black)
-![Vitest](https://img.shields.io/badge/Vitest-283_tests-6E9F18?logo=vitest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-497_tests-6E9F18?logo=vitest&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
 ![Node](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)
 
@@ -96,12 +96,42 @@ catch the XP burst and level-up overlay → land on `/analytics`.
   overdue, due today, due this week, recurring, and title search. All compose together
 
 ### Progression
-- **Daily quest** — pick 4 required missions; clear them all to extend your streak
+- **Daily quest** — pick 4 required missions; clear them all to extend your streak and
+  earn a completion bonus that grows with the streak and then caps
 - **The Resolve system** — the game rewards consistency, not perfection. See below
-- **Hunter ranks** earned by unbroken streak: E → D (21d) → B (90d) → S (180d) →
-  National (365d), each with its own aura, glow and promotion cinematic
+- **Discipline Score** — 0–100 from four capped signals: consistency, momentum, effort
+  and recovery. Deliberately *not* completed/total, which would reward writing easier
+  missions and penalise planning ahead. Effort counts at most four clears **per day**,
+  so thirty missions in one sitting score the same as four
+- **Hunter ranks** — E → D → C → B → A → S → National, earned by *either* the original
+  streak thresholds (21 / 90 / 180 / 365 days, unchanged) **or** level + missions
+  cleared + Discipline Score. Rank is stored, never derived from the current streak, and
+  **never goes down** — a missed day can't take a badge off your profile
+- **Titles** — 14 of them, earned by behaviour and worn beside your name
+- **Weekly challenge** — a target derived from *your own* recent output and set slightly
+  below it, so it is never calibrated to somebody else's week
+- **Weekly boss** — optional, opt-in, three objectives (missions, days shown up for,
+  quests cleared) so it can't be beaten by one enormous Saturday. Missing one is never
+  described as a loss
+- **Hunter Profile** — rank, title, Discipline Score with a full breakdown, lifetime
+  record, and a progression timeline of the days something actually changed
 - **XP + levels** on a rising curve, with level-up overlays and floating XP bursts
-- **Achievements** swept automatically as you play
+- **Achievements** in six categories with four rarities, swept automatically as you play
+
+### Anti-farm design
+
+The failure mode of every gamified task app is that splitting one real task into thirty
+fake ones pays thirty times. That trains the opposite of the habit this product exists
+for, so three separate mechanics refuse it:
+
+- XP is credited in full up to a generous daily soft cap, then at a reducing rate with a
+  floor that never reaches zero. Fifty fragments are worth measurably less than the work
+  they replaced, and a genuinely heavy day still gains
+- The Discipline Score counts **days**, capped per day, not things ticked
+- Every consistency achievement and title measures days shown up for
+
+Damping is never phrased as a penalty and you are never warned you are approaching a
+limit — an honest day will not meet it.
 
 ### The Resolve system
 
@@ -112,7 +142,7 @@ is ever at stake, and it gets two chances before it goes:
 
 | Situation | What happens | What you see |
 | --- | --- | --- |
-| Cleared the daily quest | Streak +1. Every 7th day forges a **Streak Shield** (max 3) | `STREAK SHIELD FORGED` |
+| Cleared the daily quest | Streak +1, plus XP. Every 7th day forges a **Streak Shield** (max 3) | `STREAK SHIELD FORGED` |
 | Missed a day, shield banked | A shield is spent; the streak is **untouched** | `SHIELD HELD` |
 | Missed a day, no shields | The streak is **held for one day**, not destroyed | `STREAK PRESERVED` |
 | Cleared the quest during that day | The whole climb returns, plus a comeback bonus | `STREAK RECOVERED` |
@@ -203,6 +233,13 @@ flowchart TD
    Migration is idempotent and forward compatible — fields written by a newer client
    survive a round trip through an older one.
 
+   The v4 step is worth reading as an example: v3 stored the hunter's best rank as an
+   *index* into the rank table, and v4 inserts C-Rank and A-Rank into that table. Read
+   naively, a stored `3` would have turned an S-Rank hunter into a B-Rank one. The v3
+   table is frozen in the migration as `LEGACY_RANK_KEYS`, the index is translated
+   through it exactly once into a stable key, and the original integer is left in place
+   so a client still running v3 keeps reading what it wrote.
+
 2. **The reducer knows nothing about React.** Every transition lives in `src/state/`,
    which is why the state machine can be driven directly from tests. That's how the
    pomodoro pause bug and the missing-`history` migration gap were both caught.
@@ -253,13 +290,14 @@ guest — sign-in is only needed to persist anything.
 │   │   │   ├── settings/        # preferences, defaults, data panels
 │   │   │   └── ui/              # skeletons, boot screen, error boundary, PWA prompt
 │   │   ├── pages/               # Dashboard, Missions, Calendar, Habits,
-│   │   │                        # Analytics, Achievements, Settings
+│   │   │                        # Analytics, Achievements, Profile, Settings
 │   │   ├── state/               # reducer, helpers, actions, selectors (no React)
 │   │   ├── hooks/               # useGameState, useGameFx, usePomodoro,
 │   │   │                        # useReminders, useCloudSave, useMissionFilters…
 │   │   ├── services/            # firebase, saveService, migration, backup, notifications
 │   │   ├── utils/               # date, recurrence, filters, analytics, habits, calendar
-│   │   ├── game/                # rules: levels, ranks, achievements, constants
+│   │   ├── game/                # rules: levels, ranks, discipline, xp, titles,
+│   │   │                        # rarity, challenges, timeline, achievements
 │   │   ├── data/                # difficulties, categories, templates
 │   │   ├── test/                # Vitest setup + factories
 │   │   ├── routes.js            # single source of truth for URLs
@@ -298,10 +336,17 @@ Files are kept under roughly 300 lines; anything larger is split by responsibili
 npm test
 ```
 
-258 tests across 14 files, covering the XP curve and rank thresholds, the recurrence
+497 tests across 21 files, covering the XP curve and credit bands, the Discipline
+Score and its resistance to task-spam, rank evaluation and the permanence guarantee,
+titles and rarity, weekly and boss challenges, the progression timeline, the recurrence
 engine, filters, analytics, habit maths, calendar and deadline helpers, schema
-migration, backup validation, the full reducer, auth, the pomodoro state machine and
-mission-card rendering.
+migration through v4, backup validation, the full reducer, auth, the pomodoro state
+machine, and mission-card and Hunter Profile rendering.
+
+Several tests assert *product* rules rather than behaviour — that no challenge or
+Discipline band copy contains failure language, that an unfinished week emits nothing at
+all, and that a day of task-splitting unlocks none of the consistency records. Those are
+the constraints most likely to be broken by accident later.
 
 Component tests query by accessible role and name, so they double as an accessibility
 check.
@@ -337,6 +382,8 @@ The build is a plain SPA, so any static host works.
 
 ## Roadmap
 
+- [ ] Seasonal or monthly challenges, on the same derived-from-history model as the week
+- [ ] Cosmetic profile customisation (frames, auras) unlocked by rank
 - [ ] Sub-tasks and checklists inside a mission
 - [ ] Guilds — shared boards and co-op daily quests
 - [ ] Calendar import from Google Calendar / .ics

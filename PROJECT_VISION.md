@@ -31,6 +31,7 @@ managers reward organisation. **This one rewards discipline.**
 | A task | Mission / Quest |
 | Progress | Levels |
 | Consistency | Power |
+| Sustained discipline | Hunter Rank |
 | Achievements | Titles |
 
 ## Philosophy
@@ -47,9 +48,14 @@ appear in the product.
 ### The permanence guarantee
 
 Nothing the hunter earns can ever be taken away — not XP, not levels, not
-achievements, not a personal best. Only the *current* streak is ever at stake, and
-the Resolve system gives it two chances before it settles. See
+achievements, not a title, **not a rank**. Only the *current* streak is ever at stake,
+and the Resolve system gives it two chances before it settles. See
 [the Resolve system](README.md#the-resolve-system).
+
+Rank was the one place this was quietly broken: it used to be derived from the current
+streak, so losing a long streak dropped the badge from S-Rank to E-Rank. Rank is now a
+stored key that is promoted and never demoted. If a mechanic can only be expressed by
+taking something away, it is the wrong mechanic.
 
 ## Emotional targets
 
@@ -95,6 +101,24 @@ A first-time visitor understands the product in **under 30 seconds** — without
 documentation, without a tutorial, without opening GitHub — and thinks:
 
 > *"I want to become stronger."*
+
+## Progression must not be farmable
+
+A progression system that pays per item teaches people to manufacture items. Splitting
+one real task into thirty fake ones is the failure mode of every gamified task app, and
+it trains the exact opposite of the habit this product exists to build.
+
+So the rule is: **anything that measures discipline measures days, not counts.**
+
+- The Discipline Score counts days shown up for, capped per day
+- XP is credited at a reducing rate past a generous daily soft cap
+- Consistency achievements and titles are gated on days, never on volume
+- The weekly boss requires days shown up for, not just missions cleared
+
+Two corollaries. A cap must never be presented as a penalty or a warning — an honest
+day will never meet one, and a hunter who does meet one is told something factual about
+their day, not something disapproving. And nothing may *reduce* a score for planning
+ahead: adding a mission you have not done yet must never move any number downward.
 
 ## What this product is not
 

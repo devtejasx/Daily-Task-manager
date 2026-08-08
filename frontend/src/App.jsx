@@ -33,6 +33,7 @@ import { useMissionFilters } from "./hooks/useMissionFilters";
 import { applyFilters } from "./utils/filters";
 import { weeklyReport } from "./utils/analytics";
 import { addDaysISO } from "./game/constants";
+import { activeTitleName } from "./game/titles";
 import { useCloudSave } from "./hooks/useCloudSave";
 import { useProtectedActions } from "./hooks/useProtectedActions";
 
@@ -356,6 +357,17 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
         totalXP: state.totalXP,
       },
       achievements: { achievements: state.achievements },
+      profile: {
+        state,
+        levelInfo,
+        rank,
+        ascent,
+        discipline,
+        challenges,
+        stats,
+        user,
+        onSelectTitle: guarded.setTitle,
+      },
       settings: {
         settings: state.settings,
         onUpdateSettings: guarded.updateSettings,
@@ -379,6 +391,12 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
       onSignOut,
       guarded,
       handleQuickAdd,
+      levelInfo,
+      rank,
+      ascent,
+      discipline,
+      challenges,
+      stats,
     ]
   );
 
@@ -421,6 +439,8 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
           streak={state.streak}
           dailyDone={dailyDone}
           recovery={state.recovery}
+          ascent={ascent}
+          hunterState={state}
           search={filters.search}
           setSearch={(value) => patch({ search: value })}
           dimmed={dimmed}
@@ -553,6 +573,9 @@ export default function App({ user, initialSave, onSignOut, demo = false, onExit
         streak={state.streak}
         shields={state.shields}
         recovery={state.recovery}
+        title={activeTitleName(state)}
+        titleCount={Object.keys(state.titles ?? {}).length}
+        challengeCleared={state.fx.challengeCleared}
       />
 
       <ToastStack toasts={state.fx.toasts} onDismiss={actions.dismissToast} />

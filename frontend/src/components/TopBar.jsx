@@ -5,6 +5,7 @@ import AscentMeter, { AscentStrip } from "./AscentMeter";
 import RankBadge from "./RankBadge";
 import { useCountUp } from "../hooks/useCountUp";
 import { useAuthGate } from "./auth/AuthGate";
+import { activeTitleName } from "../game/titles";
 
 export default function TopBar({
   levelInfo,
@@ -13,6 +14,8 @@ export default function TopBar({
   streak,
   dailyDone = 0,
   recovery = null,
+  ascent = null,
+  hunterState = null,
   search,
   setSearch,
   dimmed,
@@ -25,6 +28,9 @@ export default function TopBar({
   const { openLogin } = useAuthGate();
   const isGuest = !user;
   const hunterName = isGuest ? "GUEST" : (user.displayName || user.email?.split("@")[0] || "Hunter").toUpperCase();
+  // The worn title sits above the name — it is the thing the hunter chose,
+  // and the level is one tap away on the profile if they want the number.
+  const title = hunterState ? activeTitleName(hunterState) : null;
 
   return (
     <motion.header
@@ -44,8 +50,12 @@ export default function TopBar({
             <p className="font-display font-bold text-[13px] text-slate-100 truncate">
               {isGuest ? "GUEST HUNTER" : `HUNTER ${hunterName}`}
             </p>
-            <p className="text-[10px] tracking-[0.2em] text-cyan-300/80 font-semibold">
-              {isGuest ? "EXPLORING · NOT SAVED" : `LV. ${levelInfo.level} · SHADOW DIVISION`}
+            <p className="text-[10px] tracking-[0.2em] text-cyan-300/80 font-semibold truncate">
+              {isGuest
+                ? "EXPLORING · NOT SAVED"
+                : title
+                ? `LV. ${levelInfo.level} · ${title.toUpperCase()}`
+                : `LV. ${levelInfo.level} · SHADOW DIVISION`}
             </p>
           </div>
         </div>
@@ -90,6 +100,7 @@ export default function TopBar({
             streak={streak}
             dailyDone={dailyDone}
             recovery={recovery}
+            ascent={ascent}
           />
 
           {/* streak */}
@@ -168,6 +179,7 @@ export default function TopBar({
         streak={streak}
         dailyDone={dailyDone}
         recovery={recovery}
+        ascent={ascent}
       />
     </motion.header>
   );
