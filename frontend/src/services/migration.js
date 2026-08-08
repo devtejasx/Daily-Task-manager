@@ -16,7 +16,23 @@
 import { localISO, POMODORO_DEFAULTS, SHIELD_MAX } from "../game/constants";
 
 /** Current payload version. Bump + add a step when the shape changes. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
+
+/**
+ * The rank table exactly as v3 shipped it, frozen forever.
+ *
+ * v3 stored the hunter's best rank as an INDEX into the live rank table.
+ * v4 adds C-Rank and A-Rank, which shifts every index above D — so an
+ * S-Rank hunter's stored `3` would silently read as B-Rank against the new
+ * table. Freezing the old order here lets the migration translate the index
+ * to a stable KEY once, after which the table can grow freely.
+ *
+ * Never reorder or extend this array. It describes the past.
+ */
+export const LEGACY_RANK_KEYS = ["E", "D", "B", "S", "NATIONAL"];
+
+/** Days of daily-quest history kept. Enough for every window the game reads. */
+export const QUEST_DAYS_KEPT = 180;
 
 /** Preferences a brand-new hunter starts with. */
 export const DEFAULT_SETTINGS = {
@@ -155,9 +171,73 @@ export function normalizeRecovery(recovery) {
   return { streak, since: recovery.since };
 }
 
+/** A {id: "YYYY-MM-DD"} unlock ledger — achievements, titles, rank promotions. */
+export function normalizeUnlockMap(map) {
+  if (!map || typeof map !== "object" || Array.isArray(map)) return {};
+  const out = {};
+  for (const [key, value] of Object.entries(map)) {
+    if (typeof value === "string" && value) out[key] = value;
+  }
+  return out;
+}
+
+/** ISO days the daily quest was cleared: sorted, de-duplicated, capped. */
+export function normalizeQuestDays(days) {
+  if (!Array.isArray(days)) return [];
+  const seen = new Set();
+  for (const day of days) {
+    if (typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day)) seen.add(day);
+  }
+  return [...seen].sort().slice(-QUEST_DAYS_KEPT);
+}
+
+/** The current week's challenge slice. Cleared and rebuilt every Monday. */
+export function normalizeChallenge(challenge) {
+  const c = challenge && typeof challenge === "object" ? challenge : {};
+  return {
+    week: typeof c.week === "string" ? c.week : null,
+    weeklyClaimed: Boolean(c.weeklyClaimed),
+    bossAccepted: Boolean(c.bossAccepted),
+    bossClaimed: Boolean(c.bossClaimed),
+  };
+}
+
+/**
+ * v3 -> v4
+ * The progression phase: a permanent rank key, the ledgers that make a
+ * hunter's journey legible (titles, rank promotions, cleared quest days)
+ * and the counters the XP guard and weekly challenge need.
+ *
+ * The one migration here that carries real risk is `bestRankIndex`. It is
+ * translated through the frozen v3 table and the original integer is left
+ * in place untouched, so a client still running v3 keeps reading the value
+ * it wrote. Nothing is removed, nothing is recomputed, and a hunter who
+ * reached S-Rank under the old rules is still S-Rank under the new ones.
+ */
+function toV4(save) {
+  const legacyIndex = Number(save.bestRankIndex);
+  const fromIndex = Number.isFinite(legacyIndex)
+    ? LEGACY_RANK_KEYS[Math.max(0, Math.min(LEGACY_RANK_KEYS.length - 1, legacyIndex))]
+    : "E";
+
+  return {
+    ...save,
+    // A rank already stored as a key wins; otherwise translate the index.
+    bestRank: typeof save.bestRank === "string" && save.bestRank ? save.bestRank : fromIndex,
+    rankLog: normalizeUnlockMap(save.rankLog),
+    titles: normalizeUnlockMap(save.titles),
+    activeTitle: typeof save.activeTitle === "string" ? save.activeTitle : null,
+    dayXP: Number(save.dayXP) || 0,
+    questDays: normalizeQuestDays(save.questDays),
+    challenge: normalizeChallenge(save.challenge),
+    version: 4,
+  };
+}
+
 const STEPS = [
   { to: 2, run: toV2 },
   { to: 3, run: toV3 },
+  { to: 4, run: toV4 },
 ];
 
 /**
@@ -192,5 +272,15 @@ export function migrateSave(save) {
     shields: Number.isFinite(out.shields) ? out.shields : 0,
     recovery: normalizeRecovery(out.recovery),
     comebacks: Number(out.comebacks) || 0,
+    // v4 progression ledgers. Healed on every load for the same reason as
+    // the arrays above: a partially-written document must not be able to
+    // take a hunter's titles or rank history down with it.
+    bestRank: typeof out.bestRank === "string" && out.bestRank ? out.bestRank : "E",
+    rankLog: normalizeUnlockMap(out.rankLog),
+    titles: normalizeUnlockMap(out.titles),
+    activeTitle: typeof out.activeTitle === "string" ? out.activeTitle : null,
+    dayXP: Number(out.dayXP) || 0,
+    questDays: normalizeQuestDays(out.questDays),
+    challenge: normalizeChallenge(out.challenge),
   };
 }

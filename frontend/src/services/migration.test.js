@@ -7,6 +7,11 @@ import {
   DEFAULT_SETTINGS,
   SCHEMA_VERSION,
   normalizeRecovery,
+  normalizeUnlockMap,
+  normalizeQuestDays,
+  normalizeChallenge,
+  LEGACY_RANK_KEYS,
+  QUEST_DAYS_KEPT,
 } from "./migration";
 import { SHIELD_MAX } from "../game/constants";
 
@@ -248,5 +253,194 @@ describe("v2 -> v3 (the Resolve system)", () => {
   it("is idempotent — migrating twice changes nothing", () => {
     const once = migrateSave({ version: 2, streak: 40, missions: [], history: [] });
     expect(migrateSave(once)).toEqual(once);
+  });
+});
+
+/* =========================================================
+   v3 -> v4 — the progression ledgers
+   ========================================================= */
+
+describe("v4: the permanent rank key", () => {
+  it("translates every v3 rank index to the rank it actually meant", () => {
+    LEGACY_RANK_KEYS.forEach((key, index) => {
+      const out = migrateSave({ version: 3, bestRankIndex: index, missions: [], history: [] });
+      expect(out.bestRank).toBe(key);
+    });
+  });
+
+  it("does not demote an S-Rank hunter when C and A join the table", () => {
+    // v3 stored S-Rank as index 3. Read against a table that now contains
+    // E,D,C,B,A,S,NATIONAL, a naive index would have read as B-Rank.
+    const out = migrateSave({ version: 3, bestRankIndex: 3, missions: [], history: [] });
+    expect(out.bestRank).toBe("S");
+  });
+
+  it("leaves the original index in place for an older client to read", () => {
+    const out = migrateSave({ version: 3, bestRankIndex: 4, missions: [], history: [] });
+    expect(out.bestRankIndex).toBe(4);
+    expect(out.bestRank).toBe("NATIONAL");
+  });
+
+  it("starts a hunter with no rank history at E-Rank", () => {
+    expect(migrateSave({ version: 3, missions: [], history: [] }).bestRank).toBe("E");
+    expect(migrateSave({ missions: [], history: [] }).bestRank).toBe("E");
+  });
+
+  it("clamps an index from outside the legacy table rather than crashing", () => {
+    expect(migrateSave({ version: 3, bestRankIndex: 99, missions: [] }).bestRank).toBe("NATIONAL");
+    expect(migrateSave({ version: 3, bestRankIndex: -4, missions: [] }).bestRank).toBe("E");
+    expect(migrateSave({ version: 3, bestRankIndex: "junk", missions: [] }).bestRank).toBe("E");
+  });
+
+  it("never overwrites a rank key the hunter already has", () => {
+    const out = migrateSave({ version: 3, bestRankIndex: 0, bestRank: "A", missions: [] });
+    expect(out.bestRank).toBe("A");
+  });
+});
+
+describe("v4: unlock ledgers", () => {
+  it("gives an existing hunter empty title and rank ledgers", () => {
+    const out = migrateSave(legacySave());
+    expect(out.titles).toEqual({});
+    expect(out.rankLog).toEqual({});
+    expect(out.activeTitle).toBe(null);
+  });
+
+  it("keeps ledger entries that are real unlock dates", () => {
+    const map = normalizeUnlockMap({ "iron-will": "2026-03-04", relentless: "2026-05-19" });
+    expect(map).toEqual({ "iron-will": "2026-03-04", relentless: "2026-05-19" });
+  });
+
+  it("drops ledger entries that are not dates", () => {
+    expect(normalizeUnlockMap({ a: true, b: 5, c: null, d: "" })).toEqual({});
+    expect(normalizeUnlockMap(["not", "a", "map"])).toEqual({});
+    expect(normalizeUnlockMap("nonsense")).toEqual({});
+    expect(normalizeUnlockMap(null)).toEqual({});
+  });
+
+  it("preserves an existing title selection through a migration", () => {
+    const out = migrateSave({
+      version: 3,
+      titles: { "iron-will": "2026-03-04" },
+      activeTitle: "iron-will",
+      missions: [],
+    });
+    expect(out.activeTitle).toBe("iron-will");
+    expect(out.titles["iron-will"]).toBe("2026-03-04");
+  });
+});
+
+describe("v4: cleared quest days", () => {
+  it("defaults to nothing recorded", () => {
+    expect(migrateSave(legacySave()).questDays).toEqual([]);
+  });
+
+  it("sorts, de-duplicates and keeps only real ISO days", () => {
+    expect(normalizeQuestDays(["2026-03-02", "2026-03-01", "2026-03-02", "junk", 7, null])).toEqual([
+      "2026-03-01",
+      "2026-03-02",
+    ]);
+  });
+
+  it("keeps the most recent days when the ledger is over-long", () => {
+    const days = Array.from({ length: QUEST_DAYS_KEPT + 40 }, (_, i) => {
+      const d = new Date(2024, 0, 1 + i);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    });
+    const kept = normalizeQuestDays(days);
+    expect(kept).toHaveLength(QUEST_DAYS_KEPT);
+    expect(kept[kept.length - 1]).toBe(days[days.length - 1]); // newest survives
+  });
+
+  it("discards a ledger that isn't a list", () => {
+    expect(normalizeQuestDays("2026-03-01")).toEqual([]);
+    expect(normalizeQuestDays(null)).toEqual([]);
+  });
+});
+
+describe("v4: the challenge slice", () => {
+  it("starts with no week claimed and no boss accepted", () => {
+    expect(migrateSave(legacySave()).challenge).toEqual({
+      week: null,
+      weeklyClaimed: false,
+      bossAccepted: false,
+      bossClaimed: false,
+    });
+  });
+
+  it("keeps a week's claim state intact", () => {
+    expect(normalizeChallenge({ week: "2026-08-03", weeklyClaimed: true, bossAccepted: true })).toEqual(
+      { week: "2026-08-03", weeklyClaimed: true, bossAccepted: true, bossClaimed: false }
+    );
+  });
+
+  it("coerces junk to a safe, unclaimed week", () => {
+    expect(normalizeChallenge("nonsense").week).toBe(null);
+    expect(normalizeChallenge({ week: 42 }).week).toBe(null);
+    expect(normalizeChallenge(undefined).weeklyClaimed).toBe(false);
+  });
+});
+
+describe("v4: nothing is lost or recomputed", () => {
+  it("carries a v1 hunter all the way to v4 with their progress intact", () => {
+    const out = migrateSave({ ...legacySave(), totalXP: 48_000, streak: 63, longestStreak: 140 });
+    expect(out.version).toBe(SCHEMA_VERSION);
+    expect(out.totalXP).toBe(48_000);
+    expect(out.streak).toBe(63);
+    expect(out.longestStreak).toBe(140);
+  });
+
+  it("leaves XP, levels, achievements and personal bests untouched", () => {
+    const save = {
+      version: 3,
+      totalXP: 91_500,
+      longestStreak: 212,
+      bestRankIndex: 3,
+      achievements: { "first-mission": "2025-01-04", "streak-180": "2025-08-02" },
+      comebacks: 4,
+      missions: [],
+      history: [],
+    };
+    const out = migrateSave(save);
+    expect(out.totalXP).toBe(91_500);
+    expect(out.longestStreak).toBe(212);
+    expect(out.achievements).toEqual(save.achievements);
+    expect(out.comebacks).toBe(4);
+  });
+
+  it("defaults today's XP counter to zero without touching lifetime XP", () => {
+    const out = migrateSave({ version: 3, totalXP: 12_000, missions: [], history: [] });
+    expect(out.dayXP).toBe(0);
+    expect(out.totalXP).toBe(12_000);
+  });
+
+  it("is idempotent at v4 too — migrating twice changes nothing", () => {
+    const once = migrateSave({
+      version: 3,
+      bestRankIndex: 2,
+      titles: { "iron-will": "2026-01-01" },
+      questDays: ["2026-01-01"],
+      missions: [],
+      history: [],
+    });
+    expect(migrateSave(once)).toEqual(once);
+  });
+
+  it("survives a document that was written half-way through a failed save", () => {
+    const out = migrateSave({
+      version: 4,
+      bestRank: null,
+      rankLog: "corrupt",
+      titles: undefined,
+      questDays: {},
+      challenge: 7,
+      missions: [],
+      history: [],
+    });
+    expect(out.bestRank).toBe("E");
+    expect(out.rankLog).toEqual({});
+    expect(out.titles).toEqual({});
+    expect(out.questDays).toEqual([]);
+    expect(out.challenge.week).toBe(null);
   });
 });

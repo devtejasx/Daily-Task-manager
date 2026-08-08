@@ -81,6 +81,24 @@ export function makeSave(overrides = {}) {
   };
 }
 
+/** A save that has already been through every migration step. */
+export function makeCurrentSave(overrides = {}) {
+  return makeSave({
+    version: 4,
+    bestRank: "E",
+    rankLog: {},
+    titles: {},
+    activeTitle: null,
+    shields: 0,
+    recovery: null,
+    comebacks: 0,
+    dayXP: 0,
+    questDays: [],
+    challenge: { week: null, weeklyClaimed: false, bossAccepted: false, bossClaimed: false },
+    ...overrides,
+  });
+}
+
 /** Build a habit whose log covers the last `days` consecutive days. */
 export function habitWithStreak(days, overrides = {}) {
   const log = {};

@@ -14,8 +14,10 @@ import { rollover, seedAchievements } from "./helpers";
 /** The transient FX queue — never persisted. */
 export function freshFx() {
   return {
-    levelUp: null,
-    promotion: null,
+    levelUp: null, // {from,to,title?} — the level-up cinematic
+    promotion: null, // {rankKey,from,evaluation} — the rank cinematic
+    titleUnlocked: null, // {id,name,rarity} — a new title was earned
+    challengeCleared: null, // {kind,label,xp} — weekly or boss reward landed
     shielded: null, // {streak,remaining} — a shield absorbed a missed day
     preserved: null, // {streak} — held in recovery, one day to reclaim it
     recovered: null, // {streak} — the comeback landed
@@ -35,14 +37,21 @@ export function freshState() {
     totalXP: 0,
     streak: 0,
     longestStreak: 0,
-    bestRankIndex: 0,
+    bestRankIndex: 0, // kept in step with bestRank so a v3 client still reads it
+    bestRank: "E", // permanent rank KEY — never decreases, whatever happens to a streak
+    rankLog: {}, // {rankKey: promotedISO} — the spine of the progression timeline
     shields: 0, // banked Streak Shields (see game/constants — the Resolve system)
     recovery: null, // {streak,since} — a preserved streak awaiting its comeback
     comebacks: 0, // lifetime preserved streaks reclaimed — a stat worth keeping
     dailySelected: [],
     dailyDate: localISO(),
     dayComplete: false,
+    dayXP: 0, // raw XP attempted today — drives the anti-farm damping in game/xp
+    questDays: [], // ISO days the daily quest was cleared, capped by migration
+    challenge: { week: null, weeklyClaimed: false, bossAccepted: false, bossClaimed: false },
     achievements: {}, // {id: unlockedISO}
+    titles: {}, // {titleId: unlockedISO}
+    activeTitle: null, // the title the hunter wears
     fx: freshFx(),
   };
 }
