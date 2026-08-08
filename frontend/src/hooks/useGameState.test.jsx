@@ -11,6 +11,7 @@ import {
   COMEBACK_XP,
 } from "../game/constants";
 import { makeRecurrence } from "../utils/recurrence";
+import { creditXP, dailyQuestXP, DAILY_XP_SOFT_CAP } from "../game/xp";
 
 const today = localISO();
 
@@ -591,7 +592,12 @@ describe("day rollover", () => {
 
     act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
 
-    expect(result.current.state.totalXP).toBe(DAILY_REQUIRED * 10 + COMEBACK_XP);
+    // Three awards land on this clear: the missions themselves, the daily
+    // quest reward at the reclaimed streak, and the comeback bonus.
+    const streak = 6; // the preserved 5 days, plus today
+    expect(result.current.state.totalXP).toBe(
+      DAILY_REQUIRED * 10 + dailyQuestXP(streak) + COMEBACK_XP
+    );
   });
 
   it("settles the climb only after the recovery day also passes", () => {
@@ -710,5 +716,128 @@ describe("hunter rank", () => {
     const { result } = mount(makeSave());
     expect(result.current.discipline.score).toBe(0);
     expect(result.current.discipline.ready).toBe(false);
+  });
+});
+
+/* =========================================================
+   The XP economy — quest reward, damping, and the abuse it prevents
+   ========================================================= */
+
+describe("daily quest reward", () => {
+  /** Clear a full daily quest from a save, returning the resulting state. */
+  function clearQuest(save = {}, xpEach = 10) {
+    const missions = Array.from({ length: DAILY_REQUIRED }, (_, i) =>
+      makeMission({ id: `dq-${i}`, xp: xpEach })
+    );
+    const { result } = mount(
+      makeSave({ missions, dailySelected: missions.map((m) => m.id), ...save })
+    );
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+    return result;
+  }
+
+  it("pays a bonus for clearing the quest", () => {
+    const result = clearQuest({ streak: 0 });
+    expect(result.current.state.totalXP).toBe(DAILY_REQUIRED * 10 + dailyQuestXP(1));
+  });
+
+  it("pays more to a longer streak, up to the cap", () => {
+    const short = clearQuest({ streak: 2 }).current.state.totalXP;
+    const long = clearQuest({ streak: 60 }).current.state.totalXP;
+    const longer = clearQuest({ streak: 300 }).current.state.totalXP;
+    expect(long).toBeGreaterThan(short);
+    expect(longer).toBe(long); // capped — a long run is never compulsory
+  });
+
+  it("pays nothing extra for clearing missions beyond the quest", () => {
+    const result = clearQuest({ streak: 0 });
+    const afterQuest = result.current.state.totalXP;
+    act(() => result.current.actions.addMission({ title: "Extra", xp: 100 }));
+    const extra = result.current.state.missions.find((m) => m.title === "Extra");
+    act(() => result.current.actions.completeMission(extra.id));
+    // The mission's own XP lands; no second quest bonus does.
+    expect(result.current.state.totalXP).toBe(afterQuest + 100);
+  });
+
+  it("records the day so the timeline and challenges can read it", () => {
+    const result = clearQuest({ streak: 3 });
+    expect(result.current.state.questDays).toContain(today);
+  });
+
+  it("does not record the same day twice", () => {
+    const result = clearQuest({ streak: 3, questDays: [today] });
+    expect(result.current.state.questDays.filter((d) => d === today)).toHaveLength(1);
+  });
+});
+
+describe("XP abuse prevention", () => {
+  it("credits an ordinary day in full", () => {
+    const { result } = mount(makeSave({ missions: [makeMission({ id: "m-1", xp: 800 })] }));
+    act(() => result.current.actions.completeMission("m-1"));
+    expect(result.current.state.totalXP).toBe(800);
+    expect(result.current.state.dayXP).toBe(800);
+  });
+
+  it("damps a mission cleared past the day's soft cap", () => {
+    const { result } = mount(
+      makeSave({ dayXP: DAILY_XP_SOFT_CAP, missions: [makeMission({ id: "m-1", xp: 400 })] })
+    );
+    act(() => result.current.actions.completeMission("m-1"));
+    expect(result.current.state.totalXP).toBe(200); // half rate
+  });
+
+  it("makes fifty fragments worth less than the honest work they replace", () => {
+    const fragments = Array.from({ length: 50 }, (_, i) =>
+      makeMission({ id: `f-${i}`, xp: 100 })
+    );
+    const { result } = mount(makeSave({ missions: fragments }));
+    act(() => fragments.forEach((m) => result.current.actions.completeMission(m.id)));
+
+    expect(result.current.state.dayXP).toBe(5000); // all of it attempted
+    expect(result.current.state.totalXP).toBeLessThan(5000); // not all of it paid
+    expect(result.current.state.totalXP).toBeGreaterThan(0); // and never punished
+  });
+
+  it("still records every clear in history, whatever it paid", () => {
+    const missions = Array.from({ length: 30 }, (_, i) => makeMission({ id: `h-${i}`, xp: 300 }));
+    const { result } = mount(makeSave({ missions }));
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+    expect(result.current.state.history).toHaveLength(30);
+  });
+
+  it("restores the full-rate allowance when the day turns over", () => {
+    const { result } = mount(
+      makeSave({ dayXP: DAILY_XP_SOFT_CAP * 3, dailyDate: addDaysISO(today, -1) })
+    );
+    expect(result.current.state.dayXP).toBe(0);
+  });
+
+  it("never takes XP away when the day rolls over", () => {
+    const { result } = mount(
+      makeSave({ totalXP: 40_000, dayXP: 9000, dailyDate: addDaysISO(today, -1) })
+    );
+    expect(result.current.state.totalXP).toBe(40_000);
+  });
+
+  it("cannot mint XP by ticking and un-ticking a habit past the cap", () => {
+    const { result } = mount(
+      makeSave({ dayXP: DAILY_XP_SOFT_CAP - 20, habits: [makeHabit({ id: "h-1", xp: 200 })] })
+    );
+    const before = result.current.state.totalXP;
+
+    for (let i = 0; i < 10; i += 1) {
+      act(() => result.current.actions.toggleHabitDay("h-1", today));
+      act(() => result.current.actions.toggleHabitDay("h-1", today));
+    }
+    expect(result.current.state.totalXP).toBe(before);
+    expect(result.current.state.dayXP).toBe(DAILY_XP_SOFT_CAP - 20);
+  });
+
+  it("pays a back-filled habit day in full — catching up is not farming", () => {
+    const { result } = mount(
+      makeSave({ dayXP: DAILY_XP_SOFT_CAP * 4, habits: [makeHabit({ id: "h-1", xp: 50 })] })
+    );
+    act(() => result.current.actions.toggleHabitDay("h-1", addDaysISO(today, -3)));
+    expect(result.current.state.totalXP).toBe(50);
   });
 });

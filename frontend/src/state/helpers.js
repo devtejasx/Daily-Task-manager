@@ -126,6 +126,10 @@ export function rollover(state) {
     dailySelected: [],
     dayComplete: false,
     dailyDate: today,
+    // A new day restores the full-rate XP allowance. This is the only
+    // counter the rollover resets — everything else it touches is the
+    // streak, and even that is only ever held, never destroyed.
+    dayXP: 0,
   };
 
   if (!missed) return { ...base, fx: { ...state.fx, newDay: true } };

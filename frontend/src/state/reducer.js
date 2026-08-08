@@ -19,7 +19,13 @@ import {
 import { nextId } from "../data/missions";
 import { buildNextOccurrence, nextOccurrenceISO } from "../utils/recurrence";
 import { toggleDay, currentStreak } from "../utils/habits";
-import { mergeSettings, normalizeMission, normalizeHabit } from "../services/migration";
+import { creditXP, refundXP, dailyQuestXP } from "../game/xp";
+import {
+  mergeSettings,
+  normalizeMission,
+  normalizeHabit,
+  normalizeQuestDays,
+} from "../services/migration";
 import { freshState, freshFx } from "./initialState";
 import {
   nextToastId,
@@ -205,8 +211,14 @@ export function reducer(state, action) {
       if (!mission || mission.status === "completed") return state;
 
       const levelBefore = getLevelInfo(state.totalXP).level;
-      const totalXP = state.totalXP + mission.xp;
-      const levelAfter = getLevelInfo(totalXP).level;
+
+      // XP is credited against what today has already paid out. An honest
+      // day never meets the cap; a day spent manufacturing missions does.
+      // `dayXP` tracks the RAW total attempted, which is what the bands are
+      // measured against — see game/xp.
+      const award = creditXP(mission.xp, state.dayXP ?? 0);
+      const totalXP = state.totalXP + award.credited;
+      const dayXP = (state.dayXP ?? 0) + award.raw;
 
       // A recurring mission spawns its follow-up occurrence immediately, so
       // the board never goes empty and the cleared card keeps its history.
@@ -226,6 +238,7 @@ export function reducer(state, action) {
       let next = {
         ...state,
         totalXP,
+        dayXP,
         missions: spawned ? [spawned, ...clearedBoard] : clearedBoard,
         history: [
           {
@@ -248,14 +261,15 @@ export function reducer(state, action) {
           id: nextToastId(),
           kind: "mission",
           title: "MISSION CLEARED",
-          desc: `${mission.title} · +${mission.xp} XP`,
+          // Damping is stated as a fact about the day, never as a penalty
+          // and never as a limit the hunter is warned they are approaching.
+          desc: award.damped
+            ? `${mission.title} · +${award.credited} XP · a full day's climb already — tomorrow pays in full`
+            : `${mission.title} · +${award.credited} XP`,
           color: "#06b6d4",
         },
       ];
       let fx = { ...state.fx, toasts };
-
-      /* level up? The cinematic reads both ends so it can show the climb. */
-      if (levelAfter > levelBefore) fx.levelUp = { from: levelBefore, to: levelAfter };
 
       /* daily quest progress */
       if (state.dailySelected.includes(mission.id)) {
@@ -275,6 +289,10 @@ export function reducer(state, action) {
           const forged = shieldsEarnedAt(streak);
           const shields = Math.min(SHIELD_MAX, held + forged);
 
+          // Clearing the quest pays. It is the single most important action
+          // in the game and it used to be the only one with no reward on it.
+          const questAward = creditXP(dailyQuestXP(streak), next.dayXP);
+
           next = {
             ...next,
             streak,
@@ -282,6 +300,10 @@ export function reducer(state, action) {
             dayComplete: true,
             shields,
             recovery: null,
+            totalXP: next.totalXP + questAward.credited,
+            dayXP: next.dayXP + questAward.raw,
+            // The ledger the timeline and the weekly challenge read.
+            questDays: normalizeQuestDays([...(state.questDays ?? []), localISO()]),
           };
 
           fx.toasts = [
@@ -291,8 +313,8 @@ export function reducer(state, action) {
               kind: "daily",
               title: "DAILY QUEST COMPLETE",
               desc: reclaiming
-                ? `All ${DAILY_REQUIRED} missions cleared · you're back`
-                : `All ${DAILY_REQUIRED} missions cleared · Streak +1 → ${streak} days`,
+                ? `All ${DAILY_REQUIRED} missions cleared · +${questAward.credited} XP · you're back`
+                : `All ${DAILY_REQUIRED} missions cleared · +${questAward.credited} XP · Streak +1 → ${streak} days`,
               color: "#10b981",
             },
           ];
@@ -300,19 +322,18 @@ export function reducer(state, action) {
           // The comeback pays: the whole preserved climb returns, plus a bonus
           // for showing up on the day it mattered most.
           if (reclaiming) {
-            next.totalXP += COMEBACK_XP;
+            const comebackAward = creditXP(COMEBACK_XP, next.dayXP);
+            next.totalXP += comebackAward.credited;
+            next.dayXP += comebackAward.raw;
             next.comebacks = (state.comebacks ?? 0) + 1;
             fx.recovered = { streak };
-            // The bonus can itself tip the hunter over a level boundary.
-            const levelWithBonus = getLevelInfo(next.totalXP).level;
-            if (levelWithBonus > levelBefore) fx.levelUp = { from: levelBefore, to: levelWithBonus };
             fx.toasts = [
               ...fx.toasts,
               {
                 id: nextToastId(),
                 kind: "recovery",
                 title: "STREAK RECOVERED",
-                desc: `${streak} days restored · +${COMEBACK_XP} XP for coming back`,
+                desc: `${streak} days restored · +${comebackAward.credited} XP for coming back`,
                 color: "#a78bfa",
               },
             ];
@@ -332,6 +353,13 @@ export function reducer(state, action) {
           }
         }
       }
+
+      // One level check, after every award this clear could produce — the
+      // mission, the quest bonus and the comeback can each tip the hunter
+      // over a boundary, and three separate checks would fire three
+      // cinematics for one moment.
+      const levelAfter = getLevelInfo(next.totalXP).level;
+      if (levelAfter > levelBefore) fx.levelUp = { from: levelBefore, to: levelAfter };
 
       // Rank is evaluated last, against the state this clear produced, so a
       // promotion reflects the mission that earned it rather than the one
@@ -368,15 +396,30 @@ export function reducer(state, action) {
       const habit = state.habits.find((h) => h.id === action.id);
       if (!habit) return state;
 
-      const day = action.day ?? localISO();
+      const today = localISO();
+      const day = action.day ?? today;
       const wasDone = Boolean(habit.log?.[day]);
       const next = toggleDay(habit, day);
 
       // Ticking awards the habit's XP; un-ticking takes it straight back, so a
-      // mis-click can never inflate the hunter's level.
-      const delta = wasDone ? -habit.xp : habit.xp;
+      // mis-click can never inflate the hunter's level. The refund reverses
+      // what was actually PAID rather than the nominal value, so a tick and
+      // an un-tick across the daily cap cannot mint XP.
+      //
+      // Only today's ticks count toward the cap. Back-filling a habit is
+      // bounded by the calendar — one tick per habit per day — so it needs no
+      // guard of its own, and damping it would punish honest catch-up.
+      const isToday = day === today;
+      const earned = state.dayXP ?? 0;
+      const award = isToday ? creditXP(habit.xp, earned) : { credited: habit.xp, raw: habit.xp };
+      const refund = isToday ? refundXP(habit.xp, earned) : habit.xp;
+
+      const delta = wasDone ? -refund : award.credited;
+      const dayDelta = isToday ? (wasDone ? -habit.xp : award.raw) : 0;
+
       const levelBefore = getLevelInfo(state.totalXP).level;
       const totalXP = Math.max(0, state.totalXP + delta);
+      const dayXP = Math.max(0, earned + dayDelta);
       const levelAfter = getLevelInfo(totalXP).level;
 
       const fx = { ...state.fx };
@@ -389,7 +432,7 @@ export function reducer(state, action) {
             id: nextToastId(),
             kind: "habit",
             title: "HABIT LOGGED",
-            desc: `${habit.title} · +${habit.xp} XP${streak > 1 ? ` · ${streak}-day streak` : ""}`,
+            desc: `${habit.title} · +${award.credited} XP${streak > 1 ? ` · ${streak}-day streak` : ""}`,
             color: habit.color,
           },
         ];
@@ -399,6 +442,7 @@ export function reducer(state, action) {
         sweepAchievements({
           ...state,
           totalXP,
+          dayXP,
           habits: state.habits.map((h) => (h.id === action.id ? next : h)),
           fx,
         })
