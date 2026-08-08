@@ -8,6 +8,9 @@
 
 import { localISO, addDaysISO, ACHIEVEMENTS } from "../game/constants";
 import { currentRank, rankIndexOf, higherRank, evaluationFor } from "../game/rank";
+import { disciplineScore } from "../game/discipline";
+import { TITLES } from "../game/titles";
+import { rarityOf } from "../game/rarity";
 
 let toastId = 0;
 
@@ -48,6 +51,78 @@ export function sweepAchievements(state) {
     }
   }
   return { ...state, achievements, fx: { ...state.fx, toasts } };
+}
+
+/* ---------------- titles ----------------
+ *
+ * Titles are tested against the state plus its Discipline Score, which
+ * is derived rather than stored. Computing it once here and handing the
+ * augmented object to every predicate keeps the title list declarative
+ * — the same shape as ACHIEVEMENTS — without each entry re-deriving it.
+ */
+function withDiscipline(state) {
+  return { ...state, disciplineScore: disciplineScore(state).score };
+}
+
+/** Silently unlock titles a loaded save has already earned. */
+export function seedTitles(state) {
+  const probe = withDiscipline(state);
+  const titles = { ...state.titles };
+  for (const title of TITLES) {
+    if (!titles[title.id] && title.test(probe)) titles[title.id] = localISO();
+  }
+  // A hunter who arrives already holding titles should be wearing one
+  // rather than having to go and find the picker.
+  const activeTitle = state.activeTitle ?? pickDefaultTitle(titles);
+  return { ...state, titles, activeTitle };
+}
+
+/** The rarest unlocked title, for a hunter who hasn't chosen one. */
+function pickDefaultTitle(titles) {
+  const owned = TITLES.filter((t) => titles[t.id]);
+  if (owned.length === 0) return null;
+  return owned.reduce((best, t) =>
+    rarityOf(t.rarity).order > rarityOf(best.rarity).order ? t : best
+  ).id;
+}
+
+/**
+ * Unlock newly-earned titles, each with its own toast and one-shot
+ * cinematic slot. A first title is equipped automatically — the reward
+ * for earning one should not be a chore.
+ */
+export function sweepTitles(state) {
+  const probe = withDiscipline(state);
+  const titles = { ...state.titles };
+  const toasts = [...state.fx.toasts];
+  let unlocked = null;
+
+  for (const title of TITLES) {
+    if (titles[title.id] || !title.test(probe)) continue;
+    titles[title.id] = localISO();
+    unlocked = title;
+    toasts.push({
+      id: nextToastId(),
+      kind: "title",
+      title: "TITLE EARNED",
+      desc: `${title.name} — ${title.desc}`,
+      icon: "Crown",
+      color: rarityOf(title.rarity).color,
+    });
+  }
+
+  if (!unlocked) return state;
+
+  return {
+    ...state,
+    titles,
+    activeTitle: state.activeTitle ?? unlocked.id,
+    fx: {
+      ...state.fx,
+      toasts,
+      titleUnlocked: { id: unlocked.id, name: unlocked.name, rarity: unlocked.rarity },
+    },
+  };
 }
 
 /* ---------------- rank ----------------

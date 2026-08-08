@@ -27,6 +27,7 @@ import {
   Target,
   FilterX,
   CalendarDays,
+  TrendingUp,
 } from "lucide-react";
 
 /** Icons referenced by name from achievement/toast definitions (keeps tree-shaking intact) */
@@ -61,6 +62,8 @@ export const ICON_MAP = {
   Target,
   FilterX,
   CalendarDays,
+  // progression icons
+  TrendingUp,
 };
 
 /** The subset offered when creating a habit. */

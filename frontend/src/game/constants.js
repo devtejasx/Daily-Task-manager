@@ -228,25 +228,97 @@ export const HABIT_CADENCES = {
   weekly1: { label: "Once a week", targetPerWeek: 1 },
 };
 
-/* ---------- achievements ---------- */
-export const ACHIEVEMENTS = [
-  { id: "first-mission", title: "First Awakening", desc: "Complete your first mission.", icon: "Sunrise", color: "#06b6d4", test: (s) => s.history.length >= 1 },
-  { id: "xp-1000", title: "Mana Reservoir", desc: "Earn 1,000 total XP.", icon: "Zap", color: "#3b82f6", test: (s) => s.totalXP >= 1000 },
-  { id: "missions-10", title: "Gate Crasher", desc: "Complete 10 missions.", icon: "Swords", color: "#7c3aed", test: (s) => s.history.length >= 10 },
-  { id: "missions-100", title: "Dungeon Devourer", desc: "Complete 100 missions.", icon: "Flame", color: "#f59e0b", test: (s) => s.history.length >= 100 },
-  { id: "streak-21", title: "Iron Discipline", desc: "Hold a 21-day streak.", icon: "CalendarCheck", color: "#10b981", test: (s) => s.longestStreak >= 21 },
-  { id: "streak-90", title: "Unbending Will", desc: "Hold a 90-day streak.", icon: "ShieldCheck", color: "#3b82f6", test: (s) => s.longestStreak >= 90 },
-  { id: "streak-180", title: "Beyond Human", desc: "Hold a 180-day streak.", icon: "Sparkles", color: "#a78bfa", test: (s) => s.longestStreak >= 180 },
-  { id: "streak-365", title: "Eternal Flame", desc: "Hold a 365-day streak.", icon: "Crown", color: "#f59e0b", test: (s) => s.longestStreak >= 365 },
-  { id: "rank-d", title: "D-Rank License", desc: "Get promoted to D-Rank.", icon: "BadgeCheck", color: "#10b981", test: (s) => s.bestRankIndex >= 1 },
-  { id: "rank-b", title: "B-Rank License", desc: "Get promoted to B-Rank.", icon: "Medal", color: "#3b82f6", test: (s) => s.bestRankIndex >= 2 },
-  { id: "rank-s", title: "S-Rank License", desc: "Get promoted to S-Rank.", icon: "Trophy", color: "#a78bfa", test: (s) => s.bestRankIndex >= 3 },
-  { id: "rank-national", title: "Monarch of Nations", desc: "Become a National-Level Hunter.", icon: "Skull", color: "#ef4444", test: (s) => s.bestRankIndex >= 4 },
+/* ---------- achievements ----------
+ *
+ * Every entry rewards something a hunter should actually want to have
+ * done. Nothing here can be earned by a burst — "complete 100 missions
+ * today" is the shape of achievement this product exists to argue with,
+ * so the counters that could be farmed in one sitting are all lifetime
+ * totals, and the ones that matter measure DAYS.
+ *
+ * `category` groups the wall. `rarity` says which ones are allowed to
+ * shout; see game/rarity for why most are not.
+ */
 
-  /* The Resolve line. Consistency and returning are skills in their own
-   * right, so they get titles of their own — coming back from a missed day
-   * is celebrated here exactly as loudly as never missing one. */
-  { id: "resolve-full", title: "Fully Resolved", desc: `Bank all ${SHIELD_MAX} Streak Shields at once.`, icon: "ShieldCheck", color: "#38bdf8", test: (s) => (s.shields ?? 0) >= SHIELD_MAX },
-  { id: "comeback-1", title: "Nothing Kept Me Down", desc: "Reclaim a preserved streak for the first time.", icon: "Hourglass", color: "#a78bfa", test: (s) => (s.comebacks ?? 0) >= 1 },
-  { id: "comeback-5", title: "Always Returns", desc: "Reclaim a preserved streak five times.", icon: "Repeat", color: "#10b981", test: (s) => (s.comebacks ?? 0) >= 5 },
+/** Distinct days on which anything was cleared — missions or habits. */
+function activeDayCount(state) {
+  const days = new Set();
+  for (const entry of state.history ?? []) if (entry?.completedAt) days.add(entry.completedAt);
+  for (const habit of state.habits ?? []) {
+    for (const [day, done] of Object.entries(habit.log ?? {})) if (done) days.add(day);
+  }
+  return days.size;
+}
+
+export const ACHIEVEMENT_CATEGORIES = [
+  "First Steps",
+  "Consistency",
+  "Long-Term Discipline",
+  "Recovery",
+  "Milestones",
+  "Rank",
 ];
+
+export const ACHIEVEMENTS = [
+  /* ---- First Steps ---- */
+  { id: "first-mission", title: "First Awakening", desc: "Complete your first mission.", icon: "Sunrise", color: "#06b6d4", category: "First Steps", rarity: "common", test: (s) => s.history.length >= 1 },
+  { id: "xp-1000", title: "Mana Reservoir", desc: "Earn 1,000 total XP.", icon: "Zap", color: "#3b82f6", category: "First Steps", rarity: "common", test: (s) => s.totalXP >= 1000 },
+  { id: "missions-10", title: "Gate Crasher", desc: "Complete 10 missions.", icon: "Swords", color: "#7c3aed", category: "First Steps", rarity: "common", test: (s) => s.history.length >= 10 },
+
+  /* ---- Consistency ----
+   * Measured in DAYS SHOWN UP FOR, never in things ticked. These are the
+   * achievements no amount of task-splitting can reach. */
+  { id: "days-7", title: "Seven Sunrises", desc: "Show up on 7 separate days.", icon: "CalendarCheck", color: "#22d3ee", category: "Consistency", rarity: "common", test: (s) => activeDayCount(s) >= 7 },
+  { id: "days-30", title: "A Month of Mornings", desc: "Show up on 30 separate days.", icon: "CalendarDays", color: "#10b981", category: "Consistency", rarity: "rare", test: (s) => activeDayCount(s) >= 30 },
+  { id: "days-100", title: "One Hundred Days", desc: "Show up on 100 separate days.", icon: "Sparkles", color: "#a78bfa", category: "Consistency", rarity: "epic", test: (s) => activeDayCount(s) >= 100 },
+  { id: "streak-21", title: "Iron Discipline", desc: "Hold a 21-day streak.", icon: "CalendarCheck", color: "#10b981", category: "Consistency", rarity: "rare", test: (s) => s.longestStreak >= 21 },
+
+  /* ---- Long-Term Discipline ---- */
+  { id: "missions-100", title: "Dungeon Devourer", desc: "Complete 100 missions.", icon: "Flame", color: "#f59e0b", category: "Long-Term Discipline", rarity: "rare", test: (s) => s.history.length >= 100 },
+  { id: "missions-500", title: "Gate Breaker", desc: "Complete 500 missions.", icon: "Swords", color: "#ec4899", category: "Long-Term Discipline", rarity: "epic", test: (s) => s.history.length >= 500 },
+  { id: "streak-90", title: "Unbending Will", desc: "Hold a 90-day streak.", icon: "ShieldCheck", color: "#3b82f6", category: "Long-Term Discipline", rarity: "epic", test: (s) => s.longestStreak >= 90 },
+  { id: "streak-180", title: "Beyond Human", desc: "Hold a 180-day streak.", icon: "Sparkles", color: "#a78bfa", category: "Long-Term Discipline", rarity: "legendary", test: (s) => s.longestStreak >= 180 },
+  { id: "streak-365", title: "Eternal Flame", desc: "Hold a 365-day streak.", icon: "Crown", color: "#f59e0b", category: "Long-Term Discipline", rarity: "legendary", test: (s) => s.longestStreak >= 365 },
+
+  /* ---- Recovery ----
+   * The Resolve line. Coming back from a missed day is a skill, and it is
+   * celebrated here exactly as loudly as never missing one. */
+  { id: "resolve-full", title: "Fully Resolved", desc: `Bank all ${SHIELD_MAX} Streak Shields at once.`, icon: "ShieldCheck", color: "#38bdf8", category: "Recovery", rarity: "rare", test: (s) => (s.shields ?? 0) >= SHIELD_MAX },
+  { id: "comeback-1", title: "Nothing Kept Me Down", desc: "Reclaim a preserved streak for the first time.", icon: "Hourglass", color: "#a78bfa", category: "Recovery", rarity: "rare", test: (s) => (s.comebacks ?? 0) >= 1 },
+  { id: "comeback-5", title: "Always Returns", desc: "Reclaim a preserved streak five times.", icon: "Repeat", color: "#10b981", category: "Recovery", rarity: "epic", test: (s) => (s.comebacks ?? 0) >= 5 },
+  { id: "comeback-15", title: "The Tide Returns", desc: "Reclaim a preserved streak fifteen times.", icon: "Repeat", color: "#f59e0b", category: "Recovery", rarity: "legendary", test: (s) => (s.comebacks ?? 0) >= 15 },
+
+  /* ---- Milestones ---- */
+  { id: "level-10", title: "Tenth Ascent", desc: "Reach hunter level 10.", icon: "TrendingUp", color: "#22d3ee", category: "Milestones", rarity: "common", test: (s) => getLevelInfo(s.totalXP ?? 0).level >= 10 },
+  { id: "level-25", title: "Deep Mana", desc: "Reach hunter level 25.", icon: "Zap", color: "#3b82f6", category: "Milestones", rarity: "rare", test: (s) => getLevelInfo(s.totalXP ?? 0).level >= 25 },
+  { id: "level-50", title: "Beyond the Curve", desc: "Reach hunter level 50.", icon: "Sparkles", color: "#a78bfa", category: "Milestones", rarity: "epic", test: (s) => getLevelInfo(s.totalXP ?? 0).level >= 50 },
+  { id: "quest-30", title: "Thirty Quests Cleared", desc: "Clear the daily quest on 30 days.", icon: "Target", color: "#10b981", category: "Milestones", rarity: "epic", test: (s) => (s.questDays ?? []).length >= 30 },
+
+  /* ---- Rank ----
+   * Read from the permanent rank key. A hunter who loses a streak keeps
+   * every licence they ever earned. */
+  { id: "rank-d", title: "D-Rank License", desc: "Get promoted to D-Rank.", icon: "BadgeCheck", color: "#10b981", category: "Rank", rarity: "common", test: (s) => rankReached(s, "D") },
+  { id: "rank-c", title: "C-Rank License", desc: "Get promoted to C-Rank.", icon: "BadgeCheck", color: "#22d3ee", category: "Rank", rarity: "rare", test: (s) => rankReached(s, "C") },
+  { id: "rank-b", title: "B-Rank License", desc: "Get promoted to B-Rank.", icon: "Medal", color: "#3b82f6", category: "Rank", rarity: "rare", test: (s) => rankReached(s, "B") },
+  { id: "rank-a", title: "A-Rank License", desc: "Get promoted to A-Rank.", icon: "Medal", color: "#ec4899", category: "Rank", rarity: "epic", test: (s) => rankReached(s, "A") },
+  { id: "rank-s", title: "S-Rank License", desc: "Get promoted to S-Rank.", icon: "Trophy", color: "#a78bfa", category: "Rank", rarity: "legendary", test: (s) => rankReached(s, "S") },
+  { id: "rank-national", title: "Monarch of Nations", desc: "Become a National-Level Hunter.", icon: "Skull", color: "#ef4444", category: "Rank", rarity: "legendary", test: (s) => rankReached(s, "NATIONAL") },
+];
+
+/**
+ * Has the hunter ever held this rank?
+ *
+ * Reads `bestRank` and falls back to the v3 `bestRankIndex` through the
+ * frozen legacy order, so an unmigrated state object — the shape the
+ * existing achievement tests pass in — still answers correctly.
+ */
+function rankReached(state, key) {
+  const order = HUNTER_RANKS.map((r) => r.key);
+  const target = order.indexOf(key);
+  if (typeof state.bestRank === "string" && state.bestRank) {
+    return order.indexOf(state.bestRank) >= target;
+  }
+  const legacy = ["E", "D", "B", "S", "NATIONAL"];
+  const held = legacy[Number(state.bestRankIndex) || 0] ?? "E";
+  return order.indexOf(held) >= target;
+}

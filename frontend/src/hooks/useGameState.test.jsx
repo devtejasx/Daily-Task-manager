@@ -841,3 +841,94 @@ describe("XP abuse prevention", () => {
     expect(result.current.state.totalXP).toBe(50);
   });
 });
+
+/* =========================================================
+   Titles — earned, worn, and never lost
+   ========================================================= */
+
+describe("hunter titles", () => {
+  it("earns a title when the behaviour that deserves it happens", () => {
+    const { result } = mount(makeSave({ missions: [makeMission({ id: "m-1", xp: 300 })] }));
+    act(() => result.current.actions.completeMission("m-1"));
+
+    expect(result.current.state.titles["the-initiate"]).toBe(today);
+    expect(result.current.state.fx.titleUnlocked).toMatchObject({ id: "the-initiate" });
+  });
+
+  it("equips a hunter's first title for them", () => {
+    const { result } = mount(makeSave({ missions: [makeMission({ id: "m-1", xp: 300 })] }));
+    act(() => result.current.actions.completeMission("m-1"));
+    expect(result.current.state.activeTitle).toBe("the-initiate");
+  });
+
+  it("does not silently re-equip once the hunter has chosen", () => {
+    const { result } = mount(
+      makeSave({
+        titles: { "the-initiate": today, "iron-will": today },
+        activeTitle: "the-initiate",
+        longestStreak: 21,
+        missions: [makeMission({ id: "m-1", xp: 300 })],
+      })
+    );
+    act(() => result.current.actions.completeMission("m-1"));
+    expect(result.current.state.activeTitle).toBe("the-initiate");
+  });
+
+  it("seeds an existing hunter's titles silently on load", () => {
+    const { result } = mount(makeSave({ longestStreak: 95, comebacks: 6 }));
+    expect(result.current.state.titles["iron-will"]).toBeTruthy();
+    expect(result.current.state.titles["unbreakable"]).toBeTruthy();
+    expect(result.current.state.titles["the-relentless"]).toBeTruthy();
+    expect(result.current.state.fx.titleUnlocked).toBe(null);
+    expect(result.current.state.fx.toasts).toEqual([]);
+  });
+
+  it("wears the rarest title a returning hunter already owns", () => {
+    const { result } = mount(makeSave({ longestStreak: 95 }));
+    // iron-will is rare, unbreakable is epic — the louder one is worn.
+    expect(result.current.state.activeTitle).toBe("unbreakable");
+  });
+
+  it("lets the hunter wear any title they have unlocked", () => {
+    const { result } = mount(makeSave({ longestStreak: 95 }));
+    act(() => result.current.actions.setTitle("iron-will"));
+    expect(result.current.state.activeTitle).toBe("iron-will");
+  });
+
+  it("refuses a title the hunter has not earned", () => {
+    const { result } = mount(makeSave());
+    act(() => result.current.actions.setTitle("monarch"));
+    expect(result.current.state.activeTitle).toBe(null);
+  });
+
+  it("refuses a title that does not exist", () => {
+    const { result } = mount(makeSave({ longestStreak: 95 }));
+    const before = result.current.state.activeTitle;
+    act(() => result.current.actions.setTitle("nonsense"));
+    expect(result.current.state.activeTitle).toBe(before);
+  });
+
+  it("lets the hunter wear nothing at all", () => {
+    const { result } = mount(makeSave({ longestStreak: 95 }));
+    act(() => result.current.actions.setTitle(null));
+    expect(result.current.state.activeTitle).toBe(null);
+  });
+
+  it("never takes a title back when a streak is lost", () => {
+    const { result } = mount(
+      makeSave({
+        titles: { "iron-will": "2026-01-01" },
+        activeTitle: "iron-will",
+        streak: 30,
+        longestStreak: 30,
+        dailyDate: addDaysISO(today, -4),
+        shields: 0,
+        dailySelected: ["m-1"],
+        missions: [makeMission({ id: "m-1" })],
+      })
+    );
+    expect(result.current.state.streak).toBe(0);
+    expect(result.current.state.titles["iron-will"]).toBe("2026-01-01");
+    expect(result.current.state.activeTitle).toBe("iron-will");
+  });
+});

@@ -34,7 +34,10 @@ import {
   sweepAchievements,
   seedRank,
   promoteRank,
+  seedTitles,
+  sweepTitles,
 } from "./helpers";
+import { titleById } from "../game/titles";
 
 /* ---------------- reducer ---------------- */
 export function reducer(state, action) {
@@ -364,7 +367,7 @@ export function reducer(state, action) {
       // Rank is evaluated last, against the state this clear produced, so a
       // promotion reflects the mission that earned it rather than the one
       // before it.
-      return promoteRank(sweepAchievements({ ...next, fx }));
+      return promoteRank(sweepTitles(sweepAchievements({ ...next, fx })));
     }
 
     /* ---------- habits ---------- */
@@ -439,13 +442,15 @@ export function reducer(state, action) {
       }
 
       return promoteRank(
-        sweepAchievements({
-          ...state,
-          totalXP,
-          dayXP,
-          habits: state.habits.map((h) => (h.id === action.id ? next : h)),
-          fx,
-        })
+        sweepTitles(
+          sweepAchievements({
+            ...state,
+            totalXP,
+            dayXP,
+            habits: state.habits.map((h) => (h.id === action.id ? next : h)),
+            fx,
+          })
+        )
       );
     }
 
@@ -462,6 +467,14 @@ export function reducer(state, action) {
           rank.has(h.id) ? { ...h, order: slots[rank.get(h.id)] } : h
         ),
       };
+    }
+
+    case "SET_TITLE": {
+      // Only a title the hunter has actually unlocked can be worn, and null
+      // always works — choosing to wear nothing is a valid choice.
+      if (action.id === null) return { ...state, activeTitle: null };
+      if (!titleById(action.id) || !state.titles?.[action.id]) return state;
+      return { ...state, activeTitle: action.id };
     }
 
     case "DISMISS_FX":
@@ -498,7 +511,7 @@ export function reducer(state, action) {
     case "SIM_ADD_STREAK": {
       const streak = state.streak + action.days;
       const longestStreak = Math.max(state.longestStreak, streak);
-      return promoteRank(sweepAchievements({ ...state, streak, longestStreak }));
+      return promoteRank(sweepTitles(sweepAchievements({ ...state, streak, longestStreak })));
     }
 
     case "SIM_ADD_XP": {
@@ -507,7 +520,7 @@ export function reducer(state, action) {
       const levelAfter = getLevelInfo(totalXP).level;
       const fx = { ...state.fx };
       if (levelAfter > levelBefore) fx.levelUp = { from: levelBefore, to: levelAfter };
-      return promoteRank(sweepAchievements({ ...state, totalXP, fx }));
+      return promoteRank(sweepTitles(sweepAchievements({ ...state, totalXP, fx })));
     }
 
     case "IMPORT_SAVE": {
@@ -526,11 +539,11 @@ export function reducer(state, action) {
           },
         ],
       };
-      return rollover(seedRank(base));
+      return rollover(seedTitles(seedRank(base)));
     }
 
     case "RESET_SAVE":
-      return rollover(seedRank(seedAchievements(freshState())));
+      return rollover(seedTitles(seedRank(seedAchievements(freshState()))));
 
     default:
       return state;

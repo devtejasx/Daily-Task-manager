@@ -30,6 +30,9 @@ export function createActions(dispatch) {
     toggleHabitDay: (id, day) => dispatch({ type: "TOGGLE_HABIT_DAY", id, day }),
     reorderHabits: (orderedIds) => dispatch({ type: "REORDER_HABITS", orderedIds }),
 
+    /* ---- identity ---- */
+    setTitle: (id) => dispatch({ type: "SET_TITLE", id }),
+
     /* ---- settings & data ---- */
     updateSettings: (patch) => dispatch({ type: "UPDATE_SETTINGS", patch }),
     importSave: (save) => dispatch({ type: "IMPORT_SAVE", save }),

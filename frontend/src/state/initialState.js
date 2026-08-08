@@ -9,7 +9,7 @@
 
 import { localISO } from "../game/constants";
 import { migrateSave, mergeSettings, SCHEMA_VERSION, DEFAULT_SETTINGS } from "../services/migration";
-import { rollover, seedAchievements, seedRank } from "./helpers";
+import { rollover, seedAchievements, seedRank, seedTitles } from "./helpers";
 
 /** The transient FX queue — never persisted. */
 export function freshFx() {
@@ -65,7 +65,7 @@ export function freshState() {
  */
 export function loadState(cloudSave) {
   try {
-    if (!cloudSave) return rollover(seedRank(seedAchievements(freshState())));
+    if (!cloudSave) return rollover(seedTitles(seedRank(seedAchievements(freshState()))));
 
     const base = { ...freshState(), ...migrateSave(cloudSave) };
     base.settings = mergeSettings(base.settings);
@@ -73,8 +73,8 @@ export function loadState(cloudSave) {
     // Seeding is silent by design: an existing hunter whose record already
     // justifies a higher rank gets it on load without a cinematic for
     // something they earned weeks ago.
-    return rollover(seedRank(base));
+    return rollover(seedTitles(seedRank(base)));
   } catch {
-    return rollover(seedRank(seedAchievements(freshState())));
+    return rollover(seedTitles(seedRank(seedAchievements(freshState()))));
   }
 }
