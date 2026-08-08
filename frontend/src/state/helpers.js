@@ -11,6 +11,9 @@ import { currentRank, rankIndexOf, higherRank, evaluationFor } from "../game/ran
 import { disciplineScore } from "../game/discipline";
 import { TITLES } from "../game/titles";
 import { rarityOf } from "../game/rarity";
+import { weeklyChallenge, bossChallenge } from "../game/challenges";
+import { creditXP } from "../game/xp";
+import { startOfWeekISO } from "../utils/date";
 
 let toastId = 0;
 
@@ -125,6 +128,88 @@ export function sweepTitles(state) {
   };
 }
 
+/* ---------------- challenges ----------------
+ *
+ * The weekly challenge and the boss are derived from history, so the
+ * only thing that has to be settled in state is which week has been
+ * accounted for and what has been paid out.
+ */
+
+/**
+ * Roll the challenge slice onto the current week and pay out anything
+ * that has just been cleared.
+ *
+ * An unfinished week is settled in complete silence. It rolls over with
+ * no toast, no summary and no mention — the vision forbids a screen
+ * that tells a hunter what they did not manage, and a cheerful
+ * "you didn't finish!" banner is exactly that screen.
+ */
+export function settleChallenges(state) {
+  const today = localISO();
+  const week = startOfWeekISO(today);
+  let next =
+    state.challenge?.week === week
+      ? state
+      : {
+          ...state,
+          challenge: { week, weeklyClaimed: false, bossAccepted: false, bossClaimed: false },
+        };
+
+  const weekly = weeklyChallenge(next, today);
+  const boss = bossChallenge(next, today);
+  const toasts = [...next.fx.toasts];
+  let cleared = null;
+  let challenge = { ...next.challenge };
+  let totalXP = next.totalXP;
+  let dayXP = next.dayXP ?? 0;
+
+  /** Rewards are credited through the same daily guard as everything else. */
+  const pay = (amount) => {
+    const award = creditXP(amount, dayXP);
+    totalXP += award.credited;
+    dayXP += award.raw;
+    return award.credited;
+  };
+
+  if (weekly.complete && !weekly.claimed) {
+    const paid = pay(weekly.xp);
+    challenge.weeklyClaimed = true;
+    cleared = { kind: "weekly", label: weekly.label, xp: paid };
+    toasts.push({
+      id: nextToastId(),
+      kind: "challenge",
+      title: "WEEKLY CHALLENGE CLEARED",
+      desc: `${weekly.target} missions this week · +${paid} XP`,
+      icon: "Target",
+      color: "#10b981",
+    });
+  }
+
+  if (boss.accepted && boss.complete && !boss.claimed) {
+    const paid = pay(boss.xp);
+    challenge.bossClaimed = true;
+    cleared = { kind: "boss", label: boss.name, xp: paid, color: boss.color };
+    toasts.push({
+      id: nextToastId(),
+      kind: "boss",
+      title: "BOSS CLEARED",
+      desc: `${boss.name} · +${paid} XP`,
+      icon: "Trophy",
+      color: boss.color,
+    });
+  }
+
+  if (!cleared && next === state) return state;
+
+  return {
+    ...next,
+    totalXP,
+    dayXP,
+    challenge,
+    fx: cleared ? { ...next.fx, toasts, challengeCleared: cleared } : next.fx,
+  };
+}
+
 /* ---------------- rank ----------------
  *
  * Rank is stored, not derived, for one reason: it must never go down.
@@ -207,7 +292,7 @@ export function rollover(state) {
     dayXP: 0,
   };
 
-  if (!missed) return { ...base, fx: { ...state.fx, newDay: true } };
+  if (!missed) return settleChallenges({ ...base, fx: { ...state.fx, newDay: true } });
 
   // Resolve spent: the shield takes the hit and the climb continues.
   const shields = state.shields ?? 0;

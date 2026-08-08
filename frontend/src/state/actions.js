@@ -33,6 +33,9 @@ export function createActions(dispatch) {
     /* ---- identity ---- */
     setTitle: (id) => dispatch({ type: "SET_TITLE", id }),
 
+    /* ---- challenges ---- */
+    acceptBoss: () => dispatch({ type: "ACCEPT_BOSS" }),
+
     /* ---- settings & data ---- */
     updateSettings: (patch) => dispatch({ type: "UPDATE_SETTINGS", patch }),
     importSave: (save) => dispatch({ type: "IMPORT_SAVE", save }),

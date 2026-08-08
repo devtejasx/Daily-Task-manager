@@ -27,6 +27,10 @@ export function useProtectedActions(actions, requireAuth) {
         requireAuth(() => actions.setRecurrencePaused(id, paused)),
       moveMission: (id, dueDate) => requireAuth(() => actions.moveMission(id, dueDate)),
 
+      // Progression choices a guest can't persist, gated like the rest.
+      setTitle: (id) => requireAuth(() => actions.setTitle(id)),
+      acceptBoss: () => requireAuth(actions.acceptBoss),
+
       addHabit: (data) => requireAuth(() => actions.addHabit(data)),
       deleteHabit: (id) => requireAuth(() => actions.deleteHabit(id)),
       toggleHabitDay: (id, day) => requireAuth(() => actions.toggleHabitDay(id, day)),

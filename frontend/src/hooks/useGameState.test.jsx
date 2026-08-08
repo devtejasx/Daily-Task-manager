@@ -12,6 +12,15 @@ import {
 } from "../game/constants";
 import { makeRecurrence } from "../utils/recurrence";
 import { creditXP, dailyQuestXP, DAILY_XP_SOFT_CAP } from "../game/xp";
+import { startOfWeekISO } from "../utils/date";
+
+/** A challenge slice for the current week with the weekly reward already paid. */
+const weeklySettled = () => ({
+  week: startOfWeekISO(today),
+  weeklyClaimed: true,
+  bossAccepted: false,
+  bossClaimed: false,
+});
 
 const today = localISO();
 
@@ -750,7 +759,8 @@ describe("daily quest reward", () => {
   });
 
   it("pays nothing extra for clearing missions beyond the quest", () => {
-    const result = clearQuest({ streak: 0 });
+    // The weekly challenge is pre-settled so this isolates the daily quest.
+    const result = clearQuest({ streak: 0, challenge: weeklySettled() });
     const afterQuest = result.current.state.totalXP;
     act(() => result.current.actions.addMission({ title: "Extra", xp: 100 }));
     const extra = result.current.state.missions.find((m) => m.title === "Extra");
@@ -793,8 +803,9 @@ describe("XP abuse prevention", () => {
     const { result } = mount(makeSave({ missions: fragments }));
     act(() => fragments.forEach((m) => result.current.actions.completeMission(m.id)));
 
-    expect(result.current.state.dayXP).toBe(5000); // all of it attempted
-    expect(result.current.state.totalXP).toBeLessThan(5000); // not all of it paid
+    // Every point of it was attempted, and rather less than that was paid.
+    expect(result.current.state.dayXP).toBeGreaterThanOrEqual(5000);
+    expect(result.current.state.totalXP).toBeLessThan(result.current.state.dayXP);
     expect(result.current.state.totalXP).toBeGreaterThan(0); // and never punished
   });
 
@@ -930,5 +941,121 @@ describe("hunter titles", () => {
     expect(result.current.state.streak).toBe(0);
     expect(result.current.state.titles["iron-will"]).toBe("2026-01-01");
     expect(result.current.state.activeTitle).toBe("iron-will");
+  });
+});
+
+/* =========================================================
+   Challenges — settlement through the reducer
+   ========================================================= */
+
+describe("weekly challenge and boss", () => {
+  /** Clear `count` missions in one go, from a given save. */
+  function clear(count, save = {}) {
+    const missions = Array.from({ length: count }, (_, i) =>
+      makeMission({ id: `wc-${i}`, xp: 100 })
+    );
+    const { result } = mount(makeSave({ missions, ...save }));
+    act(() => missions.forEach((m) => result.current.actions.completeMission(m.id)));
+    return result;
+  }
+
+  it("pays the weekly reward the moment the target is met", () => {
+    const result = clear(5);
+    // 5 missions at 100 XP, plus the weekly reward for a target of 5.
+    expect(result.current.state.totalXP).toBe(500 + 125);
+    expect(result.current.state.challenge.weeklyClaimed).toBe(true);
+  });
+
+  it("pays it exactly once", () => {
+    const result = clear(12);
+    expect(result.current.state.totalXP).toBe(1200 + 125);
+  });
+
+  it("does not pay before the target is met", () => {
+    const result = clear(4);
+    expect(result.current.state.totalXP).toBe(400);
+    expect(result.current.state.challenge.weeklyClaimed).toBe(false);
+  });
+
+  it("announces a cleared challenge without ever announcing an unfinished one", () => {
+    expect(clear(5).current.state.fx.challengeCleared).toMatchObject({ kind: "weekly" });
+    expect(clear(3).current.state.fx.challengeCleared).toBe(null);
+  });
+
+  it("opens a fresh week when the slice belongs to an older one", () => {
+    const result = clear(1, {
+      challenge: {
+        week: addDaysISO(startOfWeekISO(today), -7),
+        weeklyClaimed: true,
+        bossAccepted: true,
+        bossClaimed: true,
+      },
+    });
+    expect(result.current.state.challenge.week).toBe(startOfWeekISO(today));
+    expect(result.current.state.challenge.bossAccepted).toBe(false);
+    expect(result.current.state.challenge.bossClaimed).toBe(false);
+  });
+
+  it("settles the week on rollover, so a new week is live immediately", () => {
+    const { result } = mount(
+      makeSave({
+        dailyDate: addDaysISO(today, -1),
+        challenge: { week: addDaysISO(startOfWeekISO(today), -14), weeklyClaimed: true },
+      })
+    );
+    expect(result.current.state.challenge.week).toBe(startOfWeekISO(today));
+    expect(result.current.state.challenge.weeklyClaimed).toBe(false);
+  });
+
+  it("never takes XP back when a week ends unfinished", () => {
+    const { result } = mount(
+      makeSave({
+        totalXP: 25_000,
+        dailyDate: addDaysISO(today, -1),
+        challenge: { week: addDaysISO(startOfWeekISO(today), -7), weeklyClaimed: false },
+      })
+    );
+    expect(result.current.state.totalXP).toBe(25_000);
+  });
+
+  it("says nothing at all about a week that was not finished", () => {
+    const { result } = mount(
+      makeSave({
+        dailyDate: addDaysISO(today, -1),
+        challenge: { week: addDaysISO(startOfWeekISO(today), -7), weeklyClaimed: false },
+      })
+    );
+    expect(result.current.state.fx.challengeCleared).toBe(null);
+    const words = result.current.state.fx.toasts.map((t) => `${t.title} ${t.desc}`).join(" ");
+    expect(words.toLowerCase()).not.toContain("fail");
+  });
+
+  it("lets the hunter take on the boss, and only once", () => {
+    const { result } = mount(makeSave());
+    act(() => result.current.actions.acceptBoss());
+    expect(result.current.state.challenge.bossAccepted).toBe(true);
+
+    const toasts = result.current.state.fx.toasts.length;
+    act(() => result.current.actions.acceptBoss());
+    expect(result.current.state.fx.toasts).toHaveLength(toasts);
+  });
+
+  it("pays no boss reward to a hunter who never accepted it", () => {
+    const questDays = [];
+    const history = [];
+    for (let i = 0; i < 7; i += 1) {
+      const day = addDaysISO(startOfWeekISO(today), i);
+      questDays.push(day);
+      for (let n = 0; n < 6; n += 1) history.push({ id: `b${i}${n}`, xp: 100, completedAt: day });
+    }
+    const result = clear(1, { history, questDays });
+    expect(result.current.state.challenge.bossClaimed).toBe(false);
+  });
+
+  it("exposes both challenges to the UI", () => {
+    const { result } = mount(makeSave());
+    expect(result.current.challenges.weekly.target).toBeGreaterThan(0);
+    expect(result.current.challenges.boss.name).toBeTruthy();
+    expect(result.current.challenges.boss.accepted).toBe(false);
   });
 });

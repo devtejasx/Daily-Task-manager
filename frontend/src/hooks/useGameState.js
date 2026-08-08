@@ -2,6 +2,7 @@ import { useEffect, useMemo, useReducer, useRef } from "react";
 import { getLevelInfo, missionXPForLevel } from "../game/constants";
 import { rankByKey, rankIndexOf, rankProgress } from "../game/rank";
 import { disciplineScore } from "../game/discipline";
+import { weeklyChallenge, bossChallenge } from "../game/challenges";
 import { reducer } from "../state/reducer";
 import { loadState } from "../state/initialState";
 import { createActions } from "../state/actions";
@@ -56,6 +57,11 @@ export function useGameState(initialSave, onPersist) {
     [state.history, state.habits, state.streak, state.recovery, state.comebacks] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
+  const challenges = useMemo(
+    () => ({ weekly: weeklyChallenge(state), boss: bossChallenge(state) }),
+    [state.history, state.questDays, state.challenge] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   const ascent = useMemo(
     () => rankProgress(state),
     [state.bestRank, state.totalXP, state.history, state.habits, state.streak, state.longestStreak, state.recovery] // eslint-disable-line react-hooks/exhaustive-deps
@@ -89,6 +95,7 @@ export function useGameState(initialSave, onPersist) {
     rankIndex,
     discipline,
     ascent,
+    challenges,
     dailyMissions,
     dailyDone,
     stats,

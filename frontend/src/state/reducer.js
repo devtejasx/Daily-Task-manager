@@ -36,8 +36,11 @@ import {
   promoteRank,
   seedTitles,
   sweepTitles,
+  settleChallenges,
 } from "./helpers";
 import { titleById } from "../game/titles";
+import { bossForWeek } from "../game/challenges";
+import { startOfWeekISO } from "../utils/date";
 
 /* ---------------- reducer ---------------- */
 export function reducer(state, action) {
@@ -357,17 +360,25 @@ export function reducer(state, action) {
         }
       }
 
+      // Challenges settle before the level is checked, because a weekly or
+      // boss reward is itself XP and can be the award that crosses the
+      // boundary. Checking first would swallow that cinematic.
+      const settled = settleChallenges({ ...next, fx });
+
       // One level check, after every award this clear could produce — the
-      // mission, the quest bonus and the comeback can each tip the hunter
-      // over a boundary, and three separate checks would fire three
-      // cinematics for one moment.
-      const levelAfter = getLevelInfo(next.totalXP).level;
-      if (levelAfter > levelBefore) fx.levelUp = { from: levelBefore, to: levelAfter };
+      // mission, the quest bonus, the comeback and a challenge reward can
+      // each tip the hunter over a boundary, and four separate checks would
+      // fire four cinematics for one moment.
+      const levelAfter = getLevelInfo(settled.totalXP).level;
+      const withLevel =
+        levelAfter > levelBefore
+          ? { ...settled, fx: { ...settled.fx, levelUp: { from: levelBefore, to: levelAfter } } }
+          : settled;
 
       // Rank is evaluated last, against the state this clear produced, so a
       // promotion reflects the mission that earned it rather than the one
       // before it.
-      return promoteRank(sweepTitles(sweepAchievements({ ...next, fx })));
+      return promoteRank(sweepTitles(sweepAchievements(withLevel)));
     }
 
     /* ---------- habits ---------- */
@@ -466,6 +477,36 @@ export function reducer(state, action) {
         habits: state.habits.map((h) =>
           rank.has(h.id) ? { ...h, order: slots[rank.get(h.id)] } : h
         ),
+      };
+    }
+
+    case "ACCEPT_BOSS": {
+      // Taking on the boss is always the hunter's choice, and it can only
+      // be made for the week they are actually in.
+      const week = startOfWeekISO(localISO());
+      const challenge =
+        state.challenge?.week === week
+          ? state.challenge
+          : { week, weeklyClaimed: false, bossAccepted: false, bossClaimed: false };
+      if (challenge.bossAccepted) return state;
+
+      return {
+        ...state,
+        challenge: { ...challenge, bossAccepted: true },
+        fx: {
+          ...state.fx,
+          toasts: [
+            ...state.fx.toasts,
+            {
+              id: nextToastId(),
+              kind: "boss",
+              title: "CHALLENGE ACCEPTED",
+              desc: `${bossForWeek(week).name} · optional, and yours to attempt`,
+              icon: "Trophy",
+              color: "#a78bfa",
+            },
+          ],
+        },
       };
     }
 

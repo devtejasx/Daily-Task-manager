@@ -15,6 +15,7 @@ import DailyQuestPanel from "../components/DailyQuestPanel";
 import RankBadge from "../components/RankBadge";
 import WeeklyXPChart from "../components/WeeklyXPChart";
 import HistoryTimeline from "../components/HistoryTimeline";
+import ChallengePanel from "../components/ChallengePanel";
 import { useCountUp } from "../hooks/useCountUp";
 import { ACHIEVEMENTS, DAILY_REQUIRED, nextRank, localISO } from "../game/constants";
 import { EMPTY, greetingForDay, streakLine } from "../game/copy";
@@ -53,6 +54,8 @@ export default function Dashboard({
   totalXP,
   weeklySeries,
   achievements,
+  challenges,
+  onAcceptBoss,
   onComplete,
   onDelete,
   onOpenAdd,
@@ -272,6 +275,16 @@ export default function Dashboard({
           </div>
         </motion.div>
       </div>
+
+      {/* this week — the challenge and the optional boss */}
+      {challenges && (
+        <ChallengePanel
+          weekly={challenges.weekly}
+          boss={challenges.boss}
+          onAcceptBoss={onAcceptBoss}
+          delay={0.42}
+        />
+      )}
 
       {/* charts + achievements + history */}
       <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
